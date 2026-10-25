@@ -9,14 +9,17 @@
 #   test/passbolt-server.sh cake ARGS…       runs bin/cake as the service user
 #   test/passbolt-server.sh stop
 #
-# Needs: PHP ≥ 8.2 with the gnupg extension (php-gnupg; or set PHP_GNUPG_SO=/path/gnupg.so), composer, git,
-# gpg and the PostgreSQL server binaries (PG_BIN, default from pg_config). Passbolt v$PB_VERSION is cloned from
-# GitHub and its dependencies are installed from their git sources (composer --prefer-source).
+# Needs: PHP ≥ 8.2 (with its phpize/php-config), composer, git, a C compiler, gpg, libgpgme and the PostgreSQL
+# server binaries (PG_BIN, default from pg_config). Everything else comes from GitHub, pinned to commit hashes:
+# Passbolt v$PB_VERSION, its dependencies from their git sources (composer --prefer-source, commits from
+# composer.lock) and, when PHP lacks the gnupg extension, php-gnupg (built once into $DIR/php; or set
+# PHP_GNUPG_SO=/path/gnupg.so). No package manager, no packagist.org or pecl.php.net access is needed.
 # PHP's ldap extension is only used by Passbolt PRO; when it is missing, the requirement check is skipped for this
 # test instance only. Run as root, everything runs as the user $PB_USER (created if missing), because
 # PostgreSQL refuses to run as root.
 set -eu
 PB_VERSION=${PB_VERSION:-5.16.0}
+PB_COMMIT=${PB_COMMIT:-8ff0944c9b6c4020204d60e776d0eb53dcbe8a3a} # tag v5.16.0
 PORT=${PB_PORT:-8900}
 PG_PORT=${PB_PG_PORT:-5433}
 DIR=${PB_DIR:-${TMPDIR:-/tmp}/omnivault-passbolt}
@@ -31,9 +34,40 @@ as_user() { # run a shell snippet as the service user with Passbolt's environmen
 }
 cake() { as_user "cd $APP && ./bin/cake $*"; }
 
+fetch() { # fetch URL TAG COMMIT DEST: shallow clone of a tag, refuses anything but the pinned commit
+  [ -d "$4/.git" ] || git clone -q -c advice.detachedHead=false --depth 1 --branch "$2" "$1" "$4"
+  got=$(git -c safe.directory='*' -C "$4" rev-parse HEAD)
+  [ "$got" = "$3" ] || { echo "$1 $2: commit $got, expected $3" >&2; exit 1; }
+}
+
+# php-gnupg from its git sources, built against the system's libgpgme (no -dev packages needed): the two headers
+# are generated from the libgpg-error and gpgme sources of the matching release, exactly as their build would do.
+build_gnupg() {
+  out=$DIR/php/gnupg.so; [ -f "$out" ] && return
+  b=$DIR/build-gnupg; mkdir -p "$b/prefix/include" "$b/prefix/lib"
+  fetch https://github.com/gpg/libgpg-error.git libgpg-error-1.47 a25cea92798a5ece3f49924911507f5335915ecc "$b/libgpg-error"
+  fetch https://github.com/gpg/gpgme.git gpgme-1.18.0 26ff163bd6912fa7e8cb522d0799e17095ac1efb "$b/gpgme"
+  fetch https://github.com/php-gnupg/php-gnupg.git gnupg-1.5.4 ced3b06792ead4898974ae95817f09479af843bb "$b/php-gnupg"
+  git -c safe.directory='*' -C "$b/php-gnupg" submodule -q update --init --depth 1 phpc # pinned by php-gnupg
+  printf '#define HAVE_STDINT_H 1\n#define HAVE_SYS_TYPES_H 1\n#define USE_POSIX_THREADS 1\n#define REPLACEMENT_FOR_OFF_T "long"\n' > "$b/config.h"
+  (cd "$b/libgpg-error/src" && cc -I. -o "$b/mkheader" mkheader.c &&
+    "$b/mkheader" --cross "$(uname -m)-unknown-linux-gnu" gpg-error.h.in "$b/config.h" 1.47 0x012f00 2>/dev/null > "$b/prefix/include/gpg-error.h")
+  printf '#include <sys/types.h>\ntypedef off_t   gpgme_off_t;\ntypedef ssize_t gpgme_ssize_t;\n' > "$b/typedefs.h"
+  sed -e 's/@GPGME_CONFIG_HOST@/linux/; s/@PACKAGE_VERSION@/1.18.0/; s/@VERSION_NUMBER@/0x011200/' \
+    -e 's/@NEED__FILE_OFFSET_BITS@/0/g; s/@API__SSIZE_T@/ssize_t/g; s/@API__OFF_T@/off_t/g' \
+    -e "/@INSERT__TYPEDEFS_FOR_GPGME_H@/{r $b/typedefs.h" -e 'd}' "$b/gpgme/src/gpgme.h.in" > "$b/prefix/include/gpgme.h"
+  for l in libgpgme.so.11 libgpg-error.so.0; do
+    p=$(ldconfig -p | awk -v l="$l" '$1 == l && /x86-64|aarch64/ {print $NF; exit}')
+    [ -n "$p" ] || { echo "$l is missing" >&2; exit 1; }
+    ln -sf "$p" "$b/prefix/lib/${l%.so.*}.so"
+  done
+  (cd "$b/php-gnupg" && phpize >/dev/null && ./configure -q --with-gnupg="$b/prefix" >/dev/null && make -s -j2 >/dev/null 2>&1)
+  install -m 755 "$b/php-gnupg/modules/gnupg.so" "$out"
+}
+
 install_app() {
   [ -f "$APP/vendor/autoload.php" ] && return
-  git clone -q --depth 1 --branch "v$PB_VERSION" https://github.com/passbolt/passbolt_api.git "$APP"
+  fetch https://github.com/passbolt/passbolt_api.git "v$PB_VERSION" "$PB_COMMIT" "$APP"
   (cd "$APP" && COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_NO_INTERACTION=1 composer install -q --no-dev --prefer-source \
     --ignore-platform-req=ext-gnupg --ignore-platform-req=ext-ldap --no-scripts)
   # The ldap extension is a PRO requirement; allow this test instance to run without it.
@@ -46,7 +80,10 @@ case "${1:-start}" in
     if [ "$(id -u)" = 0 ] && ! id "$PB_USER" >/dev/null 2>&1; then useradd -M -s /bin/sh "$PB_USER"; fi
     mkdir -p "$DIR/php"
     install_app
-    if [ -n "${PHP_GNUPG_SO:-}" ]; then echo "extension=$PHP_GNUPG_SO" > "$DIR/php/gnupg.ini"; fi
+    if [ -n "${PHP_GNUPG_SO:-}" ]; then echo "extension=$PHP_GNUPG_SO" > "$DIR/php/gnupg.ini"
+    elif ! php -r 'exit(extension_loaded("gnupg") ? 0 : 1);'; then
+      build_gnupg; echo "extension=$DIR/php/gnupg.so" > "$DIR/php/gnupg.ini"
+    fi
     rm -rf "$DIR/pgdata" "$HOME_DIR" "$APP/config/jwt/jwt.key" "$APP/config/jwt/jwt.pem"
     mkdir -p "$DIR/pgdata" "$HOME_DIR/.gnupg"
     chmod 700 "$DIR/pgdata" "$HOME_DIR" "$HOME_DIR/.gnupg"

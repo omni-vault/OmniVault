@@ -62,8 +62,12 @@ in `npm test` brauchen ein installiertes `gpg`, sonst werden sie übersprungen; 
 `OMNIVAULT_PASS_BIN=/pfad/zu/pass`, die gopass-Tests mit `OMNIVAULT_GOPASS_BIN=/pfad/zu/gopass` oder
 `OMNIVAULT_GOPASS_DOWNLOAD=1` (lädt das gepinnte Release 1.17.4, Hash geprüft, siehe `test/gopass-bin.sh`). Die Dashlane-Tests laufen mit einem simulierten `dcli`; mit
 `OMNIVAULT_DCLI_DOWNLOAD=1` (bzw. `OMNIVAULT_DCLI_BIN_REAL=/pfad/zu/dcli`) prüft ein Test zusätzlich das echte Release 6.2642.0
-ohne Konto (Hash geprüft, siehe `test/dcli-bin.sh`). `test:passbolt` braucht PHP ≥ 8.2 mit der gnupg-Erweiterung, Composer, git und
-die PostgreSQL-Programme (Details in `test/passbolt-server.sh`). `test:openbao` lädt beim ersten Lauf das offizielle
+ohne Konto (Hash geprüft, siehe `test/dcli-bin.sh`). `test:passbolt` braucht PHP ≥ 8.2 (mit `phpize`), Composer, git, einen C-Compiler,
+GnuPG mit libgpgme und die PostgreSQL-Programme; Paketquellen, packagist.org und pecl.php.net sind nicht nötig. Passbolt CE
+5.16.0 und seine Abhängigkeiten kommen aus ihren Git-Quellen (Commits gepinnt: Tag bzw. `composer.lock`); fehlt PHP die
+gnupg-Erweiterung, baut das Skript php-gnupg 1.5.4 einmalig gegen die vorhandene libgpgme (Header aus den Git-Quellen von
+libgpg-error 1.47 und gpgme 1.18.0 erzeugt, alle Commits geprüft). Erster Lauf ca. 3–4 Minuten, danach etwa 1,5 Minuten
+(Details in `test/passbolt-server.sh`). `test:openbao` lädt beim ersten Lauf das offizielle
 OpenBao-Release 2.7.1 für Linux amd64 (Hash geprüft, siehe `test/openbao-server.sh`); mit `OPENBAO_BIN=/pfad/zu/bao`
 nutzt es ein eigenes.
 
