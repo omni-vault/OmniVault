@@ -212,6 +212,12 @@ try {
       await page.waitForTimeout(250);
       await look(`tools-${i + 1}`);
     }
+    // Send: the form for a new file Send (the list was looked at above)
+    if (await page.$('#send-new-file')) {
+      await page.click('#send-new-file');
+      await page.waitForSelector('#send-form');
+      await look('tools-send-form');
+    }
     await page.click('#view-tools [role=tab] >> nth=0');
     await back();
     await page.click('#btn-settings');
