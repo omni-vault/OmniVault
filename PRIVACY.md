@@ -89,7 +89,9 @@ unlocked. They are not written to disk by OmniVault.
 - If you turn on the OmniVault button in login fields, the "Save login?" prompt or passkeys, OmniVault asks for
   access to websites. With that access it adds a small script to pages that looks for login forms, shows the
   OmniVault button, offers to save a login you submit (the user name and password stay in the browser and are only
-  saved to the account you pick), and answers passkey requests of the page. The address of the page is used to find
+  saved to the account you pick), and answers passkey requests of the page (and, in Chromium-based browsers, of
+  frames embedded in it that the page allows to use passkeys; to check that permission, OmniVault looks at the
+  frame's permissions policy and the addresses of the pages around it). The address of the page is used to find
   matching entries. Nothing from the page is sent anywhere unless you save it to one of your accounts.
 - OmniVault fills a login only into the website it belongs to and asks first if the address does not match.
 

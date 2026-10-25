@@ -24,7 +24,7 @@
     "test:openbao": "test/openbao-server.sh start && OPENBAO_URL=http://127.0.0.1:8820 node --test test/openbao-real.test.js && OPENBAO_URL=http://127.0.0.1:8820 node test/e2e-openbao.mjs; s=$?; test/openbao-server.sh stop; exit $s",
     "test:inline": "node test/e2e-inline.mjs",
     "test:i18n": "node test/e2e-i18n.mjs",
-    "test:passkeys": "node test/e2e-passkeys.mjs",
+    "test:passkeys": "node test/e2e-passkeys.mjs && node test/e2e-passkeys-frames.mjs",
     "test:hibp": "node test/e2e-hibp.mjs",
     "test:shortcuts": "xvfb-run -a -s \"-screen 0 1400x900x24\" node test/e2e-shortcuts.mjs",
     "test:firefox": "test/firefox.sh test",

@@ -272,15 +272,17 @@ async function syncContentScriptNow() {
     want.push({ id: CONTENT_SCRIPT, js: ['inline.js'], matches, runAt: 'document_idle', allFrames: false, persistAcrossSessions: false });
   }
   if (matches.length && s.passkeys) {
-    // the page script replaces navigator.credentials before the page's own scripts run; the bridge talks to us
+    // the page script replaces navigator.credentials before the page's own scripts run; the bridge talks to us.
+    // In all frames: requests from embedded frames are checked in the background (passkeys.js), the dialog
+    // always opens in the top frame.
     want.push(
-      { id: 'ov-webauthn-page', js: ['webauthn-page.js'], matches, runAt: 'document_start', allFrames: false, world: 'MAIN', persistAcrossSessions: false },
-      { id: 'ov-webauthn', js: ['webauthn.js'], matches, runAt: 'document_start', allFrames: false, persistAcrossSessions: false },
+      { id: 'ov-webauthn-page', js: ['webauthn-page.js'], matches, runAt: 'document_start', allFrames: true, world: 'MAIN', persistAcrossSessions: false },
+      { id: 'ov-webauthn', js: ['webauthn.js'], matches, runAt: 'document_start', allFrames: true, persistAcrossSessions: false },
     );
   }
   // all registrations, filtered here (Firefox and Chrome differ when asked for ids that do not exist)
   const have = (await ext.scripting.getRegisteredContentScripts().catch(() => [])).filter((r) => OWN_SCRIPTS.includes(r.id));
-  const same = (a, b) => a.runAt === b.runAt && (a.world ?? 'ISOLATED') === (b.world ?? 'ISOLATED')
+  const same = (a, b) => a.runAt === b.runAt && (a.world ?? 'ISOLATED') === (b.world ?? 'ISOLATED') && !!a.allFrames === !!b.allFrames
     && JSON.stringify([...(a.matches ?? [])].sort()) === JSON.stringify(b.matches) && JSON.stringify(a.js) === JSON.stringify(b.js);
   const stale = have.filter((h) => !want.some((w) => w.id === h.id && same(h, w))).map((h) => h.id);
   if (stale.length) await ext.scripting.unregisterContentScripts({ ids: stale });
@@ -321,8 +323,32 @@ const passkeys = createPasskeyService({
   provider: (account) => getProvider(account.provider),
   entry: async (account) => ((await store.getSession(account.id)) ? ensureSynced(account) : null),
   save: async (accountId, item, data) => (await write(accountId, (p, a, s) => p.saveItem(cfg(a), s, item, data))).item,
-  toTab: (tabId, message) => ext.tabs.sendMessage(tabId, message, { frameId: 0 }).catch(() => {}),
+  toTab: (tabId, message, frameId = 0) => ext.tabs.sendMessage(tabId, message, { frameId }).catch(() => null),
+  inspectFrame: inspectFrame,
 });
+
+/**
+ * What an embedded frame's isolated world says about a WebAuthn request (see checkFrame in passkeys.js). Runs in
+ * the content-script world, where the page's own scripts cannot replace document.featurePolicy, location or
+ * navigator.userActivation. null where the browser lacks these (Firefox): then the browser handles the request.
+ */
+async function inspectFrame(tabId, frameId, feature) {
+  if (!ext.scripting?.executeScript) return null;
+  const [res] = await ext.scripting.executeScript({
+    target: { tabId, frameIds: [frameId] },
+    args: [feature],
+    func: (f) => {
+      const policy = document.permissionsPolicy ?? document.featurePolicy;
+      if (typeof policy?.allowsFeature !== 'function' || typeof policy.features !== 'function' || !policy.features().includes(f)) return null;
+      if (!location.ancestorOrigins) return null;
+      return {
+        origin: location.origin, ancestors: [...location.ancestorOrigins], allowed: policy.allowsFeature(f),
+        active: !!navigator.userActivation?.isActive,
+      };
+    },
+  });
+  return res?.result ?? null;
+}
 
 const contentHandlers = {
   ...passkeys.contentHandlers,

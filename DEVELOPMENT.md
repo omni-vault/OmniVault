@@ -47,7 +47,8 @@ npm run test:passbolt     # richtet einen lokalen Passbolt CE ein (PostgreSQL) u
 npm run test:openbao      # startet ein lokales OpenBao (Dev-Modus, Port 8820) und testet Provider und Browser dagegen
 npm run test:inline       # Knopf im Anmeldefeld, „Login speichern?“, Karten ausfüllen
 npm run test:i18n         # Sprachen: Browsersprache, Sprachwahl, alle Ansichten in allen Sprachen + Pseudosprache
-npm run test:passkeys     # Passkeys: Testseite mit Prüfung auf dem Server, OmniVault-Dialog, Rückfall auf den Browser
+npm run test:passkeys     # Passkeys: Testseite mit Prüfung auf dem Server, OmniVault-Dialog, Rückfall auf den Browser,
+                          # eingebettete Frames (zwei Origins, mit und ohne Permissions Policy)
 npm run test:hibp         # Prüfung gegen Datenlecks: Zustimmung zuerst, nur 5-stellige Präfixe (Dienst simuliert)
 npm run test:shortcuts    # Tastenkürzel und Kontextmenü mit echten X11-Eingaben (sichtbarer Browser unter Xvfb)
 npm run test:firefox      # dieselben Funktionen in Firefox (WebDriver BiDi, siehe unten)
@@ -161,8 +162,25 @@ vendor/              OpenPGP.js, argon2id, Argon2-Referenz, @noble/ciphers, Twee
   Master-Passwort.
 - Passkeys: Die Seite erfährt nichts über Konten; sie bekommt nur ihren eigenen Passkey zurück. Origin und rpId
   nimmt OmniVault aus der Adresse des Tabs (rpId-Prüfung mit der Public Suffix List), private Schlüssel verlassen den
-  Hintergrund nur verschlüsselt zum Server und erreichen nie die Oberfläche. Nur der oberste Frame einer Seite wird
-  bedient. Für gesperrte Konten liegen nur gesalzene Hashes der Seiten mit Passkeys vor.
+  Hintergrund nur verschlüsselt zum Server und erreichen nie die Oberfläche. Für gesperrte Konten liegen nur
+  gesalzene Hashes der Seiten mit Passkeys vor.
+- Passkeys in eingebetteten Frames: Ein fremder Frame darf WebAuthn nur nutzen, wenn ihm die Seite darüber das per
+  Permissions Policy erlaubt (`allow="publickey-credentials-get"` bzw. `-create`). Diese Erlaubnis darf OmniVault
+  nicht dem Seitenskript glauben, das der Frame selbst manipulieren kann. Deshalb prüft der Hintergrund jede
+  Frame-Anfrage selbst: per `scripting.executeScript` in der isolierten Welt genau dieses Frames
+  (`document.featurePolicy.allowsFeature`, `location.ancestorOrigins`, beim Anlegen in fremden Frames
+  `navigator.userActivation.isActive`); die Seite kann diese Welt nicht verändern. Die Origin des Frames muss mit
+  `sender.origin`/`sender.url` übereinstimmen, die oberste Origin mit der Adresse des Tabs, alle Vorfahren müssen
+  sichere Origins sein, und die rpId muss wie sonst zur Origin des Frames passen. Der Dialog öffnet sich immer im
+  obersten Frame und nennt Frame und Seite; `clientDataJSON` enthält `crossOrigin: true` und `topOrigin`, sodass
+  die Website selbst prüfen kann, wo sie eingebettet war. Bedingte Anfragen aus Frames gehen an den Browser.
+  Firefox bietet weder `featurePolicy` noch `ancestorOrigins`: Dort gehen Frame-Anfragen weiterhin an den Browser.
+- Passkey-Erweiterungen PRF und largeBlob bietet OmniVault nicht an (beim Anlegen `prf.enabled: false`,
+  `largeBlob.supported: false`; `largeBlob.support: "required"` geht an den Browser). Das Bitwarden-Format
+  `login.fido2Credentials` hat kein Feld für ein PRF-Geheimnis oder einen Blob (geprüft am Quelltext von
+  Bitwarden-Server und -Clients, Oktober 2026); ein eigenes Feld ginge beim Bearbeiten in den Bitwarden-Apps
+  verloren, und der Passkey lieferte danach still andere PRF-Werte – für Seiten, die damit Daten verschlüsseln,
+  wäre das Datenverlust.
 - Selbst gehostete Server: Die Host-Berechtigung wird erst beim Verbinden angefragt.
 - Passbolt: Der private Schlüssel liegt passphrasegeschützt in `storage.local` (wie in der offiziellen Erweiterung);
   der Serverschlüssel wird beim ersten Login gemerkt, ändert er sich, bricht die Anmeldung ab. Beim Bearbeiten und

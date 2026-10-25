@@ -266,12 +266,15 @@ Einstellungen → Darstellung → Sprache wechselt sofort.
 | Passkeys: Seite fragt → OmniVault-Dialog (anlegen in neuem oder vorhandenem Login, anmelden, „anderes Gerät oder Browser“), Opt-in | ✅ R (Prüfseite mit unabhängiger Signaturprüfung, Passkeys gegen echtes Vaultwarden); manuell auf webauthn.io bestätigt | ✅ S (Prüfseite mit unabhängiger Signaturprüfung: anlegen, anmelden, abbrechen; simulierter Server); manuell auf webauthn.io bestätigt (19.10.2026) |
 | Passkeys in der Liste eines `username webauthn`-Felds (bedingte Anfrage, „conditional mediation“) | ✅ S | ✅ S |
 | Gesperrtes Konto: Dialog bietet Entsperren an, wenn dort ein Passkey für die Seite liegen kann | ✅ S | ✅ S |
+| Passkeys in eingebetteten Frames anderer Origins, nur mit Permissions Policy (`allow="publickey-credentials-get"` / `-create`), Dialog im obersten Frame mit Frame und Seite, `crossOrigin`/`topOrigin` in `clientDataJSON` | ✅ S (zwei Origins: mit Policy bedient OmniVault, ohne Policy und bei manipulierter Policy im Seitenskript antwortet der Browser; Prüfseite kontrolliert `crossOrigin`/`topOrigin`) | – (Firefox kann Policy und Vorfahren eines Frames nicht bestätigen: der Browser übernimmt, geprüft) |
+| Passkey-Erweiterungen: `credProps` beantwortet; PRF und largeBlob abgelehnt (`prf.enabled: false`, `largeBlob.supported: false`) | ✅ S | ✅ (gleicher Code) |
 
 ## Was gegenüber den offiziellen Apps noch fehlt
 
 | Funktion | Grund |
 |---|---|
-| Passkeys in Formularen innerhalb fremder iframes, Sicherheitsschlüssel-Erweiterungen (PRF, largeBlob) | nicht umgesetzt; der Browser übernimmt diese Anfragen |
+| Passkeys in eingebetteten Frames in Firefox | Firefox gibt Erweiterungen keine sichere Auskunft über Permissions Policy und Vorfahren eines Frames; der Browser übernimmt diese Anfragen |
+| Passkey-Erweiterungen PRF und largeBlob | das Bitwarden-Format der Passkeys hat kein Feld für das PRF-Geheimnis oder den Blob; die Bitwarden-Apps würden beides verwerfen |
 | Passkeys für 1Password, LastPass, Dashlane, Proton Pass | deren Kommandozeilenprogramme geben die Schlüssel nicht heraus |
 | Dashlane: Einträge anlegen, ändern, löschen | das offizielle `dcli` kann nur lesen |
 | Bitwarden Send, Notfallzugriff | nicht umgesetzt |

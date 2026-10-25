@@ -5,7 +5,8 @@
 // passkeys when items are copied, exported and imported.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { checkRequest, matchingPasskeys, pageOrigin } from '../src/background/passkeys.js';
+import { checkFrame, checkRequest, extensionResults, frameFeature, matchingPasskeys, pageOrigin } from '../src/background/passkeys.js';
+import { clientDataJSON } from '../src/lib/webauthn.js';
 import { passkeysWithKeys, transferData, transferLoss } from '../src/background/tools.js';
 import { toBitwardenJson } from '../src/lib/export.js';
 import { importBitwardenJson } from '../src/lib/import.js';
@@ -72,4 +73,50 @@ test('export and import keep passkeys in Bitwarden\'s JSON format', () => {
   assert.equal(transferData(back, null, { passkeys: true }).passkeys[0].keyValue, 'MIGH');
   const [plain] = importBitwardenJson({ items: [{ type: 1, name: 'x', login: { username: 'u' } }] });
   assert.equal(plain.passkeys, undefined);
+});
+
+test('embedded frames: only what the browser confirms', () => {
+  const base = { kind: 'get', frameUrl: 'https://login.idp.example/frame', senderOrigin: 'https://login.idp.example', tabUrl: 'https://shop.example/checkout' };
+  const seen = (extra = {}) => ({ origin: 'https://login.idp.example', ancestors: ['https://shop.example'], allowed: true, active: false, ...extra });
+  assert.equal(frameFeature('get'), 'publickey-credentials-get');
+  assert.equal(frameFeature('create'), 'publickey-credentials-create');
+  assert.deepEqual(checkFrame({ ...base, inspected: seen() }), { ok: true, crossOrigin: true, topOrigin: 'https://shop.example' });
+  assert.equal(checkFrame({ ...base, inspected: null }).reason, 'frame-unknown', 'browser cannot tell (Firefox): browser handles it');
+  assert.equal(checkFrame({ ...base, inspected: seen({ allowed: false }) }).reason, 'policy', 'no allow="publickey-credentials-get"');
+  assert.equal(checkFrame({ ...base, inspected: seen({ allowed: 'yes' }) }).reason, 'policy');
+  assert.equal(checkFrame({ ...base, senderOrigin: undefined, inspected: seen() }).reason, 'frame-origin');
+  assert.equal(checkFrame({ ...base, senderOrigin: 'https://evil.example', inspected: seen() }).reason, 'frame-origin');
+  assert.equal(checkFrame({ ...base, inspected: seen({ origin: 'https://evil.example' }) }).reason, 'frame-origin');
+  assert.equal(checkFrame({ ...base, inspected: seen({ ancestors: ['https://other.example'] }) }).reason, 'top-origin', 'top must be the tab');
+  assert.equal(checkFrame({ ...base, inspected: seen({ ancestors: ['http://mid.example', 'https://shop.example'] }) }).reason, 'insecure');
+  assert.equal(checkFrame({ ...base, tabUrl: 'http://shop.example/' }).reason, 'frame-unknown');
+  assert.equal(checkFrame({ ...base, tabUrl: 'http://shop.example/', inspected: seen({ ancestors: ['http://shop.example'] }) }).reason, 'insecure');
+  assert.equal(checkFrame({ ...base, kind: 'create', inspected: seen() }).reason, 'activation', 'creating in a foreign frame needs a gesture');
+  assert.equal(checkFrame({ ...base, kind: 'create', inspected: seen({ active: true }) }).ok, true);
+  // same origin all the way up: not cross-origin, no gesture needed
+  const same = { kind: 'create', frameUrl: 'https://shop.example/f', senderOrigin: 'https://shop.example', tabUrl: 'https://shop.example/', inspected: seen({ origin: 'https://shop.example' }) };
+  assert.deepEqual(checkFrame(same), { ok: true, crossOrigin: false, topOrigin: 'https://shop.example' });
+  // A embeds B embeds A: the inner A is cross-origin
+  assert.equal(checkFrame({ ...same, kind: 'get', inspected: seen({ origin: 'https://shop.example', ancestors: ['https://login.idp.example', 'https://shop.example'] }) }).crossOrigin, true);
+});
+
+test('clientDataJSON in a cross-origin frame', () => {
+  const cd = (x) => JSON.parse(new TextDecoder().decode(clientDataJSON({ type: 'webauthn.get', challenge: 'Y2g', origin: 'https://a.example', ...x })));
+  assert.deepEqual(Object.entries(cd({})), [['type', 'webauthn.get'], ['challenge', 'Y2g'], ['origin', 'https://a.example'], ['crossOrigin', false]]);
+  assert.deepEqual(Object.keys(cd({ crossOrigin: true, topOrigin: 'https://b.example' })), ['type', 'challenge', 'origin', 'crossOrigin', 'topOrigin']);
+  assert.equal(cd({ crossOrigin: true, topOrigin: 'https://b.example' }).topOrigin, 'https://b.example');
+  assert.equal(cd({ crossOrigin: false, topOrigin: 'https://b.example' }).topOrigin, undefined, 'topOrigin only when cross-origin');
+});
+
+test('extensions: credProps answered, PRF and largeBlob declined', () => {
+  assert.deepEqual(extensionResults('create', { credProps: true }, { rk: true }), { credProps: { rk: true } });
+  assert.deepEqual(extensionResults('create', { prf: true, largeBlob: { support: 'preferred' } }), { prf: { enabled: false }, largeBlob: { supported: false } });
+  assert.deepEqual(extensionResults('create', {}), {});
+  assert.deepEqual(extensionResults('create', undefined), {});
+  assert.deepEqual(extensionResults('get', { prf: true }), {}, 'no PRF output: not supported');
+  assert.deepEqual(extensionResults('get', { largeBlob: { read: true } }), { largeBlob: {} });
+  assert.deepEqual(extensionResults('get', { largeBlob: { write: true } }), { largeBlob: { written: false } });
+  const required = checkRequest({ kind: 'create', options: create({ extensions: { largeBlob: { support: 'required' } } }), url: 'https://example.com/' });
+  assert.equal(required.reason, 'largeBlob', 'largeBlob required: browser');
+  assert.equal(checkRequest({ kind: 'create', options: create({ extensions: { largeBlob: { support: 'preferred' }, prf: true } }), url: 'https://example.com/' }).ok, true);
 });

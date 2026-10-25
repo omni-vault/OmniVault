@@ -735,6 +735,7 @@
  "Nach dem Entsperren geht es hier weiter.": "Depois de desbloquear, você continua aqui.",
  "Mit Passkey anmelden": "Entrar com uma chave de acesso",
  "Passkey für {site} auswählen.": "Escolha uma chave de acesso para {site}.",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "Esta solicitação vem de um quadro de {frame} incorporado ao site {top}.",
  "{site} fragt nach einem Passkey.": "{site} está pedindo uma chave de acesso.",
  "Passkey speichern?": "Salvar chave de acesso?",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} quer criar uma chave de acesso para {user}.",

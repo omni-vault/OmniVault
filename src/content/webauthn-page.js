@@ -5,11 +5,12 @@
 // navigator.credentials.create()/get() for passkeys (publicKey). Each call is offered to OmniVault through the
 // bridge (content script webauthn.js); when OmniVault has nothing to offer or the user picks "other device",
 // the browser's own implementation gets the unchanged call. Runs in the page, so it holds nothing secret:
-// it only passes the page's own options out and the page's own credential back.
+// it only passes the page's own options out and the page's own credential back. Runs in embedded frames too;
+// whether a frame is served is decided in the background, never here.
 (() => {
   const CHANNEL = 'omnivault-webauthn';
   const container = globalThis.CredentialsContainer?.prototype;
-  if (window.top !== window || !container || typeof PublicKeyCredential === 'undefined') return;
+  if (!container || typeof PublicKeyCredential === 'undefined') return;
   const nativeCreate = container.create;
   const nativeGet = container.get;
   // DOM events with JSON text: they stay in this document (no other frame can send them), and plain strings pass
@@ -43,6 +44,12 @@
   };
   const descriptors = (list) => (list ?? []).map((c) => ({ type: c.type, id: enc(c.id), transports: c.transports ? [...c.transports] : undefined }));
 
+  /** Which extensions the page asked for (only what OmniVault answers or declines; no salts or blobs leave the page). */
+  const extensions = (x) => ({
+    credProps: !!x?.credProps, prf: !!x?.prf,
+    largeBlob: x?.largeBlob ? { support: x.largeBlob.support == null ? undefined : String(x.largeBlob.support), read: !!x.largeBlob.read, write: x.largeBlob.write != null } : undefined,
+  });
+
   /** The page's options as JSON (throws on anything unexpected → the browser handles the call). */
   function serialize(kind, pk) {
     if (kind === 'create') {
@@ -53,12 +60,12 @@
         pubKeyCredParams: (pk.pubKeyCredParams ?? []).map((p) => ({ type: p.type, alg: p.alg })),
         timeout: pk.timeout, excludeCredentials: descriptors(pk.excludeCredentials),
         authenticatorSelection: pk.authenticatorSelection ? { ...pk.authenticatorSelection } : undefined,
-        attestation: pk.attestation, extensions: { credProps: !!pk.extensions?.credProps },
+        attestation: pk.attestation, extensions: extensions(pk.extensions),
       };
     }
     return {
       challenge: enc(pk.challenge), timeout: pk.timeout, rpId: pk.rpId,
-      allowCredentials: descriptors(pk.allowCredentials), userVerification: pk.userVerification,
+      allowCredentials: descriptors(pk.allowCredentials), userVerification: pk.userVerification, extensions: extensions(pk.extensions),
     };
   }
 

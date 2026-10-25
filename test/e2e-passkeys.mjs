@@ -94,6 +94,8 @@ try {
   check(ada && ada.name === 'Passkey-Testseite' && ada.username === 'ada' && ada.uris[0] === ORIGIN, `saved as a login: ${ada?.name} / ${ada?.username} / ${ada?.uris}`);
   check(ada?.passkeys[0].rpId === 'localhost' && !('keyValue' in ada.passkeys[0]), 'passkey details visible to the interface, private key not');
   check(await site.evaluate(() => window.lastCredential.getClientExtensionResults().credProps?.rk === true), 'credProps: discoverable');
+  const extResults = await site.evaluate(() => window.lastCredential.getClientExtensionResults());
+  check(extResults.prf?.enabled === false && extResults.largeBlob?.supported === false, `PRF and largeBlob declined (${JSON.stringify(extResults)})`);
 
   // 2. sign in with it
   await site.click('#login');

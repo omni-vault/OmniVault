@@ -78,6 +78,10 @@ with a notice.
 - Create passkeys on websites and sign in with them, stored in your Bitwarden or Vaultwarden account in the same
   format the official Bitwarden apps use
 - If OmniVault has no matching passkey, your browser's own passkey handling takes over
+- In Chromium-based browsers also inside embedded frames of other sites, but only where the page allows WebAuthn
+  for that frame (Permissions Policy); the dialog names both the frame and the page. In Firefox, requests from
+  embedded frames go to the browser
+- The PRF and largeBlob extensions are not offered: Bitwarden's passkey format has no place to keep them
 
 **Tools across managers**
 - Copy, move or mirror entries between accounts and providers

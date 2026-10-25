@@ -40,6 +40,7 @@ body.passkey { padding-bottom: 10px; }
 .passkey .locked { margin: 8px 10px 0; display: grid; gap: 6px; justify-items: start; }
 .passkey .locked p, .passkey .hint { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
 .passkey > .hint, .passkey main > .hint { margin: 4px 10px 0; }
+.passkey .frame { margin: 0 10px 6px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; overflow-wrap: anywhere; }
 .passkey .error { margin: 8px 10px 0; color: oklch(0.55 0.2 25); overflow-wrap: anywhere; }
 .passkey .links { flex-wrap: wrap; margin-top: 10px; }
 .passkey button:not(.link):not(.row) { cursor: pointer; }

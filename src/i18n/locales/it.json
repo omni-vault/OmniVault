@@ -735,6 +735,7 @@
  "Nach dem Entsperren geht es hier weiter.": "Dopo lo sblocco puoi continuare qui.",
  "Mit Passkey anmelden": "Accedi con una passkey",
  "Passkey für {site} auswählen.": "Scegli una passkey per {site}.",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "Questa richiesta proviene da un frame di {frame} incorporato nel sito {top}.",
  "{site} fragt nach einem Passkey.": "{site} chiede una passkey.",
  "Passkey speichern?": "Salvare la passkey?",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} vuole creare una passkey per {user}.",

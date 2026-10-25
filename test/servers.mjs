@@ -62,14 +62,24 @@ export const WEBAUTHN_PAGE = `<!doctype html><title>Passkey-Seite</title>
   if (location.search.includes('conditional')) login('conditional');
   </script>`;
 
+/**
+ * A page of another origin that embeds the passkey page twice: once with the Permissions Policy for WebAuthn
+ * (allow="publickey-credentials-get; publickey-credentials-create"), once without.
+ */
+export const embeddingPage = (frameOrigin) => `<!doctype html><title>Einbettende Seite</title>
+  <iframe id="with" allow="publickey-credentials-get; publickey-credentials-create" src="${frameOrigin}/webauthn.html" width="600" height="160"></iframe>
+  <iframe id="without" src="${frameOrigin}/webauthn.html?without" width="600" height="160"></iframe>`;
+
 function relyingParty(origin) {
   const users = new Map(); // name → user id
   const creds = new Map(); // credential id → { jwk, counter, user, aaguid }
   let challenge = null;
   let registering = null;
   const rand = () => Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
-  return {
+  const rp = {
     creds,
+    topOrigins: [], // top-level pages that may embed this site (cross-origin answers from anywhere else are refused)
+    clientData: null, // clientDataJSON of the last accepted answer
     handle(path, body) {
       if (!path.startsWith('/rp/')) return null;
       const req = JSON.parse(body || '{}');
@@ -84,7 +94,7 @@ function relyingParty(origin) {
             pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -8 }, { type: 'public-key', alg: -257 }],
             authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' }, timeout: 60000, attestation: 'none',
             excludeCredentials: [...creds].filter(([, c]) => c.user === req.user).map(([cid]) => ({ type: 'public-key', id: cid })),
-            extensions: { credProps: true },
+            extensions: { credProps: true, prf: {}, largeBlob: { support: 'preferred' } },
           };
         }
         return { challenge, rpId: 'localhost', userVerification: 'preferred', timeout: 60000 };
@@ -93,7 +103,8 @@ function relyingParty(origin) {
         try {
           if (!req.instance) throw new Error('kein PublicKeyCredential-Objekt');
           if (req.kind === 'create') {
-            const s = verifyRegistration(req.credential, { challenge, origin, rpId: 'localhost' });
+            const s = verifyRegistration(req.credential, { challenge, origin, rpId: 'localhost', topOrigins: rp.topOrigins });
+            rp.clientData = s.clientData;
             const ad = parseAuthData(decodeCbor(Buffer.from(req.credential.response.attestationObject, 'base64url')).value.get('authData'));
             const aaguid = Buffer.from(ad.aaguid).toString('hex');
             creds.set(s.credentialId, { jwk: s.jwk, counter: s.counter, user: registering, aaguid });
@@ -101,7 +112,8 @@ function relyingParty(origin) {
           }
           const stored = creds.get(req.credential.id);
           if (!stored) throw new Error('unbekannter Passkey');
-          const r = verifyAuthentication(req.credential, { challenge, origin, rpId: 'localhost', stored: { ...stored, credentialId: req.credential.id } });
+          const r = verifyAuthentication(req.credential, { challenge, origin, rpId: 'localhost', stored: { ...stored, credentialId: req.credential.id }, topOrigins: rp.topOrigins });
+          rp.clientData = r.clientData;
           const owner = Buffer.from(r.userHandle ?? '', 'base64url').toString().replace(/^id-/, '');
           if (owner !== stored.user) throw new Error('userHandle passt nicht');
           stored.counter = r.counter;
@@ -113,6 +125,7 @@ function relyingParty(origin) {
       return null;
     },
   };
+  return rp;
 }
 
 export function listen(handler, port) {

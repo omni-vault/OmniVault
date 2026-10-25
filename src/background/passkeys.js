@@ -11,6 +11,20 @@
 // the page through the bridge. The page never sees account data, and the origin always comes from the
 // browser (sender), never from the page.
 //
+// Embedded frames (Chromium): a request from an iframe is served only when the background itself can confirm,
+// in the frame's isolated world (which the page cannot script), that the Permissions Policy allows WebAuthn
+// there, which origins it is nested in, and – for creating in a cross-origin frame – that the user just
+// interacted with it. The origins come from the browser (sender, tab, location.ancestorOrigins), the dialog stays
+// in the top frame and names both origins, and clientDataJSON carries crossOrigin and topOrigin. Where this
+// cannot be confirmed (Firefox has neither document.featurePolicy nor location.ancestorOrigins), the browser
+// handles the request.
+//
+// Extensions: credProps is answered. PRF (hmac-secret) and largeBlob are not offered: Bitwarden's passkey
+// format (login.fido2Credentials) has no field for a PRF secret or a blob, so the Bitwarden apps would drop
+// either and the passkey would silently change its PRF output or lose its blob. The site learns this as the
+// standard foresees (prf.enabled false, largeBlob.supported false); a site that requires largeBlob goes to the
+// browser.
+//
 // User verification: like the Bitwarden extension, a choice made in an unlocked OmniVault counts as verified
 // (the user unlocked with the master password or PIN and acted in the dialog).
 import { t } from '../i18n/index.js';
@@ -37,6 +51,34 @@ export function pageOrigin(url) {
   return null;
 }
 
+/** Permissions Policy feature a request needs in an iframe. */
+export const frameFeature = (kind) => (kind === 'create' ? 'publickey-credentials-create' : 'publickey-credentials-get');
+
+/**
+ * Whether a request from an iframe may be served, from what the browser says about it:
+ *   frameUrl / senderOrigin  sender.url and sender.origin of the message (the frame)
+ *   tabUrl                   URL of the tab (the top-level page)
+ *   inspected                what a script in the frame's isolated world found: { origin, ancestors (location.
+ *                            ancestorOrigins, nearest first), allowed (Permissions Policy), active (user activation) },
+ *                            null when the browser cannot tell
+ * Returns { ok: true, crossOrigin, topOrigin } or { ok: false, reason }.
+ */
+export function checkFrame({ kind, frameUrl, senderOrigin, tabUrl, inspected }) {
+  if (!inspected || !Array.isArray(inspected.ancestors) || !inspected.ancestors.length) return { ok: false, reason: 'frame-unknown' };
+  const frame = pageOrigin(frameUrl);
+  const top = pageOrigin(tabUrl);
+  if (!frame || !top) return { ok: false, reason: 'insecure' };
+  if (!senderOrigin || senderOrigin !== frame.origin || inspected.origin !== frame.origin) return { ok: false, reason: 'frame-origin' };
+  const { ancestors } = inspected;
+  if (ancestors[ancestors.length - 1] !== top.origin) return { ok: false, reason: 'top-origin' };
+  if (ancestors.some((a) => !pageOrigin(a) || new URL(a).origin !== a)) return { ok: false, reason: 'insecure' };
+  if (inspected.allowed !== true) return { ok: false, reason: 'policy' };
+  const crossOrigin = ancestors.some((a) => a !== frame.origin);
+  // creating in a cross-origin frame needs a user gesture in that frame (WebAuthn Level 3, §5.1.3)
+  if (crossOrigin && kind === 'create' && inspected.active !== true) return { ok: false, reason: 'activation' };
+  return { ok: true, crossOrigin, topOrigin: top.origin };
+}
+
 /**
  * Whether OmniVault can take this request, and for which relying party. `options` are the page's
  * PublicKeyCredentialCreationOptions / RequestOptions in JSON form (binary values base64url).
@@ -53,6 +95,7 @@ export function checkRequest({ kind, options, url }) {
     const algs = (options.pubKeyCredParams ?? []).filter((p) => p?.type === 'public-key').map((p) => p.alg);
     if (options.pubKeyCredParams?.length && !algs.includes(ES256)) return { ok: false, reason: 'algorithm' };
     if (options.authenticatorSelection?.authenticatorAttachment === 'cross-platform') return { ok: false, reason: 'attachment' };
+    if (options.extensions?.largeBlob?.support === 'required') return { ok: false, reason: 'largeBlob' };
   }
   return { ok: true, rpId, origin: u.origin };
 }
@@ -74,6 +117,21 @@ export function matchingPasskeys(items, rpId, allowIds = []) {
   return out;
 }
 
+/**
+ * Client extension results for the extensions OmniVault answers or declines (see the head of this file).
+ * `requested` is the page's extensions in JSON form, `rk` whether a new passkey is discoverable.
+ */
+export function extensionResults(kind, requested = {}, { rk = false } = {}) {
+  const out = {};
+  if (kind === 'create') {
+    if (requested.credProps) out.credProps = { rk };
+    if (requested.prf) out.prf = { enabled: false };
+    if (requested.largeBlob) out.largeBlob = { supported: false };
+  } else if (requested.largeBlob?.write) out.largeBlob = { written: false };
+  else if (requested.largeBlob) out.largeBlob = {};
+  return out;
+}
+
 /* ---------- the service ---------- */
 
 /**
@@ -81,7 +139,8 @@ export function matchingPasskeys(items, rpId, allowIds = []) {
  * deps.provider(account)           → provider class
  * deps.entry(account)              → synced { items } of an unlocked account, null when locked
  * deps.save(accountId, item, data) → saves (item null = new); returns the saved item
- * deps.toTab(tabId, message)       → sends to the bridge in the tab's top frame
+ * deps.toTab(tabId, message, frameId = 0) → sends to the bridge in a frame of the tab; resolves to its answer (null on failure)
+ * deps.inspectFrame(tabId, frameId, feature) → what the frame's isolated world reports (see checkFrame), null if unknown
  */
 export function createPasskeyService(deps) {
   async function requests() {
@@ -105,7 +164,8 @@ export function createPasskeyService(deps) {
     if (!r) return;
     delete all[id];
     await store(all);
-    await deps.toTab(r.tabId, { type: 'ov-passkey-result', requestId: id, result });
+    await deps.toTab(r.tabId, { type: 'ov-passkey-result', requestId: id, result }, r.frameId ?? 0);
+    if (r.frameId) await deps.toTab(r.tabId, { type: 'ov-passkey-close', requestId: id }, 0);
     if (r.conditional) await deps.toTab(r.tabId, { type: 'ov-inline-close' });
   }
 
@@ -168,13 +228,23 @@ export function createPasskeyService(deps) {
 
   /** A new request from a page. Answers what the page script should do: fallback, dialog or conditional. */
   async function begin({ kind, options, mediation }, sender) {
-    if (sender.frameId) return { action: 'fallback' }; // only the top frame (no cross-origin iframes)
+    if (!sender.tab?.id) return { action: 'fallback' };
+    const frameId = sender.frameId ?? 0;
+    let frame = { crossOrigin: false, topOrigin: null };
+    if (frameId) {
+      // autofill suggestions live in the top frame's fields only
+      if (mediation === 'conditional' || mediation === 'silent') return { action: 'fallback', reason: 'frame-mediation' };
+      const inspected = deps.inspectFrame ? await deps.inspectFrame(sender.tab.id, frameId, frameFeature(kind)).catch(() => null) : null;
+      frame = checkFrame({ kind, frameUrl: sender.url, senderOrigin: sender.origin, tabUrl: sender.tab.url, inspected });
+      if (!frame.ok) return { action: 'fallback', reason: frame.reason };
+    }
     const check = checkRequest({ kind, options, url: sender.url ?? sender.tab?.url });
     if (!check.ok) return { action: 'fallback', reason: check.reason };
     if (kind === 'get' && mediation === 'silent') return { action: 'fallback' };
     const r = {
-      id: globalThis.crypto.randomUUID(), tabId: sender.tab.id, at: Date.now(), kind, options, rpId: check.rpId,
-      origin: check.origin, conditional: kind === 'get' && mediation === 'conditional',
+      id: globalThis.crypto.randomUUID(), tabId: sender.tab.id, frameId, at: Date.now(), kind, options, rpId: check.rpId,
+      origin: check.origin, crossOrigin: frame.crossOrigin, topOrigin: frame.crossOrigin ? frame.topOrigin : null,
+      conditional: kind === 'get' && mediation === 'conditional',
     };
     const s = await survey(r);
     if (kind === 'create' && !s.unlocked.length && !s.locked.length) return { action: 'fallback', reason: 'no-account' };
@@ -185,11 +255,21 @@ export function createPasskeyService(deps) {
       // one dialog per tab: a new request ends the previous one (the page gave up on it)
       if (other.tabId === r.tabId && !(other.conditional && !r.conditional)) {
         delete all[id];
-        deps.toTab(other.tabId, { type: 'ov-passkey-result', requestId: id, result: { error: 'AbortError' } });
+        deps.toTab(other.tabId, { type: 'ov-passkey-result', requestId: id, result: { error: 'AbortError' } }, other.frameId ?? 0);
+        if (other.frameId) deps.toTab(other.tabId, { type: 'ov-passkey-close', requestId: id }, 0);
       }
     }
     all[r.id] = r;
     await store(all);
+    if (frameId) {
+      // the dialog opens in the top frame, never inside the (possibly foreign) embedded frame
+      const shown = await deps.toTab(r.tabId, { type: 'ov-passkey-show', requestId: r.id }, 0);
+      if (!shown?.shown) {
+        delete all[r.id];
+        await store(all);
+        return { action: 'fallback', reason: 'no-top-bridge' };
+      }
+    }
     return { action: r.conditional ? 'conditional' : 'dialog', requestId: r.id };
   }
 
@@ -200,6 +280,7 @@ export function createPasskeyService(deps) {
     const o = r.options;
     return {
       kind: r.kind, rpId: r.rpId, rpName: o.rp?.name || r.rpId, host: hostOf(r.origin),
+      frame: r.crossOrigin ? { origin: new URL(r.origin).host, top: new URL(r.topOrigin).host } : null,
       user: r.kind === 'create' ? { name: o.user.name ?? '', displayName: o.user.displayName ?? '' } : null,
       excluded: s.excluded,
       locked: s.locked.map((l) => ({ ...label(l.account), maybe: l.maybe })),
@@ -223,7 +304,7 @@ export function createPasskeyService(deps) {
     const sel = o.authenticatorSelection ?? {};
     // stored as the site asked (Bitwarden does the same); OmniVault offers every passkey of the site either way
     const discoverable = sel.requireResidentKey === true || ['required', 'preferred'].includes(sel.residentKey);
-    const clientData = clientDataJSON({ type: 'webauthn.create', challenge: o.challenge, origin: r.origin });
+    const clientData = clientDataJSON({ type: 'webauthn.create', challenge: o.challenge, origin: r.origin, crossOrigin: r.crossOrigin, topOrigin: r.topOrigin });
     const { record, response } = await createPasskey({
       rpId: r.rpId, rpName: o.rp?.name, user: { id: fromB64(o.user.id), name: o.user.name, displayName: o.user.displayName },
       discoverable, clientData, userVerified: true,
@@ -243,7 +324,7 @@ export function createPasskeyService(deps) {
     return {
       credential: {
         id: response.id, type: 'public-key', authenticatorAttachment: 'platform', response,
-        clientExtensionResults: o.extensions?.credProps ? { credProps: { rk: discoverable } } : {},
+        clientExtensionResults: extensionResults('create', o.extensions, { rk: discoverable }),
       },
     };
   }
@@ -266,10 +347,10 @@ export function createPasskeyService(deps) {
         totp: c.item.totp ?? '', uris: c.item.uris ?? [], passkeys,
       });
     }
-    const clientData = clientDataJSON({ type: 'webauthn.get', challenge: r.options.challenge, origin: r.origin });
+    const clientData = clientDataJSON({ type: 'webauthn.get', challenge: r.options.challenge, origin: r.origin, crossOrigin: r.crossOrigin, topOrigin: r.topOrigin });
     const response = await signAssertion({ record: { ...c.passkey, keyValue }, clientData, userVerified: true, counter });
     return {
-      credential: { id: response.id, type: 'public-key', authenticatorAttachment: 'platform', response, clientExtensionResults: {} },
+      credential: { id: response.id, type: 'public-key', authenticatorAttachment: 'platform', response, clientExtensionResults: extensionResults('get', r.options.extensions) },
     };
   }
 
@@ -313,9 +394,11 @@ export function createPasskeyService(deps) {
       /** The page aborted, or its own browser dialog answered a conditional request first. */
       async ovPasskeyEnd({ requestId }, sender) {
         const all = await requests();
-        if (all[requestId]?.tabId !== sender.tab?.id) return false;
+        const r = all[requestId];
+        if (r?.tabId !== sender.tab?.id || (r.frameId ?? 0) !== (sender.frameId ?? 0)) return false;
         delete all[requestId];
         await store(all);
+        if (r.frameId) await deps.toTab(r.tabId, { type: 'ov-passkey-close', requestId }, 0);
         return true;
       },
     },

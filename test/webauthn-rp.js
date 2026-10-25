@@ -3,7 +3,9 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // A small WebAuthn relying party for tests, written independently of src/lib/webauthn.js: own CBOR decoder,
 // Node's crypto for the signature (DER as WebAuthn sends it). Checks what a real site checks
-// (W3C WebAuthn §7.1 and §7.2): type, challenge, origin, rpId hash, flags, algorithm, signature, counter.
+// (W3C WebAuthn §7.1 and §7.2): type, challenge, origin, crossOrigin/topOrigin, rpId hash, flags, algorithm,
+// signature, counter. A site that may be embedded names the top-level origins it accepts (`topOrigins`); any other
+// cross-origin answer is refused.
 import { createHash, createPublicKey, verify } from 'node:crypto';
 
 const fromB64url = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
@@ -45,19 +47,28 @@ export function parseAuthData(ad) {
   return out;
 }
 
-function checkClientData(json, type, challenge, origin) {
-  const cd = JSON.parse(Buffer.from(fromB64url(json)).toString('utf8'));
+function checkClientData(json, type, challenge, origin, topOrigins = []) {
+  const raw = Buffer.from(fromB64url(json)).toString('utf8');
+  const cd = JSON.parse(raw);
   if (cd.type !== type) throw new Error(`clientData.type ${cd.type}`);
   if (cd.challenge !== challenge) throw new Error('challenge passt nicht');
   if (cd.origin !== origin) throw new Error(`origin ${cd.origin} ≠ ${origin}`);
-  if (cd.crossOrigin) throw new Error('crossOrigin');
+  if (cd.crossOrigin !== undefined && typeof cd.crossOrigin !== 'boolean') throw new Error('crossOrigin kein Boolean');
+  if (cd.crossOrigin) {
+    if (!topOrigins.includes(cd.topOrigin)) throw new Error(`crossOrigin von ${cd.topOrigin ?? '(ohne topOrigin)'}`);
+    if (cd.topOrigin === origin) throw new Error('topOrigin = origin, aber crossOrigin');
+  } else if (cd.topOrigin !== undefined) throw new Error('topOrigin ohne crossOrigin');
+  // §5.8.1.2 limited verification: the first members come in this order
+  const prefix = `{"type":${JSON.stringify(type)},"challenge":${JSON.stringify(challenge)},"origin":${JSON.stringify(origin)}`;
+  if (!raw.startsWith(prefix)) throw new Error('clientDataJSON: Reihenfolge der Felder');
+  if (cd.crossOrigin && !raw.startsWith(`${prefix},"crossOrigin":true,"topOrigin":`)) throw new Error('clientDataJSON: crossOrigin/topOrigin');
   return cd;
 }
 
 /** Registration → what the site stores: { credentialId (base64url), jwk, counter, flags }. */
-export function verifyRegistration(cred, { challenge, origin, rpId, requireUV = false }) {
+export function verifyRegistration(cred, { challenge, origin, rpId, requireUV = false, topOrigins = [] }) {
   if (cred.type !== 'public-key' || cred.id !== cred.rawId) throw new Error('id/type');
-  checkClientData(cred.response.clientDataJSON, 'webauthn.create', challenge, origin);
+  const clientData = checkClientData(cred.response.clientDataJSON, 'webauthn.create', challenge, origin, topOrigins);
   const att = decodeCbor(fromB64url(cred.response.attestationObject)).value;
   if (att.get('fmt') !== 'none' || att.get('attStmt').size !== 0) throw new Error('Attestierung nicht "none"');
   const ad = parseAuthData(att.get('authData'));
@@ -73,13 +84,13 @@ export function verifyRegistration(cred, { challenge, origin, rpId, requireUV = 
     const spki = createPublicKey({ key: fromB64url(cred.response.publicKey), format: 'der', type: 'spki' }).export({ format: 'jwk' });
     if (spki.x !== jwk.x || spki.y !== jwk.y) throw new Error('getPublicKey() ≠ COSE-Schlüssel');
   }
-  return { credentialId: cred.id, jwk, counter: ad.counter, flags: ad };
+  return { credentialId: cred.id, jwk, counter: ad.counter, flags: ad, clientData };
 }
 
 /** Sign-in with a stored credential; returns the new counter. */
-export function verifyAuthentication(cred, { challenge, origin, rpId, stored, requireUV = false }) {
+export function verifyAuthentication(cred, { challenge, origin, rpId, stored, requireUV = false, topOrigins = [] }) {
   if (cred.type !== 'public-key' || cred.id !== stored.credentialId) throw new Error('unbekannte Credential-ID');
-  checkClientData(cred.response.clientDataJSON, 'webauthn.get', challenge, origin);
+  const clientData = checkClientData(cred.response.clientDataJSON, 'webauthn.get', challenge, origin, topOrigins);
   const adBytes = fromB64url(cred.response.authenticatorData);
   const ad = parseAuthData(adBytes);
   if (!ad.rpIdHash.equals(sha256(rpId))) throw new Error('rpIdHash');
@@ -89,5 +100,5 @@ export function verifyAuthentication(cred, { challenge, origin, rpId, stored, re
   const key = createPublicKey({ key: stored.jwk, format: 'jwk' });
   if (!verify('sha256', data, key, fromB64url(cred.response.signature))) throw new Error('Signatur ungültig');
   if ((ad.counter || stored.counter) && ad.counter <= stored.counter) throw new Error('Zähler nicht gestiegen');
-  return { counter: ad.counter, userHandle: cred.response.userHandle, flags: ad };
+  return { counter: ad.counter, userHandle: cred.response.userHandle, flags: ad, clientData };
 }

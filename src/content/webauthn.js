@@ -3,10 +3,12 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Bridge for passkeys (content script, only with "Passkeys" turned on): passes the page script's requests to
 // OmniVault, shows the passkey dialog (an extension page in an iframe inside a closed shadow root, so the page
-// cannot read or script it) and hands the result back to the page.
+// cannot read or script it) and hands the result back to the page. Runs in every frame; the dialog only ever
+// opens in the top frame (for a request from an embedded frame the background asks the top frame to show it).
 (() => {
-  if (window.top !== window || window.__omnivaultPasskeys) return;
+  if (window.__omnivaultPasskeys) return;
   window.__omnivaultPasskeys = true;
+  const isTop = window.top === window;
   const CHANNEL = 'omnivault-webauthn';
   const ext = globalThis.browser ?? globalThis.chrome;
   // see webauthn-page.js: DOM events with JSON text in both directions
@@ -47,7 +49,7 @@
   }
   // the dialog reports its height (only messages from our iframe count)
   const extOrigin = new URL(ext.runtime.getURL('')).origin;
-  window.addEventListener('message', (e) => {
+  if (isTop) window.addEventListener('message', (e) => {
     if (!frame || e.origin !== extOrigin || typeof e.data?.ovPasskeyHeight !== 'number') return;
     frame.style.height = `${Math.max(120, Math.min(e.data.ovPasskeyHeight, window.innerHeight - 24))}px`;
   });
@@ -66,7 +68,7 @@
       pageIds.set(d.requestId, m.id);
       requestIds.set(m.id, d.requestId);
       toPage({ type: 'decision', id: m.id, action: d.action });
-      if (d.action === 'dialog') showDialog(d.requestId);
+      if (d.action === 'dialog' && isTop) showDialog(d.requestId);
     }
     if (m.type === 'end') { // aborted by the page, or the browser answered a conditional request
       const requestId = requestIds.get(m.id);
@@ -80,6 +82,8 @@
 
   ext.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.type === 'ov-passkey-ping') { sendResponse({ bridge: true, page: pageSeen }); return; }
+    if (isTop && msg?.type === 'ov-passkey-show' && typeof msg.requestId === 'string') { showDialog(msg.requestId); sendResponse({ shown: true }); return; }
+    if (isTop && msg?.type === 'ov-passkey-close') { closeDialog(msg.requestId); return; }
     if (msg?.type !== 'ov-passkey-result') return;
     const id = pageIds.get(msg.requestId);
     closeDialog(msg.requestId);

@@ -735,6 +735,7 @@
  "Nach dem Entsperren geht es hier weiter.": "Une fois déverrouillé, vous pourrez continuer ici.",
  "Mit Passkey anmelden": "Se connecter avec une clé d’accès",
  "Passkey für {site} auswählen.": "Choisissez une clé d’accès pour {site}.",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "Cette demande provient d’un cadre de {frame} intégré au site {top}.",
  "{site} fragt nach einem Passkey.": "{site} demande une clé d’accès.",
  "Passkey speichern?": "Enregistrer la clé d’accès ?",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} veut créer une clé d’accès pour {user}.",

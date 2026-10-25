@@ -735,6 +735,7 @@
  "Nach dem Entsperren geht es hier weiter.": "Once you've unlocked, you can continue here.",
  "Mit Passkey anmelden": "Sign in with a passkey",
  "Passkey für {site} auswählen.": "Choose a passkey for {site}.",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "This request comes from a frame of {frame} embedded in the site {top}.",
  "{site} fragt nach einem Passkey.": "{site} is asking for a passkey.",
  "Passkey speichern?": "Save passkey?",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} wants to create a passkey for {user}.",

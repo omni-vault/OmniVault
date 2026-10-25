@@ -71,11 +71,14 @@ export async function authenticatorData({ rpId, userVerified, counter = 0, attes
 }
 
 /**
- * clientDataJSON as the browser would write it. `origin` must come from the browser (the tab), never from
- * the page; the challenge is base64url as the page gave it.
+ * clientDataJSON as the browser would write it. `origin` must come from the browser (the tab or frame), never
+ * from the page; the challenge is base64url as the page gave it. In a cross-origin iframe `crossOrigin` is true
+ * and `topOrigin` names the origin of the top-level page (WebAuthn Level 3, §5.8.1), in this member order.
  */
-export function clientDataJSON({ type, challenge, origin, crossOrigin = false }) {
-  return utf8(JSON.stringify({ type, challenge, origin, crossOrigin }));
+export function clientDataJSON({ type, challenge, origin, crossOrigin = false, topOrigin = null }) {
+  const data = { type, challenge, origin, crossOrigin: !!crossOrigin };
+  if (crossOrigin && topOrigin) data.topOrigin = topOrigin;
+  return utf8(JSON.stringify(data));
 }
 
 /** ECDSA signature: WebCrypto gives r ‖ s (IEEE P1363), WebAuthn wants ASN.1 DER. */

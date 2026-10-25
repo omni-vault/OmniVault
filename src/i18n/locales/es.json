@@ -735,6 +735,7 @@
  "Nach dem Entsperren geht es hier weiter.": "Cuando desbloquees, podrás continuar aquí.",
  "Mit Passkey anmelden": "Iniciar sesión con una llave de acceso",
  "Passkey für {site} auswählen.": "Elige una llave de acceso para {site}.",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "Esta solicitud procede de un marco de {frame} incrustado en el sitio {top}.",
  "{site} fragt nach einem Passkey.": "{site} pide una llave de acceso.",
  "Passkey speichern?": "¿Guardar la llave de acceso?",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} quiere crear una llave de acceso para {user}.",

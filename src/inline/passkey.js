@@ -114,6 +114,9 @@ async function load() {
     shown = key;
     const focused = document.activeElement?.id;
     (info.kind === 'get' ? renderGet : renderCreate)(info);
+    // a request from an embedded frame: say whose frame it is and on which page it sits
+    $('frame').hidden = !info.frame;
+    $('frame').textContent = info.frame ? t('Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.', { frame: info.frame.origin, top: info.frame.top }) : '';
     ($(focused) ?? document.querySelector('#content button, #content select, #cancel'))?.focus();
     report();
   }

@@ -706,6 +706,7 @@
  "Nach dem Entsperren geht es hier weiter.": "ロックを解除すると、ここから続けられます。",
  "Mit Passkey anmelden": "パスキーでサインイン",
  "Passkey für {site} auswählen.": "{site} のパスキーを選んでください。",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "このリクエストは、サイト {top} に埋め込まれた {frame} のフレームから送られています。",
  "{site} fragt nach einem Passkey.": "{site} がパスキーを求めています。",
  "Passkey speichern?": "パスキーを保存しますか？",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} が {user} のパスキーを作成しようとしています。",

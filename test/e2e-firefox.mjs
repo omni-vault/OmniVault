@@ -13,20 +13,28 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { EMAIL, PASSWORD } from './fake-bitwarden.js';
 import { launchFirefox, Tab } from './firefox-bidi.mjs';
-import { startServers } from './servers.mjs';
+import http from 'node:http';
+import { embeddingPage, startServers } from './servers.mjs';
 
 const shots = process.argv[2] ?? tmpdir();
 const ADDON = 'omnivault@example.org';
 const UUID = '6f6d6e69-7661-4f75-8c74-000000000001';
 const BASE = `moz-extension://${UUID}`;
 const { ORIGIN, close: closeServers } = await startServers({ bwPort: 8827, pbPort: 8828 });
+// a page of another origin that embeds the passkey site (Firefox cannot confirm the frame's policy: browser)
+const FRAME_TOP = 'http://127.0.0.1:8829';
+const frameTop = http.createServer((req, res) => {
+  if (req.url !== '/') { res.writeHead(404); res.end(); return; }
+  res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(embeddingPage(ORIGIN));
+});
+await new Promise((r) => { frameTop.listen(8829, '127.0.0.1', r); });
 
 // copy of dist/firefox with localhost pre-granted and native messaging (no permission prompts in automation)
 const ext = await mkdtemp(join(tmpdir(), 'omnivault-ff-'));
 await cp('dist/firefox', ext, { recursive: true });
 const manifest = JSON.parse(await readFile(join(ext, 'manifest.json'), 'utf8'));
 // Firefox does not count http://localhost/* as covering other ports (permissions.contains), so name them
-manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*');
+manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${FRAME_TOP}/*`);
 manifest.permissions.push('nativeMessaging');
 await writeFile(join(ext, 'manifest.json'), JSON.stringify(manifest));
 
@@ -342,6 +350,29 @@ try {
   o = await out();
   check(o === 'angemeldet:ada', `signed in after unlocking (${o})`);
 
+  // embedded frame (with allow="publickey-credentials-get"): Firefox offers no way to confirm the frame's policy
+  // and ancestors from outside the page, so OmniVault leaves the request to the browser (no dialog, although
+  // it holds ada's passkey for this site); the browser's own request is aborted after a moment
+  await site.goto(`${FRAME_TOP}/`);
+  let embedded = null;
+  for (let i = 0; i < 80 && !embedded; i++) {
+    const f = (await site.frames()).find((x) => x.url === `${ORIGIN}/webauthn.html`);
+    if (f) embedded = site.frame(f);
+    else await new Promise((r) => setTimeout(r, 100));
+  }
+  if (!embedded) throw new Error('eingebetteter Frame nicht erschienen');
+  await embedded.wait(() => !!document.querySelector('#login'), { what: 'frame loaded' });
+  const framed = await embedded.$eval(async () => {
+    const ac = new AbortController();
+    setTimeout(() => ac.abort(), 2500);
+    try {
+      await navigator.credentials.get({ publicKey: { challenge: new Uint8Array(32), rpId: 'localhost', allowCredentials: [] }, signal: ac.signal });
+      return 'credential';
+    } catch (e) { return e.name; }
+  });
+  const framedDialog = (await site.frames()).some((x) => x.url.split('?')[0].endsWith('/passkey.html'));
+  check(framed !== 'credential' && !framedDialog, `embedded frame in Firefox: no OmniVault dialog, the browser handles it (${framed})`);
+
   // native messaging: Firefox host manifest (path, allowed_extensions) → host → simulated pass-cli (Proton Pass)
   const hostManifest = JSON.parse(readFileSync(hostManifestPath, 'utf8'));
   check(JSON.stringify(hostManifest.allowed_extensions) === JSON.stringify([ADDON]) && existsSync(hostManifest.path) && hostManifest.type === 'stdio',
@@ -371,6 +402,7 @@ try {
   if (process.env.FIREFOX_LOG) console.log(ff.output.join('\n')); // whole browser output for debugging
   await ff.close();
   closeServers();
+  frameTop.close();
 }
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

@@ -706,6 +706,7 @@
  "Nach dem Entsperren geht es hier weiter.": "解锁后即可在此继续。",
  "Mit Passkey anmelden": "使用通行密钥登录",
  "Passkey für {site} auswählen.": "选择用于 {site} 的通行密钥。",
+ "Diese Anfrage kommt aus einem eingebetteten Frame von {frame} auf der Seite {top}.": "此请求来自嵌入在网站 {top} 中的 {frame} 框架。",
  "{site} fragt nach einem Passkey.": "{site} 请求使用通行密钥。",
  "Passkey speichern?": "保存通行密钥？",
  "{site} möchte einen Passkey für {user} anlegen.": "{site} 想为 {user} 创建通行密钥。",
