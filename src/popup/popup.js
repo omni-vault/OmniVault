@@ -12,6 +12,7 @@ import { initMenu, openMenu } from './menu.js';
 import { openSettings, resumeSetting } from './settings.js';
 import { takeResume } from './resume.js';
 import { openTools } from './tools.js';
+import { resumeSend } from './send.js';
 import { S, isToolbarPopup, mode, onRefresh, providerOf, refresh, sidebar, windowed, writableAccounts } from './state.js';
 import { hydrateIcons } from './icons.js';
 import { $, $$, back, call, currentView, el, forward, show, t, toast, uiLanguage } from './ui.js';
@@ -218,6 +219,10 @@ if (windowed) {
   else if (r?.view === 'item') { // asked for the cloud file storage while adding an attachment
     await openItem(r.accountId, r.itemId);
     toast(r.granted ? t('Zugriff erteilt – jetzt die Datei wählen.') : t('Ohne Zugriff auf Bitwardens Dateispeicher lassen sich keine Anhänge hochladen.'));
+  } else if (r?.view === 'send') { // asked for the cloud file storage while creating a file Send
+    resumeSend(r);
+    await openTools('send');
+    toast(r.granted ? t('Zugriff erteilt – jetzt die Datei wählen.') : t('Ohne Zugriff auf Bitwardens Dateispeicher lassen sich keine Datei-Sends anlegen.'));
   } else if (r?.view === 'tools') { // asked for Have I Been Pwned in the password check
     await openTools('dupes', { reportScope: r.scope });
     if (!r.granted) toast(t('Ohne Zugriff auf api.pwnedpasswords.com lässt sich nicht gegen Datenlecks prüfen.'));

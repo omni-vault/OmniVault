@@ -311,6 +311,15 @@ details.history summary { cursor: pointer; color: var(--muted); font-size: 12px;
 .pick-sub { grid-area: sub; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick > .badge { grid-area: badge; }
 .pick-list { margin-bottom: 8px; }
+.send-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "ico name tools" "ico sub tools" "ico tags tools";
+  column-gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.send-row > .type-ico { grid-area: ico; align-self: start; padding-top: 2px; }
+.send-row > .pick-sub { white-space: normal; }
+.send-tags { grid-area: tags; display: flex; flex-wrap: wrap; gap: 4px; }
+.send-tags:empty { display: none; }
+.send-row > .tools { grid-area: tools; display: flex; gap: 2px; }
+.tag.warn { color: var(--warn); border-color: currentColor; }
+#send-form input[type=datetime-local] { margin-top: 4px; }
 .empty-note { color: var(--muted); text-align: center; margin: 24px 0; }
 .rule .row { justify-content: flex-start; align-items: center; margin-top: 4px; }
 .rule .row .inline-check { margin: 0 auto 0 0; }
