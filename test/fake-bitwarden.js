@@ -36,11 +36,12 @@ const redirect = (location) => ({ status: 302, headers: { Location: location }, 
  *   duoCodeParam 'duo_code' like Duo with use_duo_code_attribute (Bitwarden's library), else 'code' (Vaultwarden)
  * - sso: { identifier } – Enterprise SSO for that organization identifier; ssoTwoFactor: TOTP after the sign-in
  * - masterPassword: false | 'tde' | 'keyconnector' – an account without master password (SSO only)
+ * - sendAzure: file Sends go to a (simulated) Azure Blob URL like on bitwarden.com; sendPremium: false refuses file Sends
  */
 export async function fakeBitwarden({
   kdf, twoFactor = false, loginUri = 'https://github.com/login', extraItems = 0, collections = false, collectionsV2 = true,
   origin = 'https://vault.example.org', duo = null, duoOrigin = 'https://api-1234abcd.duosecurity.com', duoCodeParam = 'code',
-  sso = null, ssoTwoFactor = false, masterPassword = true,
+  sso = null, ssoTwoFactor = false, masterPassword = true, sendAzure = false, sendPremium = true,
 }) {
   const mk = await deriveMasterKey(PASSWORD, EMAIL, kdf);
   const hash = await masterPasswordHash(mk, PASSWORD);
@@ -157,6 +158,7 @@ export async function fakeBitwarden({
   const duoStates = new Map();
   const ssoAuth = new Map();
   const flow = { duoUrls: [], ssoAuthorize: [], tokenForms: [] };
+  const sends = createSendStore({ sendAzure, sendPremium });
   const header = (headers, name) => headers[name] ?? headers[name.toLowerCase()] ?? Object.entries(headers).find(([k]) => k.toLowerCase() === name.toLowerCase())?.[1];
 
   function duoChallenge(headers) {
@@ -247,6 +249,11 @@ export async function fakeBitwarden({
     if (path.endsWith('/accounts/prelogin') && method === 'POST') {
       return { status: 200, body: { Kdf: kdf.kdf, KdfIterations: kdf.kdfIterations, KdfMemory: kdf.kdfMemory, KdfParallelism: kdf.kdfParallelism } };
     }
+    if (path.endsWith('/connect/token') && new URLSearchParams(body).get('grant_type') === 'send_access') {
+      return sends.grant(new URLSearchParams(body));
+    }
+    const recipient = sends.recipient(path, { method, auth, body });
+    if (recipient) return recipient;
     if (path.endsWith('/connect/token')) {
       const f = new URLSearchParams(body);
       flow.tokenForms.push(Object.fromEntries(f));
@@ -273,11 +280,13 @@ export async function fakeBitwarden({
       return { status: 200, body: { access_token: 'AT1', refresh_token: 'RT1', expires_in: 3600, Key: protectedKey } };
     }
     if (path.includes('/sync')) {
-      return validTokens.has(auth) ? { status: 200, body: sync } : { status: 401, body: {} };
+      return validTokens.has(auth) ? { status: 200, body: { ...sync, Sends: sends.list() } } : { status: 401, body: {} };
     }
     if (!validTokens.has(auth)) return { status: 401, body: {} };
-    const json = body ? JSON.parse(body) : null;
+    const json = body && typeof body === 'string' ? JSON.parse(body) : null;
     requests.push({ method, path, json });
+    const owner = sends.owner(path, { method, json, body });
+    if (owner) return owner;
     let m;
     if (path.endsWith('/api/accounts/profile') && method === 'GET') return { status: 200, body: { Id: USER_ID } };
     // like current Vaultwarden: writes must name the user the cipher is encrypted for
@@ -340,5 +349,140 @@ export async function fakeBitwarden({
   handle.requests = requests;
   handle.flow = flow;
   handle.sync = sync;
+  handle.sends = sends;
   return handle;
+}
+
+/**
+ * Send endpoints like Bitwarden's server and Vaultwarden: the owner's CRUD under /api/sends, file upload direct or
+ * via Azure, and the recipient side (send_access grant on identity, then /api/sends/access with that token).
+ * The store keeps everything as the client sent it, so tests can decrypt it independently.
+ */
+function createSendStore({ sendAzure, sendPremium }) {
+  const all = []; // { ...request, id, accessId, password (hash of the client hash), accessCount, file: { id, fileName, size } }
+  const files = new Map(); // fileId → bytes
+  const tokens = new Map(); // send access token → send id
+  let n = 0;
+  const now = () => new Date().toISOString();
+  const hashOf = (clientHash) => createHash('sha256').update(`server:${clientHash}`).digest('base64');
+  const view = (x) => ({
+    object: 'send', id: x.id, accessId: x.accessId, type: x.type, authType: x.password ? 1 : 2, name: x.name, notes: x.notes, key: x.key,
+    maxAccessCount: x.maxAccessCount, accessCount: x.accessCount, revisionDate: x.revisionDate, expirationDate: x.expirationDate,
+    deletionDate: x.deletionDate, password: x.password, disabled: x.disabled, hideEmail: x.hideEmail,
+    ...(x.type === 0 ? { text: x.text, file: null } : { file: x.file, text: null }),
+  });
+  const bad = (message) => ({ status: 400, body: { message, validationErrors: null, object: 'error' } });
+  const accessible = (x) => x && !x.disabled && (!x.maxAccessCount || x.accessCount < x.maxAccessCount)
+    && (!x.expirationDate || new Date(x.expirationDate) > new Date()) && new Date(x.deletionDate) > new Date() && (x.type === 0 || files.has(x.file.id));
+  function validate(json, creating) {
+    if (!json.key || !json.deletionDate || json.disabled == null) return bad('The Key field is required.');
+    const del = new Date(json.deletionDate);
+    if (del <= new Date(Date.now() + 60_000)) return bad('You cannot have a Send with a deletion date in the past. Adjust the deletion date and try again.');
+    if (del > new Date(Date.now() + 31 * 86400_000)) return bad('You cannot have a Send with a deletion date that far into the future. Adjust the Deletion Date to a value less than 31 days from now and try again.');
+    if (json.expirationDate && new Date(json.expirationDate) > del) return bad('You cannot have a Send with an expiration date greater than the deletion date. Adjust the expiration date and try again.');
+    if (creating && json.expirationDate && new Date(json.expirationDate) <= new Date(Date.now() + 60_000)) return bad('You cannot create a Send that is already expired. Adjust the expiration date and try again.');
+    return null;
+  }
+  function create(json) {
+    const id = `5e0d0000-0000-4000-8000-${String(++n).padStart(12, '0')}`;
+    const x = { ...json, id, accessId: Buffer.from(id.replace(/-/g, ''), 'hex').toString('base64url'), accessCount: 0, revisionDate: now(), password: json.password ? hashOf(json.password) : null };
+    delete x.fileLength;
+    all.push(x);
+    return x;
+  }
+  return {
+    all, files,
+    list: () => all.map(view),
+    owner(path, { method, json, body }) {
+      let m;
+      if (path.endsWith('/api/sends') && method === 'GET') return { status: 200, body: { object: 'list', data: all.map(view), continuationToken: null } };
+      if (path.endsWith('/api/sends') && method === 'POST') {
+        if (json.type !== 0) return bad('File sends should use /api/sends/file/v2');
+        const e = validate(json, true);
+        return e ?? { status: 200, body: view(create(json)) };
+      }
+      if (path.endsWith('/api/sends/file/v2') && method === 'POST') {
+        if (json.type !== 1) return bad('Invalid content.');
+        if (!json.fileLength) return bad('Invalid content. File size hint is required.');
+        if (!sendPremium) return bad('You must have premium status to use file Sends.');
+        const e = validate(json, true);
+        if (e) return e;
+        const x = create(json);
+        x.file = { id: `f${n}${'0'.repeat(30)}`.slice(0, 32), fileName: json.file.fileName, size: String(json.fileLength), sizeName: `${json.fileLength} Bytes` };
+        const url = sendAzure ? `https://bwsends.blob.core.windows.net/sendfiles/${x.id}/${x.file.id}?sv=2024-08-04&sig=fake` : `/sends/${x.id}/file/${x.file.id}`;
+        return { status: 200, body: { object: 'send-fileUpload', fileUploadType: sendAzure ? 1 : 0, url, sendResponse: view(x) } };
+      }
+      if ((m = /\/api\/sends\/([^/]+)\/file\/([^/]+)$/.exec(path)) && method === 'POST') {
+        const x = all.find((y) => y.id === m[1]);
+        if (!x || x.file?.id !== m[2] || sendAzure) return bad('Send not found. Unable to save the file.');
+        if (body?.fileName !== x.file.fileName) return bad('Send file name does not match.');
+        if (body.bytes.length !== Number(x.file.size)) return bad('Send file size does not match.');
+        files.set(x.file.id, body.bytes);
+        return { status: 200, body: null };
+      }
+      if ((m = /\/api\/sends\/([^/]+)\/remove-password$/.exec(path)) && method === 'PUT') {
+        const x = all.find((y) => y.id === m[1]);
+        if (!x) return { status: 404, body: { message: 'Send not found' } };
+        x.password = null;
+        x.revisionDate = now();
+        return { status: 200, body: view(x) };
+      }
+      if ((m = /\/api\/sends\/([^/]+)$/.exec(path))) {
+        const i = all.findIndex((y) => y.id === m[1]);
+        if (i < 0) return { status: 404, body: { message: 'Send not found' } };
+        const x = all[i];
+        if (method === 'GET') return { status: 200, body: view(x) };
+        if (method === 'DELETE') { all.splice(i, 1); if (x.file) files.delete(x.file.id); return { status: 200, body: null }; }
+        if (method === 'PUT') {
+          if (json.type !== x.type) return bad("Sends can't change type");
+          const e = validate(json, false);
+          if (e) return e;
+          Object.assign(x, {
+            name: json.name, notes: json.notes, key: json.key, maxAccessCount: json.maxAccessCount, expirationDate: json.expirationDate,
+            deletionDate: json.deletionDate, disabled: json.disabled, hideEmail: json.hideEmail, revisionDate: now(),
+            ...(x.type === 0 ? { text: json.text } : {}),
+            ...(json.password ? { password: hashOf(json.password) } : {}),
+          });
+          return { status: 200, body: view(x) };
+        }
+      }
+      return null;
+    },
+    /** identity: grant_type=send_access → a short-lived token for one Send. */
+    grant(f) {
+      const x = all.find((y) => y.accessId === f.get('send_id'));
+      if (f.get('client_id') !== 'send') return { status: 400, body: { error: 'invalid_client' } };
+      if (!accessible(x)) return { status: 400, body: { error: 'invalid_grant', send_access_error_type: 'send_id_invalid' } };
+      if (x.password) {
+        if (!f.get('password_hash_b64')) return { status: 400, body: { error: 'invalid_request', send_access_error_type: 'password_hash_b64_required' } };
+        if (hashOf(f.get('password_hash_b64')) !== x.password) return { status: 400, body: { error: 'invalid_grant', send_access_error_type: 'password_hash_b64_invalid' } };
+      }
+      const token = `SEND${tokens.size + 1}`;
+      tokens.set(token, x.id);
+      return { status: 200, body: { access_token: token, expires_in: 120, token_type: 'Bearer', scope: 'api.send.access' } };
+    },
+    recipient(path, { method, auth, body }) {
+      let m;
+      if ((m = /\/sendfiles\/[^/]+\/([^/?]+)$/.exec(path)) && method === 'PUT' && sendAzure) {
+        files.set(m[1], new Uint8Array(body));
+        return { status: 201, body: null };
+      }
+      if ((m = /\/sendfiles\/[^/]+\/([^/?]+)$/.exec(path)) && method === 'GET') {
+        return files.has(m[1]) ? { status: 200, raw: files.get(m[1]) } : { status: 404, body: {} };
+      }
+      if (!/\/api\/sends\/access(\/file\/[^/]+)?$/.test(path) || method !== 'POST') return null;
+      const x = all.find((y) => y.id === tokens.get(String(auth ?? '').replace(/^Bearer /, '')));
+      if (!accessible(x)) return { status: 404, body: { message: 'Send does not exist or is no longer available' } };
+      if ((m = /\/file\/([^/]+)$/.exec(path))) {
+        if (x.file?.id !== m[1]) return { status: 404, body: {} };
+        x.accessCount++;
+        return { status: 200, body: { object: 'send-fileDownload', id: m[1], url: `https://bwsends.blob.core.windows.net/sendfiles/${x.id}/${m[1]}` } };
+      }
+      if (x.type === 0) x.accessCount++;
+      return {
+        status: 200,
+        body: { object: 'send-access', id: x.accessId, type: x.type, name: x.name, file: x.file ?? null, text: x.text ?? null, expirationDate: x.expirationDate, creatorIdentifier: x.hideEmail ? null : EMAIL },
+      };
+    },
+  };
 }

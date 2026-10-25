@@ -173,6 +173,22 @@ async function findItem(accountId, itemId) {
 }
 
 /** Run a provider write operation and keep session + cache in sync. */
+/** Runs a Send call for an unlocked account whose provider has Send; keeps a renewed session. */
+async function sendCall(accountId, fn, { write: writes = false } = {}) {
+  const account = await store.getAccount(accountId);
+  if (!account) throw new Error(t('Konto nicht gefunden'));
+  const session = await store.getSession(accountId);
+  if (!session) throw new Error(t('Tresor gesperrt'));
+  const provider = getProvider(account.provider);
+  if (!provider.capabilities?.send) throw new Error(t('Send wird für diesen Anbieter nicht unterstützt'));
+  if (writes && (cache.get(accountId) ?? await ensureSynced(account))?.readOnly) {
+    throw new Error(t('{account} kann OmniVault nur lesen.', { account: account.label }));
+  }
+  const res = await fn(provider, account, session);
+  if (res?.session) await store.setSession(accountId, res.session);
+  return res;
+}
+
 async function write(accountId, fn) {
   const account = await store.getAccount(accountId);
   const session = await store.getSession(accountId);
@@ -893,6 +909,35 @@ const handlers = {
       return p.deleteAttachment(cfg(a), s, item, attachmentId);
     });
     return fullItem(res.item);
+  },
+
+  /* Bitwarden Send. The list goes to the popup without text, notes and link; those come only when asked for. */
+  async sends({ accountId }) {
+    const res = await sendCall(accountId, (p, a, s) => p.listSends(cfg(a), s));
+    return res.sends.map(({ text, notes, link, ...meta }) => meta);
+  },
+
+  async send({ accountId, sendId }) {
+    const res = await sendCall(accountId, (p, a, s) => p.listSends(cfg(a), s));
+    const found = res.sends.find((x) => x.id === sendId);
+    if (!found) throw new Error(t('Send nicht gefunden'));
+    return found;
+  },
+
+  async saveSend({ accountId, sendId = null, data }) {
+    const res = await sendCall(accountId, (p, a, s) => p.saveSend(cfg(a), s, sendId, data), { write: true });
+    return res.send;
+  },
+
+  async deleteSend({ accountId, sendId }) {
+    await sendCall(accountId, (p, a, s) => p.deleteSend(cfg(a), s, sendId));
+    return true;
+  },
+
+  async removeSendPassword({ accountId, sendId }) {
+    const { send } = await sendCall(accountId, (p, a, s) => p.removeSendPassword(cfg(a), s, sendId));
+    const { text, notes, link, ...meta } = send;
+    return meta;
   },
 
   async createFolder({ accountId, name }) {
