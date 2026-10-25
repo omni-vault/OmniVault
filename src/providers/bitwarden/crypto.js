@@ -16,7 +16,7 @@ const subtle = globalThis.crypto.subtle;
 export const KDF = { PBKDF2: 0, ARGON2ID: 1 };
 
 
-async function pbkdf2(password, salt, iterations, bytes = 32) {
+export async function pbkdf2(password, salt, iterations, bytes = 32) {
   const key = await subtle.importKey('raw', password, 'PBKDF2', false, ['deriveBits']);
   const bits = await subtle.deriveBits(
     { name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, bytes * 8);

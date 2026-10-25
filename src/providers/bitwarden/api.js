@@ -254,7 +254,7 @@ export async function authedUpload(ep, token, path, fileName, bytes) {
 export const AZURE_BLOB_ORIGINS = ['https://*.blob.core.windows.net/*'];
 
 /** Uploads an encrypted file to the signed Azure Blob URL the server handed out (single PUT, like the apps). */
-export async function azureUpload(url, bytes) {
+export async function azureUpload(url, bytes, { failed = null } = {}) {
   const version = new URL(url).searchParams.get('sv') || '2020-04-08';
   let res;
   try {
@@ -266,7 +266,7 @@ export async function azureUpload(url, bytes) {
   } catch (e) {
     throw new ProviderError(t('Bitwardens Dateispeicher ist nicht erreichbar: {error}', { error: e.message }), 'network');
   }
-  if (!res.ok) throw new ProviderError(t('Anhang konnte nicht hochgeladen werden (HTTP {status}).', { status: res.status }), 'server');
+  if (!res.ok) throw new ProviderError(failed ? failed(res.status) : t('Anhang konnte nicht hochgeladen werden (HTTP {status}).', { status: res.status }), 'server');
 }
 
 /** Authorized JSON call against the API server. Returns { unauthorized } on 401. */

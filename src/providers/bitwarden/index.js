@@ -9,6 +9,7 @@ import { b64, fromB64 } from '../../lib/bytes.js';
 import { cborToPlain, decodeCbor } from '../../lib/cbor.js';
 import { Provider, ProviderError } from '../provider.js';
 import * as api from './api.js';
+import * as send from './send.js';
 import {
   decryptBuffer, decryptKey, decryptRsa, decryptSym, decryptSymString, decryptUserKey,
   deriveMasterKey, encryptBuffer, encryptSym, keyBytes, masterPasswordHash, openCose, splitKey,
@@ -46,6 +47,27 @@ async function openBlob(data, itemKey) {
     sshKey: type === 'sshKey' ? { ...typeData, keyFingerprint: typeData.fingerprint } : null,
     fields: c.fields ?? [], passwordHistory: c.passwordHistory ?? [],
   };
+}
+
+/** Server refusals around Send in words people understand (the servers answer in English). */
+const SEND_ERRORS = [
+  [/premium status to use file sends/i, mark('Datei-Sends gibt es bei Bitwarden nur mit Premium. Text-Sends funktionieren ohne.')],
+  [/confirm your email to use file sends/i, mark('Für Datei-Sends musst du zuerst deine E-Mail-Adresse bei Bitwarden bestätigen.')],
+  [/not enough storage|storage limit/i, mark('Nicht genug Speicherplatz für die Datei. Lösche alte Datei-Sends oder Anhänge.')],
+  [/file uploads are disabled/i, mark('Der Server erlaubt keine Datei-Sends.')],
+  [/enterprise policy.*only able to delete/i, mark('Eine Richtlinie deiner Organisation erlaubt keine neuen Sends; bestehende kannst du nur löschen.')],
+  [/enterprise policy.*hide your email/i, mark('Eine Richtlinie deiner Organisation verbietet, die E-Mail-Adresse zu verbergen.')],
+  [/deletion date that far/i, mark('Das Löschdatum darf höchstens 31 Tage in der Zukunft liegen.')],
+  [/deletion date in the past/i, mark('Das Löschdatum muss in der Zukunft liegen.')],
+  [/expiration date (in the past|.*already expired)|already expired/i, mark('Das Ablaufdatum muss in der Zukunft liegen.')],
+  [/expiration date greater than the deletion date/i, mark('Das Ablaufdatum darf nicht nach dem Löschdatum liegen.')],
+];
+function sendError(e) {
+  const hit = SEND_ERRORS.find(([re]) => re.test(e?.message ?? ''));
+  if (!hit) return e;
+  const x = new ProviderError(t(hit[1]), e.code ?? 'server');
+  x.status = e.status;
+  return x;
 }
 
 const TWO_FACTOR_LABELS = {
@@ -181,7 +203,7 @@ class BitwardenProvider extends Provider {
   static status = 'ready';
   static unlockLabel = mark('Master-Passwort');
   static unlockOptions = ['apikey'];
-  static capabilities = { write: true, types: ['login', 'note', 'card', 'identity'], fields: true, createFolder: true, trash: true, restore: true, attachments: true, attachmentUpload: true, passkeys: true, organizations: true };
+  static capabilities = { write: true, types: ['login', 'note', 'card', 'identity'], fields: true, createFolder: true, trash: true, restore: true, attachments: true, attachmentUpload: true, passkeys: true, organizations: true, send: true };
   static configFields = [
     {
       // Bitwarden runs exactly two cloud regions; anything else is self-hosted (incl. Vaultwarden).
@@ -755,6 +777,79 @@ class BitwardenProvider extends Provider {
     const ep = api.endpoints(config.server);
     const { session: renewed } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'DELETE', `/ciphers/${existing.id}/attachment/${attachmentId}`));
     return this.#reloadItem(config, ep, renewed ?? session, session, existing);
+  }
+
+  /* ---------- Send ---------- */
+
+  /** The account's own Sends (decrypted; text and notes included, see send.js). */
+  static async listSends(config, session) {
+    const ep = api.endpoints(config.server);
+    const { result, session: s } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'GET', '/sends'));
+    const userKey = splitKey(fromB64((s ?? session).userKey));
+    const sends = [];
+    for (const raw of result.body?.data ?? []) {
+      try { sends.push(await send.decryptSend(raw, userKey, ep)); } catch (e) { console.warn('OmniVault: Send nicht entschlüsselbar', raw.id, e); }
+    }
+    sends.sort((a, b) => String(b.revisionDate ?? '').localeCompare(String(a.revisionDate ?? '')));
+    return { sends, session: s };
+  }
+
+  /**
+   * Creates (id null) or changes a Send. A new file Send carries `file: { fileName, data (base64) }`; the encrypted
+   * file goes to the server itself or to the signed Azure Blob URL it hands out, as with attachments.
+   */
+  static async saveSend(config, session, id, data) {
+    this.#assertWritable(session);
+    const ep = api.endpoints(config.server);
+    const userKey = this.#session(session).userKey;
+    let s = session;
+    const renew = (r) => { if (r.session) s = r.session; return r.result; };
+    const call = (method, path, body) => this.#withToken(ep, s, (token) => api.authed(ep, token, method, path, body)).then(renew).catch((e) => { throw sendError(e); });
+    let raw;
+    if (id) {
+      const existing = (await call('GET', `/sends/${id}`)).body;
+      const sendKey = await send.ownerSendKey(existing, userKey);
+      raw = (await call('PUT', `/sends/${id}`, await send.sendRequest(data, { userKey, sendKey, existing }))).body;
+    } else if (data.type === 'file') {
+      const fileName = String(data.file?.fileName ?? '').trim();
+      if (!fileName || !data.file?.data) throw new ProviderError(t('Bitte eine Datei wählen.'), 'config');
+      const sendKey = globalThis.crypto.getRandomValues(new Uint8Array(16));
+      const encFile = await send.encryptSendFile(fromB64(data.file.data), sendKey);
+      const body = await send.sendRequest(data, { userKey, sendKey, fileName, fileLength: encFile.length });
+      const meta = (await call('POST', '/sends/file/v2', body)).body;
+      raw = meta?.sendResponse;
+      if (!raw?.id || !raw.file?.id) throw new ProviderError(t('Der Server hat keinen Platz für die Datei angelegt.'), 'server');
+      try {
+        if (meta.fileUploadType === 1) {
+          await api.azureUpload(meta.url, encFile, { failed: (status) => t('Die Datei konnte nicht hochgeladen werden (HTTP {status}).', { status }) });
+        } else if (meta.fileUploadType === 0 || meta.fileUploadType == null) {
+          renew(await this.#withToken(ep, s, (token) => api.authedUpload(ep, token, `/sends/${raw.id}/file/${raw.file.id}`, body.file.fileName, encFile)));
+        } else {
+          throw new ProviderError(t('Unbekannte Upload-Art des Servers ({type}).', { type: meta.fileUploadType }), 'unsupported');
+        }
+      } catch (e) {
+        // don't leave a Send without its file behind
+        await this.#withToken(ep, s, (token) => api.authed(ep, token, 'DELETE', `/sends/${raw.id}`)).catch(() => {});
+        throw sendError(e);
+      }
+    } else {
+      const sendKey = globalThis.crypto.getRandomValues(new Uint8Array(16));
+      raw = (await call('POST', '/sends', await send.sendRequest(data, { userKey, sendKey }))).body;
+    }
+    return { send: await send.decryptSend(raw, userKey, ep), session: s !== session ? s : undefined };
+  }
+
+  static async deleteSend(config, session, id) {
+    const ep = api.endpoints(config.server);
+    const { session: s } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'DELETE', `/sends/${id}`)).catch((e) => { throw sendError(e); });
+    return { session: s };
+  }
+
+  static async removeSendPassword(config, session, id) {
+    const ep = api.endpoints(config.server);
+    const { result, session: s } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'PUT', `/sends/${id}/remove-password`)).catch((e) => { throw sendError(e); });
+    const userKey = splitKey(fromB64((s ?? session).userKey));
+    return { send: await send.decryptSend(result.body, userKey, ep), session: s };
   }
 
   /** Fetches an item again after a change the server answers without the full cipher. */
