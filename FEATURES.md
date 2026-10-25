@@ -1,6 +1,6 @@
 # Featureliste
 
-Stand 20.10.2026, Version 0.5.3. Diese Datei ist die Tracking-Liste: Jede Zeile sagt, ob **OmniVault** eine Funktion
+Stand 26.10.2026, Version 0.5.4. Diese Datei ist die Tracking-Liste: Jede Zeile sagt, ob **OmniVault** eine Funktion
 umsetzt und womit das geprüft ist. Wer einen Provider ändert, passt die Zeile im selben Commit an.
 
 **Legende**

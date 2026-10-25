@@ -248,10 +248,12 @@ The packages uploaded to the browser stores are built from this repository witho
   with `SHA256SUMS` to `dist/packages/`. The archives are reproducible: the same sources give byte-identical files.
 - The only build step for OmniVault's own code is esbuild, which combines OmniVault's own files from `src/` into one file per entry point;
   nothing is minified, and source maps are included. The third-party libraries in `vendor/` (OpenPGP.js, argon2id,
-  @noble/ciphers, TweetNaCl.js) are shipped as separate files, built from unmodified upstream sources. How they are built
+  @noble/ciphers, TweetNaCl.js, the Argon2 reference implementation) are shipped as separate files, built from unmodified upstream sources. How they are built
   from those sources at pinned commits is described in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
   (`npm run vendor:fetch`, `npm run vendor:build`); `vendor/sources.json` pins every upstream commit, and the
   source archives of OpenPGP.js and argon2id are in `vendor/sources/`.
+
+What changed in each version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Feedback and contributing
 

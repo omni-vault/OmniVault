@@ -1,6 +1,6 @@
 {
   "name": "omnivault",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "Browser extension client for multiple password managers",
   "type": "module",
