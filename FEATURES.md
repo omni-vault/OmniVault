@@ -186,7 +186,10 @@ den simulierten Server, der Adressen wie die echten Server aufbaut. Mit echtem D
 | Spiegel-Regeln (Quelle → Ziel, optional mit Löschen, ohne Ping-Pong) | ✅ R + U |
 | Automatischer Abgleich entsperrter Konten (auch nach Neustart des Service Workers, mit Spiegel-Regeln) | ✅ R (Browsertest: Worker beendet, Alarm weckt ihn, Änderung eines anderen Clients kommt an und wird gespiegelt) |
 | Papierkorb (Werkzeuge → Papierkorb) | ✅ R (Bitwarden/Vaultwarden, Vault/OpenBao) |
+| Bitwarden Send (Werkzeuge → Send, nur Bitwarden/Vaultwarden): eigene Sends auflisten (Name, Art, Ablauf bzw. Löschung, Zugriffe), Text- und Datei-Send anlegen (bis 30 MB) mit Löschdatum (höchstens 31 Tage), Ablaufdatum, Höchstzahl der Zugriffe, Passwort, Text verbergen, E-Mail verbergen, deaktiviert; bearbeiten (Link bleibt gleich, die Datei selbst nicht änderbar), Link kopieren, Passwort entfernen, löschen | ✅ R + S + U: gegen Vaultwarden (Text und Datei, direkter Upload); jeder Link wird wie von einem Empfänger über die öffentliche Schnittstelle geöffnet (`send_access`-Token, `/sends/access`, Datei-Download) und von einem unabhängigen Python-Prüfer entschlüsselt; Passwortschutz, Ablauf, Zugriffsgrenze, Deaktivieren und Löschen gegen den echten Server; Azure-Upload und die Premium-Meldung der Bitwarden-Cloud nur simuliert ²⁸ |
 | Export: Bitwarden-JSON (vollständig, mit Passkeys samt Schlüssel wie bei Bitwarden) und CSV, je Konto oder alle | ✅ R + U |
+
+²⁸ Send-Format aus den öffentlichen Quellen von Bitwarden-Server, Bitwarden-SDK und Vaultwarden (kein Code übernommen): 16 Zufallsbytes je Send, mit dem Benutzerschlüssel verschlüsselt; Inhalte mit dem daraus per HKDF-SHA256 (Salt „bitwarden-send“, Info „send“) abgeleiteten 64-Byte-Schlüssel; Passwort als PBKDF2-SHA256 (100 000 Runden, Salt = Send-Schlüssel). Links: `https://send.bitwarden.com/#…` (bitwarden.com), sonst `{Web-Tresor}/#/send/…`. Datei-Sends verlangen in der Bitwarden-Cloud Premium und eine bestätigte E-Mail-Adresse; OmniVault zeigt die Meldung des Servers verständlich an. Ein Passwort wird ohne `authType` gesendet, damit beide Server es genau dann setzen, wenn eines angegeben ist. Sends mit E-Mail-Bestätigung (neu bei Bitwarden, Premium) und Eintrags-Sends legt OmniVault nicht an.
 
 ## Dateiimport
 
@@ -277,7 +280,7 @@ Einstellungen → Darstellung → Sprache wechselt sofort.
 | Passkey-Erweiterungen PRF und largeBlob | das Bitwarden-Format der Passkeys hat kein Feld für das PRF-Geheimnis oder den Blob; die Bitwarden-Apps würden beides verwerfen |
 | Passkeys für 1Password, LastPass, Dashlane, Proton Pass | deren Kommandozeilenprogramme geben die Schlüssel nicht heraus |
 | Dashlane: Einträge anlegen, ändern, löschen | das offizielle `dcli` kann nur lesen |
-| Bitwarden Send, Notfallzugriff | nicht umgesetzt |
+| Bitwarden: Notfallzugriff (❌) | über die normale Client-API möglich (`/emergency-access/…`: einladen, annehmen mit dem Token aus der E-Mail, bestätigen mit dem öffentlichen Schlüssel des Vertrauten, Zugriff anfordern, nach der Wartezeit Tresor ansehen oder übernehmen), aber selten gebraucht und heikel: Die Übernahme setzt das Master-Passwort eines anderen neu. Sinnvoll wäre höchstens „Ansehen“ für Vertraute; bisher nicht umgesetzt |
 | Bitwarden: Rechte in einer Organisation verwalten (Mitglieder, Gruppen, Rechte je Sammlung) | nicht umgesetzt; Sammlungen eines Eintrags ändert OmniVault |
 | Bitwarden: WebAuthn- und Duo-Zweitfaktor, SSO | brauchen den Web-Tresor des Anbieters als Gegenstelle; Ausweg API-Schlüssel |
 | Passbolt: Duo, Kontowiederherstellung, Ordner teilen | nicht umgesetzt |

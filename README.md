@@ -91,6 +91,9 @@ with a notice.
 - Import exports from other managers; export to Bitwarden JSON or CSV
 - Trash view for Bitwarden / Vaultwarden
 - Attachments: download them; in Bitwarden / Vaultwarden also add and delete them (up to 30 MB per file)
+- Bitwarden Send (Bitwarden / Vaultwarden): share text or a file (up to 30 MB) through an encrypted link with a
+  deletion date, optional expiry, access limit and password; list, edit, copy the link, remove the password, delete.
+  The key is part of the link, so the server never sees the content. File Sends on bitwarden.com need Premium
 
 **Languages:** English, German, Spanish, French, Italian, Portuguese (Brazil), Simplified Chinese and Japanese.
 OmniVault follows your browser language; you can change it under *Settings → Appearance → Language*.
@@ -228,7 +231,7 @@ What OmniVault stores and where it sends data is described in detail in the [pri
   instead of home-grown crypto, and contains no code from the official password manager clients.
 - **Minimal permissions.** Access to self-hosted servers and to native applications is requested only when you
   add such an account. Access to Bitwarden's cloud file storage (Azure Blob Storage) is requested only when you
-  first upload an attachment to a bitwarden.com or bitwarden.eu account.
+  first upload an attachment or create a file Send in a bitwarden.com or bitwarden.eu account.
 
 Found a security issue? Please report it privately via
 [GitHub's security advisories](https://github.com/omni-vault/OmniVault/security/advisories/new) instead of a public
