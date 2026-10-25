@@ -14,7 +14,7 @@ import { openItemCollections, openMoveToOrganization } from './organization.js';
 import { openShare } from './share.js';
 import { transferWithDialog } from './tools.js';
 import { formatDateTime, mark } from '../i18n/index.js';
-import { $, TYPE_LABEL, ask, back, badge, call, copy, el, icon, iconButton, onLeave, show, t, toast, typeIcon } from './ui.js';
+import { $, TYPE_LABEL, ask, back, badge, call, copy, el, icon, iconButton, onLeave, show, t, tn, toast, typeIcon } from './ui.js';
 
 let totpTimer = null;
 onLeave('item', () => { clearInterval(totpTimer); totpTimer = null; });
@@ -212,11 +212,22 @@ export async function openItem(accountId, itemId) {
           show('main');
         },
       }, t('Löschen')) : null,
-      (['login', 'note'].includes(i.type) && writableAccounts().length) || toOrganization || collections ? iconButton('transfer', t('Kopieren, verschieben, teilen'), {
+      (['login', 'note'].includes(i.type) && writableAccounts().length) || toOrganization || collections || (caps.shareFolder && i.canShareFolder) ? iconButton('transfer', t('Kopieren, verschieben, teilen'), {
         'aria-haspopup': 'menu',
         onclick: (e) => openMenu(e.currentTarget, [
           ...(caps.share && canDelete ? [{ ico: 'user', text: t('Teilen …'), onSelect: async () => {
             if (await openShare({ ...i, accountId })) { toast(t('Freigaben gespeichert')); await refresh(); openItem(accountId, itemId); }
+          } }] : []),
+          ...(caps.shareFolder && i.canShareFolder ? [{ ico: 'folder', text: t('Ordner „{name}“ teilen …', { name: i.folder }), onSelect: async () => {
+            try {
+              const r = await openShare({ accountId, id: i.folderId, name: i.folder, isFolder: true });
+              if (!r) return;
+              const notes = [t('Freigaben des Ordners gespeichert')];
+              if (r.skipped) notes.push(tn(r.skipped, '{n} Eintrag gehört dir nicht und blieb unverändert', '{n} Einträge gehören dir nicht und blieben unverändert'));
+              if (r.failed?.length) notes.push(t('Nicht geteilt: {names}', { names: r.failed.join(', ') }));
+              toast(notes.join('. '));
+              await refresh(); openItem(accountId, itemId);
+            } catch (x) { toast(x.message); }
           } }] : []),
           ...(toOrganization ? [{ ico: 'user', text: t('In Organisation verschieben …'), onSelect: async () => {
             try {

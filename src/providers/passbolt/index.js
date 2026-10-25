@@ -127,7 +127,7 @@ class PassboltProvider extends Provider {
   static label = 'Passbolt';
   static status = 'ready';
   static unlockLabel = mark('Passphrase des privaten Schlüssels');
-  static capabilities = { write: true, types: ['login', 'note'], fields: true, createFolder: true, share: true };
+  static capabilities = { write: true, types: ['login', 'note'], fields: true, createFolder: true, share: true, shareFolder: true };
   static note = mark('Benötigt deinen privaten Schlüssel (Wiederherstellungs-Kit, passphrasegeschützt) und deine Benutzer-ID.');
   static configFields = [
     { name: 'server', label: mark('Passbolt-Adresse'), type: 'url', required: true, placeholder: 'https://passbolt.example.org' },
@@ -228,7 +228,7 @@ class PassboltProvider extends Provider {
     const key = await openpgp.readPrivateKey({ armoredKey: s.unlockedKey });
     const types = Object.fromEntries((await get('/resource-types.json')).map((rt) => [rt.id, rt.slug]));
     const resources = await get('/resources.json?contain[secret]=1&contain[favorite]=1&contain[permission]=1');
-    const folders = await optional('/folders.json', []);
+    const folders = await optional('/folders.json?contain[permission]=1', []);
     const warnings = [];
 
     // v5: session keys let us skip one asymmetric decryption per resource (Passbolt ≥ 4.10)
@@ -306,7 +306,7 @@ class PassboltProvider extends Provider {
       if (f.metadata) {
         try { name = (await decryptMetadata(f, 'Folder', 'PASSBOLT_FOLDER_METADATA')).name; } catch { name = '…'; }
       }
-      folderById.set(f.id, { name, parent: f.folder_parent_id });
+      folderById.set(f.id, { name, parent: f.folder_parent_id, owner: f.permission?.type === 15 });
     }
     const folderPath = (id) => {
       const parts = [];
@@ -343,6 +343,7 @@ class PassboltProvider extends Provider {
           description: meta.description ?? undefined, // public (searchable) description
           folderId: r.folder_parent_id ?? null,
           folder: folderPath(r.folder_parent_id),
+          canShareFolder: !!folderById.get(r.folder_parent_id)?.owner,
           favorite: !!r.favorite,
           canEdit: (r.permission?.type ?? 15) >= 7,
           canDelete: (r.permission?.type ?? 15) >= 15,
@@ -364,7 +365,7 @@ class PassboltProvider extends Provider {
       }
     }
     if (failed) warnings.push(tn(failed, '{n} Eintrag konnte nicht entschlüsselt werden', '{n} Einträge konnten nicht entschlüsselt werden'));
-    const folderList = folders.map((f) => ({ id: f.id, name: folderPath(f.id) })).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    const folderList = folders.map((f) => ({ id: f.id, name: folderPath(f.id), parentId: f.folder_parent_id ?? null, canShare: folderById.get(f.id).owner })).sort((a, b) => a.name.localeCompare(b.name, 'de'));
     return { items, folders: folderList, session: s !== session ? s : undefined, warning: warnings.join('; ') || undefined };
   }
 
@@ -595,22 +596,30 @@ class PassboltProvider extends Provider {
       if (!body.metadata || e.status !== 400 || !e.body?.name || settings?.allow_creation_of_v4_folders === false) throw e;
       saved = await ctx.call('/folders.json', { method: 'POST', body: { name, folder_parent_id: null } });
     }
-    return { folder: { id: saved.id, name }, session: ctx.renewed() };
+    return { folder: { id: saved.id, name, parentId: null, canShare: true }, session: ctx.renewed() };
   }
 
   /* ---------- sharing ---------- */
+
+  static #permissionRow(p) {
+    const name = (p.aro === 'User'
+      ? [p.user?.profile?.first_name, p.user?.profile?.last_name].filter(Boolean).join(' ') || p.user?.username
+      : p.group?.name) ?? p.aro_foreign_key;
+    return { id: p.id, aro: p.aro, aroId: p.aro_foreign_key, type: p.type, name, sub: p.aro === 'User' ? p.user?.username : t('Gruppe') };
+  }
 
   /** Who has access to a resource: [{ id, aro: 'User'|'Group', aroId, name, sub, type: 1 read | 7 update | 15 owner }]. */
   static async permissions(config, session, item) {
     const ctx = await this.#ctx(config, session);
     const perms = await ctx.call(`/permissions/resource/${encodeURIComponent(item.id)}.json?contain[user.profile]=1&contain[group]=1`);
-    const name = (p) => (p.aro === 'User'
-      ? [p.user?.profile?.first_name, p.user?.profile?.last_name].filter(Boolean).join(' ') || p.user?.username
-      : p.group?.name) ?? p.aro_foreign_key;
-    return {
-      permissions: perms.map((p) => ({ id: p.id, aro: p.aro, aroId: p.aro_foreign_key, type: p.type, name: name(p), sub: p.aro === 'User' ? p.user?.username : t('Gruppe') })),
-      session: ctx.renewed(),
-    };
+    return { permissions: perms.map((p) => this.#permissionRow(p)), session: ctx.renewed() };
+  }
+
+  /** Who has access to a folder, in the same shape as permissions(). */
+  static async folderPermissions(config, session, folderId) {
+    const ctx = await this.#ctx(config, session);
+    const f = await ctx.call(`/folders/${encodeURIComponent(folderId)}.json?contain[permissions.user.profile]=1&contain[permissions.group]=1`);
+    return { permissions: (f.permissions ?? []).map((p) => this.#permissionRow(p)), session: ctx.renewed() };
   }
 
   /** Users and groups to share with, matching `query`. */
@@ -625,12 +634,23 @@ class PassboltProvider extends Provider {
     };
   }
 
+  static #permissionChanges(changes) {
+    return changes.map((c) => (c.id
+      ? (c.delete ? { id: c.id, delete: true } : { id: c.id, type: c.type })
+      : { aro: c.aro, aro_foreign_key: c.aroId, type: c.type }));
+  }
+
   /**
    * Applies permission changes: [{ id } with type (change) or delete: true, or { aro, aroId, type } (add)].
    * New readers get the secret encrypted for them; a personal-key v5 resource is moved to the shared metadata key first.
    */
   static async share(config, session, item, changes) {
     const ctx = await this.#ctx(config, session);
+    await this.#shareResource(ctx, item, changes);
+    return { session: ctx.renewed(), resync: true };
+  }
+
+  static async #shareResource(ctx, item, changes) {
     const id = encodeURIComponent(item.id);
     if (item._v5 && item._metadataKeyType === 'user_key') {
       const mk = await this.#sharedMetadataKey(ctx);
@@ -640,9 +660,8 @@ class PassboltProvider extends Provider {
         metadata_key_id: mk.id, metadata_key_type: 'shared_key',
       } });
     }
-    const permissions = changes.map((c) => (c.id
-      ? (c.delete ? { id: c.id, delete: true } : { id: c.id, type: c.type })
-      : { aro: c.aro, aro_foreign_key: c.aroId, type: c.type }));
+    const permissions = this.#permissionChanges(changes);
+    // the dry run resolves groups to the users who are new readers
     const dry = await ctx.call(`/share/simulate/resource/${id}.json`, { method: 'POST', body: { permissions } });
     const added = (dry?.changes?.added ?? []).map((a) => a.User?.id).filter(Boolean);
     const secrets = [];
@@ -655,7 +674,78 @@ class PassboltProvider extends Provider {
       }
     }
     await ctx.call(`/share/resource/${id}.json`, { method: 'PUT', body: { permissions, secrets } });
-    return { session: ctx.renewed(), resync: true };
+  }
+
+  /** Sets the permissions of one folder (no secrets involved); a personal-key v5 folder moves to the shared key first. */
+  static async #shareFolderOnly(ctx, folder, changes) {
+    const id = encodeURIComponent(folder.id);
+    if (folder.metadata && folder.metadata_key_type === 'user_key' && changes.some((c) => !c.delete)) {
+      const mk = await this.#sharedMetadataKey(ctx);
+      if (!mk) throw new ProviderError(t('Zum Teilen braucht der Server einen gemeinsamen Metadaten-Schlüssel'), 'unsupported');
+      const { text } = await decryptText(folder.metadata, { decryptionKeys: ctx.key });
+      await ctx.call(`/folders/${id}.json`, { method: 'PUT', body: {
+        metadata: await this.#encryptFor(text, mk.key, ctx.key), metadata_key_id: mk.id, metadata_key_type: 'shared_key',
+      } });
+    }
+    await ctx.call(`/share/folder/${id}.json`, { method: 'PUT', body: { permissions: this.#permissionChanges(changes) } });
+  }
+
+  /**
+   * Shares a folder: `changes` refer to the folder's own permission list (same shape as in share()). Passbolt only
+   * changes the folder's permissions on PUT /share/folder; like Passbolt's own extension, the same change per user or
+   * group is then applied to every subfolder and entry inside that we own, with the secrets encrypted for new readers.
+   * `tree` = { folderId, folders: [{ id, parentId, canShare, name }], items } from the last sync.
+   * Returns { skipped: entries/folders we do not own, failed: names of the ones the server refused }.
+   */
+  static async shareFolder(config, session, { folderId, folders = [], items = [] }, changes) {
+    const ctx = await this.#ctx(config, session);
+    const view = (id) => ctx.call(`/folders/${encodeURIComponent(id)}.json?contain[permissions]=1`);
+    const folder = await view(folderId);
+    const byId = new Map((folder.permissions ?? []).map((p) => [p.id, p]));
+    const wanted = new Map(); // "User:<id>" → type, or null to remove
+    for (const c of changes) {
+      if (!c.id) { wanted.set(`${c.aro}:${c.aroId}`, c.type); continue; }
+      const p = byId.get(c.id);
+      if (!p) throw new ProviderError(t('Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.'), 'conflict');
+      wanted.set(`${p.aro}:${p.aro_foreign_key}`, c.delete ? null : c.type);
+    }
+    const diff = (perms) => {
+      const out = [];
+      for (const [k, type] of wanted) {
+        const [aro, aroId] = k.split(':');
+        const p = perms.find((x) => x.aro === aro && x.aro_foreign_key === aroId);
+        if (type === null) { if (p) out.push({ id: p.id, delete: true }); } else if (!p) out.push({ aro, aroId, type }); else if (p.type !== type) out.push({ id: p.id, type });
+      }
+      return out;
+    };
+    const own = diff(folder.permissions ?? []);
+    if (own.length) await this.#shareFolderOnly(ctx, folder, own);
+
+    const inside = new Set([folderId]);
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const f of folders) if (f.parentId && inside.has(f.parentId) && !inside.has(f.id)) { inside.add(f.id); grew = true; }
+    }
+    let skipped = 0;
+    const failed = [];
+    for (const f of folders) {
+      if (f.id === folderId || !inside.has(f.id)) continue;
+      if (!f.canShare) { skipped++; continue; }
+      try {
+        const sub = await view(f.id);
+        const c = diff(sub.permissions ?? []);
+        if (c.length) await this.#shareFolderOnly(ctx, sub, c);
+      } catch (e) { console.warn('OmniVault: Unterordner nicht geteilt', f.id, e); failed.push(f.name); }
+    }
+    for (const it of items) {
+      if (!inside.has(it.folderId)) continue;
+      if (it.canDelete === false) { skipped++; continue; }
+      try {
+        const c = diff(await ctx.call(`/permissions/resource/${encodeURIComponent(it.id)}.json`));
+        if (c.length) await this.#shareResource(ctx, it, c);
+      } catch (e) { console.warn('OmniVault: Eintrag im Ordner nicht geteilt', it.id, e); failed.push(it.name); }
+    }
+    return { skipped, failed, session: ctx.renewed(), resync: true };
   }
 
   static async setFavorite(config, session, existing, favorite) {

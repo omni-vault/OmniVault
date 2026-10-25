@@ -951,5 +951,15 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "`dcli` (CLI di Dashlane) non trovato.",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "dcli è in attesa di un input. Esegui una volta «dcli sync» in un terminale.",
  "Dashlane CLI lieferte kein gültiges JSON": "La CLI di Dashlane ha restituito un JSON non valido",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® è un marchio di Dashlane SAS. OmniVault non è affiliato a Dashlane, né è supportato o approvato da Dashlane, e usa il nome solo per descrivere la compatibilità con la CLI ufficiale di Dashlane."
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® è un marchio di Dashlane SAS. OmniVault non è affiliato a Dashlane, né è supportato o approvato da Dashlane, e usa il nome solo per descrivere la compatibilità con la CLI ufficiale di Dashlane.",
+ "Ordner „{name}“ teilen …": "Condividi la cartella «{name}»…",
+ "Freigaben des Ordners gespeichert": "Condivisione della cartella aggiornata",
+ "Nicht geteilt: {names}": "Non condiviso: {names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "one": "{n} elemento non è tuo ed è rimasto invariato",
+  "other": "{n} elementi non sono tuoi e sono rimasti invariati"
+ },
+ "Ordner „{name}“ teilen": "Condividi la cartella «{name}»",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "Le modifiche valgono anche per tutti gli elementi e le sottocartelle al suo interno di cui sei proprietario. Le nuove persone ricevono i segreti cifrati con la propria chiave.",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "La condivisione è stata modificata nel frattempo. Riaprila."
 }

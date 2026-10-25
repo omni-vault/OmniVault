@@ -68,7 +68,7 @@ Bitwarden Cloud und Vaultwarden nutzen denselben Provider; gegen bitwarden.com/.
 | Passwortverlauf | ✅ R | ❌ (Versionen gibt es, OmniVault zeigt sie nicht) | – | – | – | 🟡 S ²¹ | ⛔ ²¹ | ⛔ ²¹ | ⛔ |
 | Passkeys anzeigen | ✅ R | – | – ⁹ | – ⁹ | – | ⛔ ²² | ⛔ ²² | ✅ S (nur Seite und Benutzer) | ⛔ |
 | Passkeys auf Webseiten anlegen und damit anmelden, entfernen | ✅ R (Bitwarden-Format, mit den offiziellen Apps austauschbar) | – | – ⁹ | – ⁹ | – | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ |
-| Teilen, Rechte ändern, Zugriff entziehen | 🟡 R ⁷ | ⛔ (Policies verwaltet der Server) | ✅ R | – | – | ⛔ | ⛔ | ⛔ | ⛔ |
+| Teilen, Rechte ändern, Zugriff entziehen | 🟡 R ⁷ | ⛔ (Policies verwaltet der Server) | ✅ R (Einträge und Ordner) | – | – | ⛔ | ⛔ | ⛔ | ⛔ |
 | Geteilte Einträge bearbeiten | ✅ R (Organisation) | ✅ R (je nach Policy) | ✅ R (Geheimnis für alle Leser neu verschlüsselt) | – | – | 🟡 (wie eigene, ungetestet) | 🟡 (wie eigene, ungetestet) | ❌ | ⛔ |
 | Konflikterkennung (veralteter Stand wird nicht überschrieben) | ✅ R | ✅ R (Check-and-Set) | ✅ R | – | – | ✅ S ¹³ | ✅ S ¹³ | ✅ S ¹³ | – (nur lesen) |
 | Geheimnisse erst bei Bedarf entschlüsseln | – (alles lokal) | ✅ R (Werte erst bei Bedarf gelesen) | ✅ R | ❌ ⁸ | ❌ | ✅ S | ✅ S | ✅ S | 🟡 S (der Host verwirft sie in der Liste) ²⁶ |
@@ -163,8 +163,9 @@ zeigt, ob das echte Programm ihn liefert.
 ¹⁴ Noch von keinem Produktivkonto genutzt und von Vaultwarden nicht unterstützt (Stand 19.10.2026). Geprüft gegen
 die Vektoren der XAES-Spezifikation, Bitwardens veröffentlichte Vektoren (nur lokal) und ein unabhängig in Python
 erzeugtes V2-Konto. Solche Konten sind in OmniVault nur lesbar, bis Schreiben im neuen Format umgesetzt ist.
-¹⁵ OmniVault kann v6-Schlüssel; ob ein Passbolt-Server sie annimmt, entscheidet der Server (er prüft mit GnuPG,
-das RFC 9580 bisher nicht umsetzt – ungeprüft).
+¹⁵ OmniVault kann v6-Schlüssel, Passbolt CE 5.16 nimmt sie aber nicht an (geprüft): Die Kontoeinrichtung mit einem
+v6-Schlüssel scheitert mit „A valid OpenPGP key must be provided.“ („The public key could not be parsed.“), weil der Server
+öffentliche Schlüssel mit einem Parser für v4-Pakete prüft; auch sein GnuPG 2.4 kennt RFC 9580 nicht.
 ²⁷ Duo und SSO schicken den Browser nur auf feste Seiten des Web-Tresors zurück (`duo-redirect-connector.html`,
 `sso-connector.html`). OmniVault öffnet dafür einen Tab, wartet im Hintergrund, bis er dort ankommt, liest Code und
 State aus der Adresse, schließt den Tab und meldet an; das Popup, das sich beim Tabwechsel schließt, zeigt beim
@@ -223,6 +224,7 @@ echtes Vaultwarden importiert (`test/e2e-tools.mjs`).
 | Editor: Logins, Notizen, Karten, Identitäten, Zusatzfelder (Text, verborgen, Ja/Nein), mehrere Adressen | ✅ R |
 | „Neuer Ordner …“ direkt im Ordnerfeld | ✅ R |
 | Teilen-Dialog (Passbolt): Personen und Gruppen suchen, Rechte Lesen/Bearbeiten/Besitzer | ✅ R |
+| „Ordner „…“ teilen …“ (Passbolt, im Menü eines Eintrags): Rechte des Ordners; dieselbe Änderung gilt für eigene Unterordner und Einträge darin, neue Leser bekommen die Geheimnisse verschlüsselt; fremde Einträge bleiben unverändert | ✅ R (echter Passbolt, Browsertest) |
 | „In Organisation verschieben …“ (Bitwarden): Organisation und Sammlungen wählen | ✅ R (echtes Vaultwarden, Browsertest) |
 | „Sammlungen ändern …“ (Bitwarden-Organisationseintrag): schreibgeschützte Sammlungen sichtbar, aber gesperrt | ✅ R (echtes Vaultwarden, Browsertest) |
 | Passwortgenerator (Zeichenklassen, ohne Verwechsler, PIN, Stärkeanzeige), Liste zuletzt erzeugter Passwörter; Passwörter verdeckt, Anzeigen per Auge | ✅ R + U |
@@ -280,5 +282,5 @@ Einstellungen → Darstellung → Sprache wechselt sofort.
 | Bitwarden Send, Notfallzugriff | nicht umgesetzt |
 | Bitwarden: Rechte in einer Organisation verwalten (Mitglieder, Gruppen, Rechte je Sammlung) | nicht umgesetzt; Sammlungen eines Eintrags ändert OmniVault |
 | Bitwarden: WebAuthn- und Duo-Zweitfaktor, SSO | brauchen den Web-Tresor des Anbieters als Gegenstelle; Ausweg API-Schlüssel |
-| Passbolt: Duo, Kontowiederherstellung, Ordner teilen | nicht umgesetzt |
+| Passbolt: Duo, Kontowiederherstellung | nicht umgesetzt; Duo (auch in CE) leitet über den Duo-Prompt auf eine Rückrufseite des Servers, die das MFA-Cookie setzt, und braucht zum Testen ein Duo-Konto; die Kontowiederherstellung gibt es nur in Passbolt Pro |
 | Entsperren nach Browser-Neustart ohne Master-Passwort | bewusst nicht: die versiegelten Sitzungen liegen nur im Arbeitsspeicher |

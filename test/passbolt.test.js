@@ -137,7 +137,7 @@ test('permissions, favorites and public description are read', async () => {
   assert.equal(by.Router.canEdit, false, 'read-only permission');
   assert.equal(by.GitLab.favorite, true);
   assert.equal(by.Intranet.description, 'öffentliche Beschreibung');
-  assert.deepEqual(out.folders.map((f) => f.name), ['Team', 'Team/Infra']);
+  assert.deepEqual(out.folders.map((f) => f.name), ['Team', 'Team/Extern', 'Team/Infra']);
 });
 
 test('v6 key (RFC 9580): unlock with Argon2 + AEAD, secrets written to it use SEIPD v2', async () => {
@@ -224,4 +224,43 @@ test('favorite toggle and delete (owner only)', async () => {
   await PassboltProvider.deleteItem(config, session, by['Tresor-Notiz']);
   assert.ok(!fake.resources.some((r) => r.id === 'r4'));
   await assert.rejects(PassboltProvider.deleteItem(config, session, by.Router), /Besitzer/);
+});
+
+test('share a folder: folder permissions, owned subfolders and entries follow, new readers get the secret', async () => {
+  const { config, session, fake } = await unlocked();
+  const synced = await PassboltProvider.sync(config, session);
+  const team = synced.folders.find((f) => f.id === 'f1');
+  assert.equal(team.canShare, true);
+  assert.equal(synced.folders.find((f) => f.id === 'f3').canShare, false, 'read-only folder cannot be shared');
+  assert.equal(synced.items.find((i) => i.id === 'r1').canShareFolder, true);
+  const { permissions } = await PassboltProvider.folderPermissions(config, session, 'f1');
+  assert.deepEqual(permissions.map((p) => [p.aroId, p.type]), [[USER_ID, 15]]);
+
+  fake.log.length = 0;
+  const tree = { folderId: 'f1', folders: synced.folders, items: synced.items };
+  const res = await PassboltProvider.shareFolder(config, session, tree, [{ aro: 'User', aroId: ADMIN_ID, type: 7 }]);
+  assert.equal(res.skipped, 1, 'the read-only subfolder is left alone');
+  assert.deepEqual(res.failed, []);
+  assert.ok(fake.log.includes('PUT /share/folder/f1.json') && fake.log.includes('PUT /share/folder/f2.json'));
+  assert.ok(!fake.log.includes('PUT /share/folder/f3.json'));
+  assert.equal(fake.folderPermissions.f1.find((p) => p.aro_foreign_key === ADMIN_ID).type, 7);
+  assert.equal(fake.folderPermissions.f2.find((p) => p.aro_foreign_key === ADMIN_ID).type, 7);
+  // r1 already had the admin as reader: only the level changes, no new secret
+  assert.equal(fake.permissions.r1.find((p) => p.aro_foreign_key === ADMIN_ID).type, 7);
+  assert.deepEqual(fake.sharedSecrets.r1, []);
+  // r3 (v5, in the subfolder) is new for the admin: its secret is encrypted for the admin's key
+  assert.equal(fake.permissions.r3.find((p) => p.aro_foreign_key === ADMIN_ID).type, 7);
+  const adminKey = await openpgp.decryptKey({ privateKey: await openpgp.readPrivateKey({ armoredKey: KEYS.userEcc.private }), passphrase: KEYS.userEcc.passphrase });
+  const forAdmin = await openpgp.decrypt({ message: await openpgp.readMessage({ armoredMessage: fake.sharedSecrets.r3[0].data }), decryptionKeys: adminKey });
+  assert.equal(JSON.parse(forAdmin.data).password, 'gitlab-pw');
+  assert.equal(fake.permissions.r2.length, 1, 'entries outside the folder are untouched');
+
+  // removing the admin from the folder removes them from the contents as well
+  const again = await PassboltProvider.folderPermissions(config, session, 'f1');
+  const adminPerm = again.permissions.find((p) => p.aroId === ADMIN_ID);
+  await PassboltProvider.shareFolder(config, session, tree, [{ id: adminPerm.id, delete: true }]);
+  for (const list of [fake.folderPermissions.f1, fake.folderPermissions.f2, fake.permissions.r1, fake.permissions.r3]) {
+    assert.ok(!list.some((p) => p.aro_foreign_key === ADMIN_ID));
+  }
+  await assert.rejects(PassboltProvider.shareFolder(config, session, tree, [{ id: 'perm-unknown', delete: true }]), /inzwischen geändert/);
 });

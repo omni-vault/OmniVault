@@ -918,5 +918,14 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "未找到 `dcli`（Dashlane CLI）。",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "dcli 正在等待输入。请在终端中运行一次“dcli sync”。",
  "Dashlane CLI lieferte kein gültiges JSON": "Dashlane CLI 返回了无效的 JSON",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® 是 Dashlane SAS 的商标。OmniVault 与 Dashlane 无关联，也未获得 Dashlane 的支持或认可，提及该名称仅用于说明与官方 Dashlane CLI 的兼容性。"
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® 是 Dashlane SAS 的商标。OmniVault 与 Dashlane 无关联，也未获得 Dashlane 的支持或认可，提及该名称仅用于说明与官方 Dashlane CLI 的兼容性。",
+ "Ordner „{name}“ teilen …": "共享文件夹“{name}”…",
+ "Freigaben des Ordners gespeichert": "已更新文件夹的共享设置",
+ "Nicht geteilt: {names}": "未共享：{names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "other": "{n} 个项目不属于你，未作更改"
+ },
+ "Ordner „{name}“ teilen": "共享文件夹“{name}”",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "这些更改同样适用于其中属于你的所有项目和子文件夹。新成员会收到用其自己的密钥加密的机密。",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "共享设置在此期间已被更改，请重新打开。"
 }

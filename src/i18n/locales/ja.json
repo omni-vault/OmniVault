@@ -918,5 +918,14 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "`dcli`（Dashlane CLI）が見つかりません。",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "dcli が入力を待っています。ターミナルで「dcli sync」を一度実行してください。",
  "Dashlane CLI lieferte kein gültiges JSON": "Dashlane CLI から無効な JSON が返されました",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® は Dashlane SAS の商標です。OmniVault は Dashlane と提携しておらず、Dashlane による支援や承認も受けていません。名称は公式の Dashlane CLI との互換性を説明するためにのみ使用しています。"
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® は Dashlane SAS の商標です。OmniVault は Dashlane と提携しておらず、Dashlane による支援や承認も受けていません。名称は公式の Dashlane CLI との互換性を説明するためにのみ使用しています。",
+ "Ordner „{name}“ teilen …": "フォルダー「{name}」を共有…",
+ "Freigaben des Ordners gespeichert": "フォルダーの共有設定を更新しました",
+ "Nicht geteilt: {names}": "共有できなかった項目：{names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "other": "{n} 件はあなたが所有していないため、変更しませんでした"
+ },
+ "Ordner „{name}“ teilen": "フォルダー「{name}」を共有",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "変更は、このフォルダー内にあるあなたが所有するすべての項目とサブフォルダーにも適用されます。新しく追加したユーザーには、その人の鍵で暗号化したシークレットが届きます。",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "共有設定がその間に変更されました。もう一度開いてください。"
 }

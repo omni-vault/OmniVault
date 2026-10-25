@@ -71,7 +71,7 @@ with a notice.
   "Save login?" prompt
 - Create and edit logins, notes, cards and identities, custom fields and folders (as far as each manager supports them)
 - Password generator with strength meter and a history of recently generated passwords
-- Sharing: Passbolt items with people and groups; Bitwarden / Vaultwarden items by moving them into an organization
+- Sharing: Passbolt items and folders with people and groups (a shared folder passes the change on to the entries you own inside); Bitwarden / Vaultwarden items by moving them into an organization
   and its collections, and by changing the collections of organization items
 
 **Passkeys**

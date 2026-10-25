@@ -2,15 +2,21 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Share dialog (Passbolt): who has access, change their rights, add people or groups, remove access.
+// Works for one entry or for a folder (`isFolder: true`), whose changes also apply to the entries inside.
 import { mark } from '../i18n/index.js';
 import { $, call, el, iconButton, t, toast } from './ui.js';
 
 const LEVELS = [[1, mark('Kann lesen')], [7, mark('Kann bearbeiten')], [15, mark('Ist Besitzer')]];
 
-/** Opens the dialog for one item; resolves true when permissions were changed. */
+/**
+ * Opens the dialog for one item or folder ({ accountId, id, name, isFolder }); resolves false when nothing changed,
+ * otherwise true (entry) or { skipped, failed } (folder).
+ */
 export async function openShare(item) {
   const d = $('#dialog-transfer');
-  const { permissions } = { permissions: await call('permissions', { accountId: item.accountId, itemId: item.id }) };
+  const permissions = item.isFolder
+    ? await call('folderPermissions', { accountId: item.accountId, folderId: item.id })
+    : await call('permissions', { accountId: item.accountId, itemId: item.id });
   const rows = permissions.map((p) => ({ ...p, original: p.type }));
   const list = el('div', { className: 'share-list' });
   const results = el('div', { className: 'share-results' });
@@ -46,10 +52,13 @@ export async function openShare(item) {
   });
 
   const save = el('button', { type: 'button' }, t('Speichern'));
+  let result = true;
   d.replaceChildren(el('div', { className: 'share' },
-    el('h3', {}, t('„{name}“ teilen', { name: item.name })),
+    el('h3', {}, item.isFolder ? t('Ordner „{name}“ teilen', { name: item.name }) : t('„{name}“ teilen', { name: item.name })),
     list, search, results,
-    el('p', { className: 'hint' }, t('Neue Personen bekommen das Geheimnis für ihren Schlüssel verschlüsselt. Mindestens ein Besitzer muss bleiben.')),
+    el('p', { className: 'hint' }, item.isFolder
+      ? t('Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.')
+      : t('Neue Personen bekommen das Geheimnis für ihren Schlüssel verschlüsselt. Mindestens ein Besitzer muss bleiben.')),
     err,
     el('div', { className: 'row' }, el('button', { type: 'button', className: 'secondary', onclick: () => d.close('cancel') }, t('Abbrechen')), save)));
   draw();
@@ -63,7 +72,8 @@ export async function openShare(item) {
     if (!changes.length) { d.close('cancel'); return; }
     save.disabled = true;
     try {
-      await call('share', { accountId: item.accountId, itemId: item.id, changes });
+      if (item.isFolder) result = await call('shareFolder', { accountId: item.accountId, folderId: item.id, changes });
+      else await call('share', { accountId: item.accountId, itemId: item.id, changes });
       d.close('ok');
     } catch (x) {
       err.textContent = x.message; err.hidden = false; save.disabled = false;
@@ -72,5 +82,5 @@ export async function openShare(item) {
   d.returnValue = '';
   d.showModal();
   await new Promise((r) => d.addEventListener('close', r, { once: true }));
-  return d.returnValue === 'ok';
+  return d.returnValue === 'ok' && result;
 }

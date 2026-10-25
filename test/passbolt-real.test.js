@@ -33,6 +33,15 @@ async function client(who) {
     reveal: (i) => PassboltProvider.reveal(config, session, i),
     call: async (name, ...args) => keep(await PassboltProvider[name](config, session, ...args)),
     byName: async (name) => (await PassboltProvider.sync(config, session)).items.find((i) => i.name === name),
+    api: async (path, { method = 'GET', body } = {}) => {
+      const r = await fetch(`${BASE}${path}${path.includes('?') ? '&' : '?'}api-version=v2`, {
+        method, body: body && JSON.stringify(body),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${session.accessToken}` },
+      });
+      const j = await r.json();
+      assert.ok(r.ok, `${method} ${path}: ${r.status} ${JSON.stringify(j.header?.message)}`);
+      return j.body;
+    },
   };
 }
 
@@ -154,4 +163,41 @@ test('real Passbolt: share with Bob, edit the shared entry, grant update, Bob ed
   perms = (await ada.call('permissions', await ada.byName('Geteilt'))).permissions;
   await ada.call('share', await ada.byName('Geteilt'), [{ id: perms.find((p) => p.name === 'Bob Test').id, delete: true }]);
   assert.equal(await bob.byName('Geteilt'), undefined, 'Bob lost access');
+});
+
+test('real Passbolt: share a folder with Bob, contents and subfolder follow, then revoke', opts, async () => {
+  const ada = await client('ada');
+  const bob = await client('bob');
+  const { folder } = await ada.call('createFolder', { name: 'Teamordner' });
+  const { folder: sub } = await ada.call('createFolder', { name: 'Unterordner' });
+  await ada.api(`/move/folder/${sub.id}.json`, { method: 'PUT', body: { folder_parent_id: folder.id } });
+  const entry = (name, folderId, password) => ({ type: 'login', name, username: 'team', password, totp: '', uris: [], notes: '', folderId });
+  await ada.call('saveItem', null, entry('Im Ordner', folder.id, 'ordner-1'));
+  await ada.call('saveItem', null, entry('Im Unterordner', sub.id, 'unter-1'));
+
+  const synced = await ada.sync();
+  assert.equal(synced.items.find((i) => i.name === 'Im Ordner').canShareFolder, true);
+  const { targets } = await ada.call('shareTargets', 'bob');
+  const bobTarget = targets.find((t) => t.aro === 'User' && t.sub === 'bob@passbolt.test');
+  const tree = { folderId: folder.id, folders: synced.folders, items: synced.items };
+  const res = await ada.call('shareFolder', tree, [{ aro: 'User', aroId: bobTarget.aroId, type: 1 }]);
+  assert.deepEqual([res.skipped, res.failed], [0, []]);
+  const perms = (await ada.call('folderPermissions', folder.id)).permissions;
+  assert.deepEqual(perms.map((p) => [p.name, p.type]).sort(), [['Ada Test', 15], ['Bob Test', 1]]);
+
+  const forBob = await bob.sync();
+  assert.deepEqual(forBob.folders.map((f) => f.name).filter((n) => n.startsWith('Teamordner')), ['Teamordner', 'Teamordner/Unterordner']);
+  for (const [name, password] of [['Im Ordner', 'ordner-1'], ['Im Unterordner', 'unter-1']]) {
+    const it = forBob.items.find((i) => i.name === name);
+    assert.ok(it, `${name} shared with Bob`);
+    assert.equal(it.canEdit, false);
+    assert.equal((await bob.reveal(it)).password, password, `Bob decrypts ${name}`);
+  }
+
+  const again = await ada.sync();
+  await ada.call('shareFolder', { folderId: folder.id, folders: again.folders, items: again.items },
+    [{ id: perms.find((p) => p.name === 'Bob Test').id, delete: true }]);
+  const gone = await bob.sync();
+  assert.ok(!gone.items.some((i) => i.name.startsWith('Im ')), 'Bob lost access to the contents');
+  assert.ok(!gone.folders.some((f) => f.name.startsWith('Teamordner')), 'and to the folders');
 });

@@ -951,5 +951,15 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "No se encontró `dcli` (CLI de Dashlane).",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "dcli está esperando una entrada. Ejecuta «dcli sync» una vez en un terminal.",
  "Dashlane CLI lieferte kein gültiges JSON": "La CLI de Dashlane devolvió un JSON no válido",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® es una marca de Dashlane SAS. OmniVault no está afiliado a Dashlane ni cuenta con su apoyo o aprobación, y usa el nombre solo para describir la compatibilidad con la CLI oficial de Dashlane."
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® es una marca de Dashlane SAS. OmniVault no está afiliado a Dashlane ni cuenta con su apoyo o aprobación, y usa el nombre solo para describir la compatibilidad con la CLI oficial de Dashlane.",
+ "Ordner „{name}“ teilen …": "Compartir la carpeta «{name}»…",
+ "Freigaben des Ordners gespeichert": "Uso compartido de la carpeta actualizado",
+ "Nicht geteilt: {names}": "No compartido: {names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "one": "{n} elemento no es tuyo y no se modificó",
+  "other": "{n} elementos no son tuyos y no se modificaron"
+ },
+ "Ordner „{name}“ teilen": "Compartir la carpeta «{name}»",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "Los cambios también se aplican a todos los elementos y subcarpetas que contiene y que son tuyos. Las personas nuevas reciben los secretos cifrados con su propia clave.",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "El uso compartido cambió mientras tanto. Vuelve a abrirlo."
 }

@@ -951,5 +951,15 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "`dcli` (CLI do Dashlane) não foi encontrado.",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "O dcli está aguardando uma entrada. Execute “dcli sync” uma vez em um terminal.",
  "Dashlane CLI lieferte kein gültiges JSON": "A CLI do Dashlane retornou um JSON inválido",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® é uma marca da Dashlane SAS. O OmniVault não é afiliado ao Dashlane, nem tem apoio ou aprovação do Dashlane, e usa o nome só para descrever a compatibilidade com a CLI oficial do Dashlane."
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® é uma marca da Dashlane SAS. O OmniVault não é afiliado ao Dashlane, nem tem apoio ou aprovação do Dashlane, e usa o nome só para descrever a compatibilidade com a CLI oficial do Dashlane.",
+ "Ordner „{name}“ teilen …": "Compartilhar a pasta “{name}”…",
+ "Freigaben des Ordners gespeichert": "Compartilhamento da pasta atualizado",
+ "Nicht geteilt: {names}": "Não compartilhado: {names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "one": "{n} item não é seu e ficou como estava",
+  "other": "{n} itens não são seus e ficaram como estavam"
+ },
+ "Ordner „{name}“ teilen": "Compartilhar a pasta “{name}”",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "As alterações também valem para todos os itens e subpastas dentro dela que são seus. Pessoas novas recebem os segredos criptografados com a própria chave.",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "O compartilhamento foi alterado nesse meio-tempo. Abra-o de novo."
 }

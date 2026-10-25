@@ -58,8 +58,9 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
   const hex = (b) => Buffer.from(b).toString('hex').toUpperCase();
 
   const folders = [
-    { id: 'f1', name: 'Team', folder_parent_id: null },
-    { id: 'f2', name: 'Infra', folder_parent_id: 'f1' },
+    { id: 'f1', name: 'Team', folder_parent_id: null, permission: { type: 15 } },
+    { id: 'f2', name: 'Infra', folder_parent_id: 'f1', permission: { type: 15 } },
+    { id: 'f3', name: 'Extern', folder_parent_id: 'f1', permission: { type: 1 } }, // shared with us, read only
   ];
   const resources = [
     { // v4, plain metadata
@@ -99,10 +100,29 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
     data: await enc({ object_type: 'PASSBOLT_SESSION_KEYS', session_keys: [{ foreign_model: 'Resource', foreign_id: 'r4', session_key: `9:${hex(r4SessionKey.data)}`, modified: '2026-10-01T00:00:00+00:00' }] }, { signer: await unlock(KEYS[user]) }),
   }];
   const users = { [ADMIN_ID]: { id: ADMIN_ID, gpgkey: { armored_key: KEYS[admin].public } } };
-  const mine = (type = 15) => [{ aro: 'User', aro_foreign_key: USER_ID, type }];
+  let permCounter = 0;
+  const perm = (aro, aroId, type) => ({ id: `perm-${++permCounter}`, aro, aro_foreign_key: aroId, type });
+  const mine = (type = 15) => [perm('User', USER_ID, type)];
   // r1 is shared with the admin; r2 is read-only for us
   const permissions = {
-    r1: [...mine(), { aro: 'User', aro_foreign_key: ADMIN_ID, type: 1 }], r2: mine(1), r3: mine(), r4: mine(),
+    r1: [...mine(), perm('User', ADMIN_ID, 1)], r2: mine(1), r3: mine(), r4: mine(),
+  };
+  const folderPermissions = { f1: mine(), f2: mine(), f3: [perm('User', ADMIN_ID, 15), ...mine(1)] };
+  // permission changes as PUT /share/… sends them; returns the user ids that gained access, or an error text
+  const applyPermissions = (list, changes) => {
+    const before = new Set(list.map((x) => x.aro_foreign_key));
+    const next = list.map((x) => ({ ...x }));
+    for (const c of changes) {
+      if (c.id) {
+        const i = next.findIndex((x) => x.id === c.id);
+        if (i < 0) return { error: `unknown permission ${c.id}` };
+        if (c.delete) next.splice(i, 1); else next[i].type = c.type;
+      } else if (c.aro && c.aro_foreign_key && [1, 7, 15].includes(c.type)) {
+        next.push(perm(c.aro, c.aro_foreign_key, c.type));
+      } else return { error: 'invalid permission' };
+    }
+    if (!next.some((x) => x.type === 15)) return { error: 'at least one owner' };
+    return { next, added: next.filter((x) => !before.has(x.aro_foreign_key)).map((x) => x.aro_foreign_key) };
   };
 
   const sharedSecrets = {}; // resource id → secrets of the last update (all readers)
@@ -164,7 +184,7 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
     if (p === '/resources.json' && method === 'POST') {
       const r = { ...json, id: `new-${++counter}`, permission: { type: 15 }, favorite: null, modified: new Date().toISOString() };
       resources.push(r);
-      permissions[r.id] = [{ aro: 'User', aro_foreign_key: USER_ID, type: 15 }];
+      permissions[r.id] = mine();
       return ok(r);
     }
     let m;
@@ -211,6 +231,33 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
       return ok(null);
     }
     if (p === '/folders.json') return ok(folders);
+    if ((m = /^\/folders\/([^/]+)\.json$/.exec(p)) && method === 'GET') {
+      const f = folders.find((x) => x.id === m[1]);
+      return f ? ok({ ...f, permissions: folderPermissions[f.id] }) : err(404, 'The folder does not exist.');
+    }
+    if ((m = /^\/share\/simulate\/resource\/([^/]+)\.json$/.exec(p)) && method === 'POST') {
+      const r = applyPermissions(permissions[m[1]] ?? [], json.permissions);
+      if (r.error) return err(400, r.error);
+      return ok({ changes: { added: r.added.map((id) => ({ User: { id } })), removed: [] } });
+    }
+    if ((m = /^\/share\/resource\/([^/]+)\.json$/.exec(p)) && method === 'PUT') {
+      if ((permissions[m[1]] ?? []).find((x) => x.aro_foreign_key === USER_ID)?.type !== 15) return err(403, 'You are not allowed to share this resource.');
+      const r = applyPermissions(permissions[m[1]], json.permissions);
+      if (r.error) return err(400, r.error);
+      const given = (json.secrets ?? []).map((x) => x.user_id).sort();
+      if (JSON.stringify(given) !== JSON.stringify([...r.added].sort())) return err(400, 'Could not validate resource data.', { secrets: { _required: 'one secret per new reader' } });
+      permissions[m[1]] = r.next;
+      sharedSecrets[m[1]] = json.secrets;
+      return ok(resources.find((x) => x.id === m[1]));
+    }
+    if ((m = /^\/share\/folder\/([^/]+)\.json$/.exec(p)) && ['PUT', 'POST'].includes(method)) {
+      if ((folderPermissions[m[1]] ?? []).find((x) => x.aro_foreign_key === USER_ID)?.type !== 15) return err(403, 'You are not allowed to update the permissions of this folder.');
+      if (json.secrets) return err(400, 'folders have no secrets');
+      const r = applyPermissions(folderPermissions[m[1]], json.permissions ?? []);
+      if (r.error) return err(400, r.error);
+      folderPermissions[m[1]] = r.next;
+      return ok(folders.find((x) => x.id === m[1]));
+    }
     if (p === '/metadata/keys.json') return ok(metadataKeys);
     if (p === '/metadata/session-keys.json') return ok(sessionKeys);
     if (p === '/users.json') {
@@ -225,5 +272,5 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
   }
   const mfaCookies = new Set();
 
-  return { handle, log, resources, sharedSecrets, expireAll: () => tokens.clear() };
+  return { handle, log, resources, sharedSecrets, permissions, folderPermissions, expireAll: () => tokens.clear() };
 }

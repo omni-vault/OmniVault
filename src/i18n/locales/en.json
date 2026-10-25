@@ -951,5 +951,15 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "`dcli` (Dashlane CLI) wasn't found.",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "dcli is waiting for input. Run “dcli sync” once in a terminal.",
  "Dashlane CLI lieferte kein gültiges JSON": "The Dashlane CLI returned invalid JSON",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® is a trademark of Dashlane SAS. OmniVault isn’t affiliated with, supported or endorsed by Dashlane and uses the name only to describe compatibility with the official Dashlane CLI."
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® is a trademark of Dashlane SAS. OmniVault isn’t affiliated with, supported or endorsed by Dashlane and uses the name only to describe compatibility with the official Dashlane CLI.",
+ "Ordner „{name}“ teilen …": "Share folder “{name}” …",
+ "Freigaben des Ordners gespeichert": "Folder sharing updated",
+ "Nicht geteilt: {names}": "Not shared: {names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "one": "{n} item isn’t yours and was left unchanged",
+  "other": "{n} items aren’t yours and were left unchanged"
+ },
+ "Ordner „{name}“ teilen": "Share folder “{name}”",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "The changes also apply to all items and subfolders inside that you own. New people get the secrets encrypted with their own key.",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "Sharing was changed in the meantime. Please open it again."
 }

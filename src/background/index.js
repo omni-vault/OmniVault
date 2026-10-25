@@ -186,8 +186,13 @@ async function write(accountId, fn) {
   const res = await fn(provider, account, session);
   if (res?.session) await store.setSession(accountId, res.session);
   const entry = cache.get(accountId) ?? await ensureSynced(account);
-  if (entry && res?.item?.folderId && !res.item.folder) {
-    res.item.folder = entry.folders?.find((f) => f.id === res.item.folderId)?.name;
+  if (entry && res?.folder && !entry.folders.some((f) => f.id === res.folder.id)) {
+    entry.folders = [...entry.folders, res.folder].sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  }
+  if (entry && res?.item?.folderId) {
+    const folder = entry.folders?.find((f) => f.id === res.item.folderId);
+    if (!res.item.folder) res.item.folder = folder?.name;
+    if (folder && 'canShare' in folder) res.item.canShareFolder = !!folder.canShare;
   }
   if (entry && res?.item) {
     const idx = entry.items.findIndex((i) => i.id === res.item.id);
@@ -200,9 +205,6 @@ async function write(accountId, fn) {
     if (gone && provider.capabilities?.restore) entry.trash = [{ ...gone, deletedDate: new Date().toISOString() }, ...(entry.trash ?? [])];
   }
   if (entry && (res?.purgedId || res?.item)) entry.trash = (entry.trash ?? []).filter((i) => i.id !== res.purgedId && i.id !== res.item?.id);
-  if (entry && res?.folder && !entry.folders.some((f) => f.id === res.folder.id)) {
-    entry.folders = [...entry.folders, res.folder].sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  }
   if (res?.resync) await ensureSynced(account, true); // provider could not tell the new id
   else if (entry && provider.capabilities?.passkeys) await passkeys.indexAccount(accountId, entry.items).catch(() => {});
   return res;
@@ -767,6 +769,15 @@ const handlers = {
   async share({ accountId, itemId, changes }) {
     const { item } = await findItem(accountId, itemId);
     await write(accountId, (p, a, s) => p.share(cfg(a), s, item, changes));
+  },
+  async folderPermissions({ accountId, folderId }) {
+    return (await write(accountId, (p, a, s) => p.folderPermissions(cfg(a), s, folderId))).permissions;
+  },
+  async shareFolder({ accountId, folderId, changes }) {
+    const entry = await ensureSynced(await store.getAccount(accountId));
+    const tree = { folderId, folders: entry?.folders ?? [], items: entry?.items ?? [] };
+    const res = await write(accountId, (p, a, s) => p.shareFolder(cfg(a), s, tree, changes));
+    return { skipped: res.skipped ?? 0, failed: res.failed ?? [] };
   },
 
   // organizations (Bitwarden): where a personal item can be moved, and the move itself

@@ -951,5 +951,15 @@
  "`dcli` (Dashlane CLI) wurde nicht gefunden.": "`dcli` (CLI Dashlane) est introuvable.",
  "dcli wartet auf eine Eingabe. Bitte einmal im Terminal „dcli sync“ ausführen.": "dcli attend une saisie. Exécutez une fois « dcli sync » dans un terminal.",
  "Dashlane CLI lieferte kein gültiges JSON": "La CLI Dashlane a renvoyé un JSON non valide",
- "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® est une marque de Dashlane SAS. OmniVault n’est pas affilié à Dashlane, n’est ni soutenu ni approuvé par Dashlane et n’utilise ce nom que pour décrire la compatibilité avec la CLI officielle de Dashlane."
+ "Dashlane® ist eine Marke von Dashlane SAS. OmniVault ist nicht mit Dashlane verbunden, wird von Dashlane weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität mit dem offiziellen Dashlane-CLI zu beschreiben.": "Dashlane® est une marque de Dashlane SAS. OmniVault n’est pas affilié à Dashlane, n’est ni soutenu ni approuvé par Dashlane et n’utilise ce nom que pour décrire la compatibilité avec la CLI officielle de Dashlane.",
+ "Ordner „{name}“ teilen …": "Partager le dossier « {name} »…",
+ "Freigaben des Ordners gespeichert": "Partage du dossier mis à jour",
+ "Nicht geteilt: {names}": "Non partagé : {names}",
+ "{n} Einträge gehören dir nicht und blieben unverändert": {
+  "one": "{n} élément ne vous appartient pas et n’a pas été modifié",
+  "other": "{n} éléments ne vous appartiennent pas et n’ont pas été modifiés"
+ },
+ "Ordner „{name}“ teilen": "Partager le dossier « {name} »",
+ "Die Änderungen gelten auch für alle Einträge und Unterordner darin, die dir gehören. Neue Personen bekommen die Geheimnisse für ihren Schlüssel verschlüsselt.": "Les modifications s’appliquent aussi à tous les éléments et sous-dossiers qu’il contient et dont vous êtes propriétaire. Les nouvelles personnes reçoivent les secrets chiffrés avec leur propre clé.",
+ "Die Freigaben wurden inzwischen geändert. Bitte erneut öffnen.": "Le partage a été modifié entre-temps. Veuillez le rouvrir."
 }

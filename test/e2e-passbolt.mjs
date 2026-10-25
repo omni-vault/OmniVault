@@ -78,7 +78,7 @@ try {
 
   // share with Bob (update rights) through the dialog
   await popup.click('#view-item button[aria-label="Kopieren, verschieben, teilen"]');
-  await popup.click('#menu [role=menuitem]:has-text("Teilen")');
+  await popup.click('#menu [role=menuitem]:has-text("Teilen") >> nth=0');
   await popup.waitForSelector('#dialog-transfer[open] .share-row');
   check((await popup.textContent('#dialog-transfer .share-list')).includes('Ada Test'), 'share dialog lists the owner');
   await popup.fill('#dialog-transfer input[type=search]', 'bob');
@@ -99,10 +99,26 @@ try {
   await popup.waitForSelector('#view-item:not([hidden]) h2:has-text("Team-Zugang")');
   forBob = await bobSees('Team-Zugang');
   check(forBob?.password === 'zweites-pw', 'Bob reads the password edited in OmniVault');
+
+  // share the folder "Team" with Bob (read only): the folder appears for Bob and its entry follows the new level
+  await popup.click('#view-item button[aria-label="Kopieren, verschieben, teilen"]');
+  await popup.click('#menu [role=menuitem]:has-text("Ordner „Team“ teilen")');
+  await popup.waitForSelector('#dialog-transfer[open] .share-row');
+  check((await popup.textContent('#dialog-transfer h3')).includes('Ordner „Team“'), 'folder share dialog opens from the entry menu');
+  await popup.fill('#dialog-transfer input[type=search]', 'bob');
+  await popup.click('#dialog-transfer .share-target:has-text("Bob")');
+  await popup.screenshot({ path: join(shots, 'passbolt-share-folder.png') });
+  await popup.click('#dialog-transfer button:has-text("Speichern")');
+  await popup.waitForFunction(() => /Freigaben des Ordners gespeichert/.test(document.querySelector('#toast')?.textContent || ''), null, { timeout: 30000 });
+  const bobFolders = (await PassboltProvider.sync(bobCfg, bobLogin.session)).folders.map((f) => f.name);
+  forBob = await bobSees('Team-Zugang');
+  check(bobFolders.includes('Team') && forBob?.folder === 'Team' && forBob.canEdit === false && forBob.password === 'zweites-pw',
+    'Bob sees the shared folder, the entry inside is now read only for him');
   check(errors.length === 0, `no script errors (${errors.join('; ')})`);
 } catch (e) {
   failures++;
   console.log('FAIL', e.message);
+  await ctx.pages().at(-1)?.screenshot({ path: join(shots, 'passbolt-failure.png') }).catch(() => {});
 } finally {
   await ctx.close();
 }
