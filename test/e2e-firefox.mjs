@@ -17,7 +17,7 @@ import http from 'node:http';
 import { embeddingPage, startServers } from './servers.mjs';
 
 const shots = process.argv[2] ?? tmpdir();
-const ADDON = 'omnivault@example.org';
+const ADDON = 'omnivault@royaltysoft.works';
 const UUID = '6f6d6e69-7661-4f75-8c74-000000000001';
 const BASE = `moz-extension://${UUID}`;
 const { ORIGIN, close: closeServers } = await startServers({ bwPort: 8827, pbPort: 8828 });
@@ -50,7 +50,7 @@ const hostManifestPath = join(work, '.mozilla/native-messaging-hosts/org.omnivau
 // with a display (xvfb-run) Firefox runs visibly and the shortcut is pressed with real X11 key events
 const visible = !!process.env.DISPLAY;
 const ff = await launchFirefox({ addonId: ADDON, uuid: UUID, env: nativeEnv, headless: !visible });
-const WIDGET = 'omnivault_example_org';
+const WIDGET = ADDON.replace(/[^a-z0-9_-]/gi, '_'); // Firefox's widget id for the add-on ID
 let failures = 0;
 const check = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if (!cond) failures++; };
 const consoleErrors = [];

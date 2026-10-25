@@ -25,7 +25,7 @@ const targets = {
     },
     browser_specific_settings: {
       gecko: {
-        id: 'omnivault@example.org',
+        id: 'omnivault@royaltysoft.works',
         strict_min_version: '140.0',
         // Logins and vault items (incl. cards and identities) go – encrypted – to the servers the user adds
         data_collection_permissions: { required: ['authenticationInfo', 'personallyIdentifyingInfo', 'financialAndPaymentInfo'] },

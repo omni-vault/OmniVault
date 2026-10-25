@@ -22,7 +22,7 @@ import shutil
 import stat
 import sys
 
-FIREFOX_ID = "omnivault@example.org"
+FIREFOX_ID = "omnivault@royaltysoft.works"
 HERE = os.path.dirname(os.path.abspath(__file__))
 SYSTEM = platform.system()
 
