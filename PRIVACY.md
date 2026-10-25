@@ -1,6 +1,6 @@
 # OmniVault Privacy Policy
 
-*Last updated: October 20, 2026*
+*Last updated: October 25, 2026*
 
 OmniVault is a browser extension that shows the entries of the password managers you connect in one interface. This
 policy explains what data OmniVault handles, where it is kept and where it is sent. It applies to the OmniVault
@@ -27,12 +27,19 @@ OmniVault only talks to the following destinations. All of them are chosen by yo
 |---|---|---|
 | The **Bitwarden-compatible server** of an account you add: `bitwarden.com` or `bitwarden.eu` (`api.` and `identity.` subdomains) or the address of your self-hosted server (e.g. Vaultwarden) | When you sign in, unlock, sync, edit, share or delete entries and attachments | Your e-mail address, a hash derived from your master password (never the password itself), two-factor codes you enter, a random device identifier created by OmniVault, the browser type (`chrome` or `firefox`), sign-in tokens, and your vault data in the end-to-end encrypted form the server stores |
 | **Duo** and your **organization's sign-in page** (SSO identity provider), in a browser tab | Only if your Bitwarden-compatible account uses Duo as its second factor, or you chose "Sign in with SSO" | OmniVault opens the address your Bitwarden server names (Duo, or the server's SSO page for the organization identifier you entered) in an ordinary tab. You sign in there as on any website; OmniVault sends nothing to these pages itself. When the tab comes back to your server's web vault page, OmniVault reads the one-time code from that address and closes the tab |
-| **Azure Blob Storage** (`*.blob.core.windows.net`) | Only when you download or add an attachment of a `bitwarden.com` or `bitwarden.eu` account | The attachment, encrypted in the browser before upload, sent to the signed address your Bitwarden server hands out. This is where Bitwarden's cloud keeps attachments |
+| **Azure Blob Storage** (`*.blob.core.windows.net`) | Only when you download or add an attachment, or create a file Send, in a `bitwarden.com` or `bitwarden.eu` account | The attachment or Send file, encrypted in the browser before upload, sent to the signed address your Bitwarden server hands out. This is where Bitwarden's cloud keeps attachments |
 | The **Passbolt server** of an account you add | When you sign in, sync, edit, share or delete entries | Your user ID, the answers to the server's sign-in challenge, two-factor codes you enter, sign-in tokens and cookies set by your Passbolt server, and your entries encrypted with OpenPGP. Your private key and its passphrase never leave the browser |
 | The **HashiCorp Vault or OpenBao server** of an account you add (only the address you enter) | When you sign in, sync, open, edit, delete or restore entries | Your token, or your username and password for the `userpass` sign-in (which returns a token); the namespace you entered; requests to list, read, write, delete and restore secrets below the mount and path you configured, and the secret values you save. The token is renewed with the server while you use the account |
 | The **OmniVault local helper** on your computer (Native Messaging host `org.omnivault.host`) | Only if you install it and add a pass, gopass, 1Password, LastPass, Dashlane or Proton Pass account | Requests to list, read, create, change or delete entries. The helper passes them to the official command-line tool of that password manager (`pass`, `gopass`, `op`, `lpass`, `dcli`, `pass-cli`), which you installed and signed in to yourself. Those tools talk to their own services under their own privacy policies. The helper itself makes no network connections and writes no logs |
 | **Have I Been Pwned** (`api.pwnedpasswords.com`) | Only when you check passwords against data breaches (Tools → Check) and have allowed access to this address | For each password, the first 5 characters of its SHA-1 hash (k-anonymity); the answer, padded with fake entries, is compared in your browser. No passwords, usernames or websites |
 | **KeePassXC** on your computer (through `keepassxc-proxy`, registered as `org.omnivault.keepassxc`) | Only if you add a KeePassXC account | Requests in KeePassXC's browser-integration protocol, end-to-end encrypted between OmniVault and KeePassXC. KeePassXC asks you to approve the connection |
+
+**Bitwarden Send.** When you create or edit a Send (Tools → Send), OmniVault encrypts its name, text, notes, file
+name and file in the browser with a new key of its own and sends only the encrypted form to your Bitwarden-compatible
+server, together with the options you chose (dates, access limit, disabled, hide e-mail) and, if you set a password,
+a hash of it. That key is part of the Send link, so **anyone who has the link can read the Send** (with the password,
+if one is set); the server cannot. OmniVault puts the link on the clipboard only when you copy it and does not send
+it anywhere else.
 
 Bitwarden, Passbolt and the other services process the data they receive according to their own privacy policies.
 OmniVault does not change what those services store; it acts like their own clients.

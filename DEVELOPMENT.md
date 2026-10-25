@@ -39,8 +39,9 @@ npm run test:cli     # pass und gopass (echt, mit gpg), 1Password, LastPass und 
 npm run test:e2e     # Erweiterung in Chromium: Popup als Tab, eigenes Fenster (Playwright)
 npm run test:popup   # echtes Toolbar-Popup über CDP; mit `xvfb-run -a` sichtbar statt headless
 npm run test:proton  # Proton Pass: Chromium → Native Messaging → Host → simuliertes pass-cli
-npm run test:vaultwarden  # startet ein lokales Vaultwarden und testet Provider, Werkzeuge, Import, Anhänge, Organisationen
+npm run test:vaultwarden  # startet ein lokales Vaultwarden und testet Provider, Werkzeuge, Import, Anhänge, Send, Organisationen
                           # (Verschieben, Sammlungen) und den automatischen Abgleich über einen Neustart des Service Workers
+                          # Send: Links werden wie von Empfängern geöffnet und mit test/send-check.py (Python, `cryptography`) entschlüsselt
 npm run test:vaultwarden-sso  # Vaultwarden mit SSO gegen einen lokalen OIDC-Anbieter: Anmeldung, Master-Passwort, Erneuerung
 npm run test:login        # Duo und SSO im Tab (simulierte Server), mit echtem Toolbar-Popup; mit `xvfb-run -a` sichtbar
 npm run test:passbolt     # richtet einen lokalen Passbolt CE ein (PostgreSQL) und testet Provider und Teilen dagegen
