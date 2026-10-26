@@ -91,6 +91,10 @@ with a notice.
 - Import exports from other managers; export to Bitwarden JSON or CSV
 - Trash view for Bitwarden / Vaultwarden
 - Attachments: download them; in Bitwarden / Vaultwarden also add and delete them (up to 30 MB per file)
+- Bitwarden emergency access as a trusted contact (Bitwarden / Vaultwarden, *Tools → Emergency access*): see who
+  granted you access, with its status and waiting period, request access and, once it is approved, view and copy
+  that person's items – read only, never filled in, searched or exported. Inviting, confirming, approving and
+  takeover stay in the Bitwarden apps.
 - Bitwarden Send (Bitwarden / Vaultwarden): share text or a file (up to 30 MB) through an encrypted link with a
   deletion date, optional expiry, access limit and password; list, edit, copy the link, remove the password, delete.
   The key is part of the link, so the server never sees the content. File Sends on bitwarden.com need Premium

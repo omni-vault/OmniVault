@@ -7,6 +7,16 @@
   with a PIN and opening a KeePass database now compute the key in a separate worker. Other accounts, the popup and
   the "Decrypting …" indicator keep responding meanwhile, and the memory is released as soon as the key is derived.
 
+### Bitwarden and Vaultwarden
+- **Emergency access as a trusted contact** (Tools → Emergency access): see who granted you emergency access, with
+  status and waiting period, request access and, once approved, view and copy their items. Read only: these items
+  are never filled in, searched or exported and are forgotten when you lock. Inviting, confirming and takeover stay
+  in the Bitwarden apps.
+
+### Fixes
+- Going back from an item opened in Tools (or reopening the popup) now returns to the tab you were on instead of the
+  first one.
+
 ## 0.5.4 – 2026-10-26
 
 ### New password managers

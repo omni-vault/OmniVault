@@ -85,7 +85,7 @@ export async function seedVaultwarden(origin, {
   await callC('POST', '/ciphers', { type: 2, name: await encryptSym('Notiz', userKey), notes: await encryptSym('Privat', userKey), secureNote: { type: 0 }, favorite: false });
 
   for (const [n, u, p, uri] of extraLogins) await callC('POST', '/ciphers', await login(n, u, p, uri));
-  if (!withOrg) return { email, password, kdf, userId, publicKey: rsa.spki, folderId: folder.id ?? folder.Id, githubId: gh.id ?? gh.Id };
+  if (!withOrg) return { email, password, kdf, userId, publicKey: rsa.spki, folderId: folder.id ?? folder.Id, githubId: gh.id ?? gh.Id, api: call, userKeyBytes };
 
   // organization with its own key, shared to us via RSA-OAEP
   const orgKeyBytes = crypto.getRandomValues(new Uint8Array(64));
@@ -127,7 +127,24 @@ export async function seedVaultwarden(origin, {
     const key = `4.${b64(new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pub, orgKeyBytes)))}`;
     await call('POST', `/organizations/${orgId}/users/${m.id ?? m.Id}/confirm`, { key });
   };
-  return { email, password, kdf, userId, publicKey: rsa.spki, folderId: folder.id ?? folder.Id, orgId, collections, addMember, githubId: gh.id ?? gh.Id };
+  return { email, password, kdf, userId, publicKey: rsa.spki, folderId: folder.id ?? folder.Id, orgId, collections, addMember, githubId: gh.id ?? gh.Id, api: call, userKeyBytes };
+}
+
+/**
+ * Makes `grantee` the emergency contact of `grantor` (both seeded accounts) the way the Bitwarden apps do it:
+ * invite (accepted at once by a server without mail), then confirm with the grantor's user key encrypted with the
+ * grantee's public key. Returns the emergency access id and approve(), which the grantor calls after a request.
+ */
+export async function grantEmergencyAccess(grantor, grantee, { type = 0, waitTimeDays = 1 } = {}) {
+  await grantor.api('POST', '/emergency-access/invite', { email: grantee.email, type, waitTimeDays });
+  const trusted = await grantor.api('GET', '/emergency-access/trusted');
+  const ea = (trusted.data ?? trusted.Data).find((x) => (x.email ?? x.Email) === grantee.email);
+  const id = ea.id ?? ea.Id;
+  if ((ea.status ?? ea.Status) !== 1) throw new Error(`emergency access ${id}: status ${ea.status ?? ea.Status}, expected 1 (accepted)`);
+  const pub = await crypto.subtle.importKey('spki', Uint8Array.from(atob(grantee.publicKey), (c) => c.charCodeAt(0)), { name: 'RSA-OAEP', hash: 'SHA-1' }, false, ['encrypt']);
+  const key = `4.${b64(new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pub, grantor.userKeyBytes)))}`;
+  await grantor.api('POST', `/emergency-access/${id}/confirm`, { key });
+  return { id, approve: () => grantor.api('POST', `/emergency-access/${id}/approve`) };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

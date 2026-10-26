@@ -203,7 +203,7 @@ class BitwardenProvider extends Provider {
   static status = 'ready';
   static unlockLabel = mark('Master-Passwort');
   static unlockOptions = ['apikey'];
-  static capabilities = { write: true, types: ['login', 'note', 'card', 'identity'], fields: true, createFolder: true, trash: true, restore: true, attachments: true, attachmentUpload: true, passkeys: true, organizations: true, send: true };
+  static capabilities = { write: true, types: ['login', 'note', 'card', 'identity'], fields: true, createFolder: true, trash: true, restore: true, attachments: true, attachmentUpload: true, passkeys: true, organizations: true, send: true, emergencyAccess: true };
   static configFields = [
     {
       // Bitwarden runs exactly two cloud regions; anything else is self-hosted (incl. Vaultwarden).
@@ -981,6 +981,74 @@ class BitwardenProvider extends Provider {
     // Soft delete: the item goes to the trash and can be restored in the web vault.
     const { session: s } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'PUT', `/ciphers/${existing.id}/delete`));
     return { deletedId: existing.id, session: s };
+  }
+
+  /* ---------- emergency access: as trusted contact, view only ---------- */
+
+  /** Accounts that granted this user emergency access ("granted"), with status, type and waiting period. */
+  static async listEmergencyGrants(config, session) {
+    const ep = api.endpoints(config.server);
+    const { result, session: s } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'GET', '/emergency-access/granted'));
+    const grants = (result.body?.data ?? []).map((g) => ({
+      id: g.id,
+      status: Number(g.status),
+      type: Number(g.type) === 1 ? 'takeover' : 'view',
+      waitTimeDays: Number(g.waitTimeDays) || 0,
+      name: g.name || '',
+      email: g.email || '',
+    }));
+    grants.sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email, 'de'));
+    return { grants, session: s };
+  }
+
+  /** Asks for access; the grantor is told and may approve or reject, otherwise the server opens it after the wait. */
+  static async initiateEmergencyAccess(config, session, grantId) {
+    const ep = api.endpoints(config.server);
+    const { session: s } = await this.#withToken(ep, session, (token) => api.authed(ep, token, 'POST', `/emergency-access/${encodeURIComponent(grantId)}/initiate`));
+    return { session: s };
+  }
+
+  /**
+   * The grantor's own items once access is approved. The server hands out the grantor's user key encrypted with
+   * this user's public key (RSA-OAEP); the private key comes from the profile, decrypted with the own user key.
+   * The items are marked read only and are never stored.
+   */
+  static async viewEmergencyAccess(config, session, grantId) {
+    const ep = api.endpoints(config.server);
+    let s = session;
+    const call = async (method, path) => {
+      const r = await this.#withToken(ep, s, (token) => api.authed(ep, token, method, path));
+      if (r.session) s = r.session;
+      return r.result.body;
+    };
+    const view = await call('POST', `/emergency-access/${encodeURIComponent(grantId)}/view`);
+    if (!view?.keyEncrypted) throw new ProviderError(t('Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.'), 'server');
+    let encPrivateKey = (await call('GET', '/accounts/profile'))?.privateKey;
+    if (!encPrivateKey) encPrivateKey = (await call('GET', '/sync?excludeDomains=true'))?.profile?.privateKey;
+    if (!encPrivateKey) throw new ProviderError(t('Schlüssel fehlt'), 'crypto');
+    const userKey = splitKey(fromB64(s.userKey));
+    const privateKey = await decryptSym(encPrivateKey, userKey);
+    let grantorKey;
+    try {
+      grantorKey = splitKey(await decryptRsa(view.keyEncrypted, privateKey));
+    } catch {
+      throw new ProviderError(t('Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.'), 'crypto');
+    }
+    const items = [];
+    let failed = 0;
+    for (const c of view.ciphers ?? []) {
+      if (c.deletedDate || c.organizationId) continue;
+      try {
+        const item = await this.#decryptCipher(c, { userKey: grantorKey, orgKeys: {}, folderNames: {}, accountId: config.id });
+        item.canEdit = false;
+        items.push(item);
+      } catch (e) {
+        failed++;
+        console.warn('OmniVault: Eintrag nicht entschlüsselbar', c.id, e);
+      }
+    }
+    items.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    return { items, failed, session: s !== session ? s : undefined };
   }
 }
 

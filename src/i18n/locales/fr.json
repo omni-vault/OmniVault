@@ -1042,5 +1042,43 @@
  "{n} Zugriffe": {
   "one": "{n} accès",
   "other": "{n} accès"
- }
+ },
+ "Notfallzugriff wird für diesen Anbieter nicht unterstützt": "Ce fournisseur ne prend pas en charge l'accès d'urgence",
+ "Entsperre ein Bitwarden-Konto, um Notfallzugriff zu nutzen.": "Déverrouillez un compte Bitwarden pour utiliser l'accès d'urgence.",
+ "Hier erscheinen Personen, die dich in Bitwarden als Notfallkontakt eingetragen haben. Du kannst Zugriff anfordern und nach der Freigabe ihre Einträge ansehen – nur lesen. Einladen, Annehmen, Bestätigen und Übernahme gehen in den Bitwarden-Apps.": "Ici apparaissent les personnes qui vous ont désigné comme contact d'urgence dans Bitwarden. Vous pouvez demander l'accès puis, une fois accordé, consulter leurs éléments en lecture seule. L'invitation, l'acceptation, la confirmation et la prise de contrôle se font dans les applications Bitwarden.",
+ "Niemand hat dir Notfallzugriff gewährt.": "Personne ne vous a accordé d'accès d'urgence.",
+ "Eingeladen – nimm die Einladung in den Bitwarden-Apps an.": "Invité – acceptez l'invitation dans les applications Bitwarden.",
+ "Angenommen – {name} muss dich noch bestätigen.": "Accepté – {name} doit encore vous confirmer.",
+ "Bereit. Wartezeit nach einer Anforderung: {wait}.": "Prêt. Délai d'attente après une demande : {wait}.",
+ "Angefordert. {name} kann freigeben oder ablehnen; ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Demandé. {name} peut approuver ou refuser ; sans réponse, le serveur accorde l'accès au bout de {wait}.",
+ "Freigegeben": "Approuvé",
+ "Unbekannter Status ({status})": "Statut inconnu ({status})",
+ "Notfallzugriff auf das Konto von {name} anfordern? {name} wird benachrichtigt. Ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Demander l'accès d'urgence au compte de {name} ? {name} sera averti. Sans réponse, le serveur accorde l'accès au bout de {wait}.",
+ "Anfordern": "Demander",
+ "Zugriff angefordert": "Accès demandé",
+ "Zugriff anfordern": "Demander l'accès",
+ "Einträge ansehen": "Voir les éléments",
+ "Übernahme": "Prise de contrôle",
+ "Ansehen": "Consultation",
+ "Übernahme ist nur in den Bitwarden-Apps möglich.": "La prise de contrôle n'est possible que dans les applications Bitwarden.",
+ "Zur Übersicht": "Retour à la liste",
+ "Einträge von {name}": "Éléments de {name}",
+ "Nur ansehen und kopieren. Diese Einträge werden nicht ausgefüllt, nicht durchsucht und nicht exportiert; beim Sperren vergisst OmniVault sie.": "Consultation et copie uniquement. Ces éléments ne sont jamais remplis, recherchés ni exportés ; OmniVault les oublie au verrouillage.",
+ "Notfallzugriff: {name}": "Accès d'urgence : {name}",
+ "nur lesen": "lecture seule",
+ "{n} Tage": {
+  "one": "{n} jour",
+  "other": "{n} jours"
+ },
+ "{n} Anhänge – nur in den Bitwarden-Apps abrufbar.": {
+  "one": "{n} pièce jointe – disponible uniquement dans les applications Bitwarden.",
+  "other": "{n} pièces jointes – disponibles uniquement dans les applications Bitwarden."
+ },
+ "{n} Passkeys – im Notfallzugriff nicht nutzbar.": {
+  "one": "{n} passkey – inutilisable avec l'accès d'urgence.",
+  "other": "{n} passkeys – inutilisables avec l'accès d'urgence."
+ },
+ "Notfallzugriff": "Accès d'urgence",
+ "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "Le serveur n'a fourni aucune clé pour l'accès d'urgence.",
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La clé de l'accès d'urgence ne correspond pas à votre compte."
 }

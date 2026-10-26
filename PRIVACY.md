@@ -41,6 +41,12 @@ a hash of it. That key is part of the Send link, so **anyone who has the link ca
 if one is set); the server cannot. OmniVault puts the link on the clipboard only when you copy it and does not send
 it anywhere else.
 
+**Bitwarden emergency access.** If someone made you their emergency contact in Bitwarden, *Tools → Emergency
+access* asks your Bitwarden-compatible server for that list and, when you request access, tells the server so (the
+server then informs that person). After approval OmniVault fetches their items from the same server and decrypts them
+in the browser. They are kept only in the memory of OmniVault's background page – not in any browser storage – for at
+most ten minutes and are deleted when you lock the account; they are never filled into websites or exported.
+
 Bitwarden, Passbolt and the other services process the data they receive according to their own privacy policies.
 OmniVault does not change what those services store; it acts like their own clients.
 

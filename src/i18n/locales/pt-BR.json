@@ -1042,5 +1042,43 @@
  "{n} Zugriffe": {
   "one": "{n} acesso",
   "other": "{n} acessos"
- }
+ },
+ "Notfallzugriff wird für diesen Anbieter nicht unterstützt": "Este provedor não oferece acesso de emergência",
+ "Entsperre ein Bitwarden-Konto, um Notfallzugriff zu nutzen.": "Desbloqueie uma conta do Bitwarden para usar o acesso de emergência.",
+ "Hier erscheinen Personen, die dich in Bitwarden als Notfallkontakt eingetragen haben. Du kannst Zugriff anfordern und nach der Freigabe ihre Einträge ansehen – nur lesen. Einladen, Annehmen, Bestätigen und Übernahme gehen in den Bitwarden-Apps.": "Aqui aparecem as pessoas que adicionaram você como contato de emergência no Bitwarden. Você pode solicitar acesso e, depois de aprovado, ver os itens delas – somente leitura. Convidar, aceitar, confirmar e assumir o controle são feitos nos apps do Bitwarden.",
+ "Niemand hat dir Notfallzugriff gewährt.": "Ninguém concedeu acesso de emergência a você.",
+ "Eingeladen – nimm die Einladung in den Bitwarden-Apps an.": "Convidado – aceite o convite nos apps do Bitwarden.",
+ "Angenommen – {name} muss dich noch bestätigen.": "Aceito – {name} ainda precisa confirmar você.",
+ "Bereit. Wartezeit nach einer Anforderung: {wait}.": "Pronto. Tempo de espera após uma solicitação: {wait}.",
+ "Angefordert. {name} kann freigeben oder ablehnen; ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Solicitado. {name} pode aprovar ou recusar; sem resposta, o servidor libera o acesso após {wait}.",
+ "Freigegeben": "Aprovado",
+ "Unbekannter Status ({status})": "Status desconhecido ({status})",
+ "Notfallzugriff auf das Konto von {name} anfordern? {name} wird benachrichtigt. Ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Solicitar acesso de emergência à conta de {name}? {name} será avisado. Sem resposta, o servidor libera o acesso após {wait}.",
+ "Anfordern": "Solicitar",
+ "Zugriff angefordert": "Acesso solicitado",
+ "Zugriff anfordern": "Solicitar acesso",
+ "Einträge ansehen": "Ver itens",
+ "Übernahme": "Assumir controle",
+ "Ansehen": "Visualizar",
+ "Übernahme ist nur in den Bitwarden-Apps möglich.": "Assumir o controle só é possível nos apps do Bitwarden.",
+ "Zur Übersicht": "Voltar à lista",
+ "Einträge von {name}": "Itens de {name}",
+ "Nur ansehen und kopieren. Diese Einträge werden nicht ausgefüllt, nicht durchsucht und nicht exportiert; beim Sperren vergisst OmniVault sie.": "Somente ver e copiar. Esses itens nunca são preenchidos, pesquisados nem exportados; o OmniVault os esquece ao bloquear.",
+ "Notfallzugriff: {name}": "Acesso de emergência: {name}",
+ "nur lesen": "somente leitura",
+ "{n} Tage": {
+  "one": "{n} dia",
+  "other": "{n} dias"
+ },
+ "{n} Anhänge – nur in den Bitwarden-Apps abrufbar.": {
+  "one": "{n} anexo – disponível só nos apps do Bitwarden.",
+  "other": "{n} anexos – disponíveis só nos apps do Bitwarden."
+ },
+ "{n} Passkeys – im Notfallzugriff nicht nutzbar.": {
+  "one": "{n} passkey – não pode ser usada no acesso de emergência.",
+  "other": "{n} passkeys – não podem ser usadas no acesso de emergência."
+ },
+ "Notfallzugriff": "Acesso de emergência",
+ "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "O servidor não forneceu nenhuma chave para o acesso de emergência.",
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "A chave do acesso de emergência não corresponde à sua conta."
 }

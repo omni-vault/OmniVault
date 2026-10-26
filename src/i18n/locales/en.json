@@ -1042,5 +1042,43 @@
  "{n} Zugriffe": {
   "one": "{n} access",
   "other": "{n} accesses"
- }
+ },
+ "Notfallzugriff wird für diesen Anbieter nicht unterstützt": "This provider doesn't support emergency access",
+ "Entsperre ein Bitwarden-Konto, um Notfallzugriff zu nutzen.": "Unlock a Bitwarden account to use emergency access.",
+ "Hier erscheinen Personen, die dich in Bitwarden als Notfallkontakt eingetragen haben. Du kannst Zugriff anfordern und nach der Freigabe ihre Einträge ansehen – nur lesen. Einladen, Annehmen, Bestätigen und Übernahme gehen in den Bitwarden-Apps.": "People who added you as an emergency contact in Bitwarden appear here. You can request access and, once it's granted, view their items – read only. Inviting, accepting, confirming and takeover are done in the Bitwarden apps.",
+ "Niemand hat dir Notfallzugriff gewährt.": "Nobody has granted you emergency access.",
+ "Eingeladen – nimm die Einladung in den Bitwarden-Apps an.": "Invited – accept the invitation in the Bitwarden apps.",
+ "Angenommen – {name} muss dich noch bestätigen.": "Accepted – {name} still needs to confirm you.",
+ "Bereit. Wartezeit nach einer Anforderung: {wait}.": "Ready. Waiting period after a request: {wait}.",
+ "Angefordert. {name} kann freigeben oder ablehnen; ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Requested. {name} can approve or reject; without an answer, the server grants access after {wait}.",
+ "Freigegeben": "Approved",
+ "Unbekannter Status ({status})": "Unknown status ({status})",
+ "Notfallzugriff auf das Konto von {name} anfordern? {name} wird benachrichtigt. Ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Request emergency access to {name}'s account? {name} will be notified. Without an answer, the server grants access after {wait}.",
+ "Anfordern": "Request",
+ "Zugriff angefordert": "Access requested",
+ "Zugriff anfordern": "Request access",
+ "Einträge ansehen": "View items",
+ "Übernahme": "Takeover",
+ "Ansehen": "View",
+ "Übernahme ist nur in den Bitwarden-Apps möglich.": "Takeover is only possible in the Bitwarden apps.",
+ "Zur Übersicht": "Back to overview",
+ "Einträge von {name}": "Items of {name}",
+ "Nur ansehen und kopieren. Diese Einträge werden nicht ausgefüllt, nicht durchsucht und nicht exportiert; beim Sperren vergisst OmniVault sie.": "View and copy only. These items are never filled in, searched or exported; OmniVault forgets them when you lock.",
+ "Notfallzugriff: {name}": "Emergency access: {name}",
+ "nur lesen": "read only",
+ "{n} Tage": {
+  "one": "{n} day",
+  "other": "{n} days"
+ },
+ "{n} Anhänge – nur in den Bitwarden-Apps abrufbar.": {
+  "one": "{n} attachment – available only in the Bitwarden apps.",
+  "other": "{n} attachments – available only in the Bitwarden apps."
+ },
+ "{n} Passkeys – im Notfallzugriff nicht nutzbar.": {
+  "one": "{n} passkey – can't be used with emergency access.",
+  "other": "{n} passkeys – can't be used with emergency access."
+ },
+ "Notfallzugriff": "Emergency access",
+ "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "The server didn't return a key for emergency access.",
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "The emergency access key doesn't match your account."
 }

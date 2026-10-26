@@ -79,6 +79,7 @@ const loginFlows = createLoginFlows({
 
 async function lock(id) {
   cache.delete(id);
+  forgetEmergency(id);
   await loginFlows.clear(id); // a login half done (master key after Duo, tokens after SSO) goes as well
   await store.clearSession(id);
 }
@@ -187,6 +188,40 @@ async function sendCall(accountId, fn, { write: writes = false } = {}) {
   const res = await fn(provider, account, session);
   if (res?.session) await store.setSession(accountId, res.session);
   return res;
+}
+
+/*
+ * Emergency access (as trusted contact, view only). The grantor's items live only here, in memory, apart from the
+ * account's own items: they are not searched, filled, exported or mirrored, and they go when the account locks.
+ */
+const emergencyViews = new Map(); // "accountId\u0000grantId" → { items, at }
+const EMERGENCY_TTL = 10 * 60_000;
+const emergencyKey = (accountId, grantId) => `${accountId}\u0000${grantId}`;
+function forgetEmergency(accountId) {
+  for (const k of emergencyViews.keys()) if (k.startsWith(`${accountId}\u0000`)) emergencyViews.delete(k);
+}
+
+async function emergencyCall(accountId, fn) {
+  const account = await store.getAccount(accountId);
+  if (!account) throw new Error(t('Konto nicht gefunden'));
+  const session = await store.getSession(accountId);
+  if (!session) throw new Error(t('Tresor gesperrt'));
+  const provider = getProvider(account.provider);
+  if (!provider.capabilities?.emergencyAccess) throw new Error(t('Notfallzugriff wird für diesen Anbieter nicht unterstützt'));
+  const res = await fn(provider, account, session);
+  if (res?.session) await store.setSession(accountId, res.session);
+  return res;
+}
+
+async function emergencyItems(accountId, grantId, { reload = false } = {}) {
+  const k = emergencyKey(accountId, grantId);
+  const hit = emergencyViews.get(k);
+  if (hit && !reload && Date.now() - hit.at < EMERGENCY_TTL) return hit;
+  const res = await emergencyCall(accountId, (p, a, s) => p.viewEmergencyAccess(cfg(a), s, grantId));
+  const entry = { items: res.items, failed: res.failed, at: Date.now() };
+  emergencyViews.set(k, entry);
+  setTimeout(() => { if (emergencyViews.get(k) === entry) emergencyViews.delete(k); }, EMERGENCY_TTL);
+  return entry;
 }
 
 async function write(accountId, fn) {
@@ -658,6 +693,7 @@ const handlers = {
 
   async removeAccount({ id }) {
     cache.delete(id);
+    forgetEmergency(id);
     await store.removeAccount(id);
     await forgetLocalFavorites(id);
     await passkeys.forgetAccount(id);
@@ -949,6 +985,29 @@ const handlers = {
     const { send } = await sendCall(accountId, (p, a, s) => p.removeSendPassword(cfg(a), s, sendId));
     const { text, notes, link, ...meta } = send;
     return meta;
+  },
+
+  /* Emergency access as trusted contact: list, ask for access, view (read only, see emergencyViews). */
+  async emergencyGrants({ accountId }) {
+    return (await emergencyCall(accountId, (p, a, s) => p.listEmergencyGrants(cfg(a), s))).grants;
+  },
+
+  async emergencyInitiate({ accountId, grantId }) {
+    await emergencyCall(accountId, (p, a, s) => p.initiateEmergencyAccess(cfg(a), s, grantId));
+    return true;
+  },
+
+  async emergencyView({ accountId, grantId, reload = false }) {
+    const { items, failed } = await emergencyItems(accountId, grantId, { reload });
+    return { failed, items: items.map((i) => ({ id: i.id, type: i.type, name: i.name, username: i.username, subtitle: i.subtitle, uris: i.uris })) };
+  },
+
+  async emergencyItem({ accountId, grantId, itemId }) {
+    const { items } = await emergencyItems(accountId, grantId);
+    const item = items.find((i) => i.id === itemId);
+    if (!item) throw new Error(t('Eintrag nicht gefunden oder Tresor gesperrt'));
+    const { attachments, passkeys, ...rest } = fullItem(item);
+    return { ...rest, attachmentCount: attachments?.length ?? 0, passkeyCount: passkeys?.length ?? 0 };
   },
 
   async createFolder({ accountId, name }) {

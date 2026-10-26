@@ -1042,5 +1042,43 @@
  "{n} Zugriffe": {
   "one": "{n} acceso",
   "other": "{n} accesos"
- }
+ },
+ "Notfallzugriff wird für diesen Anbieter nicht unterstützt": "Este proveedor no admite el acceso de emergencia",
+ "Entsperre ein Bitwarden-Konto, um Notfallzugriff zu nutzen.": "Desbloquea una cuenta de Bitwarden para usar el acceso de emergencia.",
+ "Hier erscheinen Personen, die dich in Bitwarden als Notfallkontakt eingetragen haben. Du kannst Zugriff anfordern und nach der Freigabe ihre Einträge ansehen – nur lesen. Einladen, Annehmen, Bestätigen und Übernahme gehen in den Bitwarden-Apps.": "Aquí aparecen las personas que te han añadido como contacto de emergencia en Bitwarden. Puedes solicitar acceso y, una vez concedido, ver sus elementos (solo lectura). Invitar, aceptar, confirmar y tomar el control se hace en las apps de Bitwarden.",
+ "Niemand hat dir Notfallzugriff gewährt.": "Nadie te ha concedido acceso de emergencia.",
+ "Eingeladen – nimm die Einladung in den Bitwarden-Apps an.": "Invitado: acepta la invitación en las apps de Bitwarden.",
+ "Angenommen – {name} muss dich noch bestätigen.": "Aceptado: {name} todavía tiene que confirmarte.",
+ "Bereit. Wartezeit nach einer Anforderung: {wait}.": "Listo. Tiempo de espera tras una solicitud: {wait}.",
+ "Angefordert. {name} kann freigeben oder ablehnen; ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "Solicitado. {name} puede aprobar o rechazar; si no responde, el servidor concede el acceso tras {wait}.",
+ "Freigegeben": "Aprobado",
+ "Unbekannter Status ({status})": "Estado desconocido ({status})",
+ "Notfallzugriff auf das Konto von {name} anfordern? {name} wird benachrichtigt. Ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "¿Solicitar acceso de emergencia a la cuenta de {name}? Se avisará a {name}. Si no responde, el servidor concede el acceso tras {wait}.",
+ "Anfordern": "Solicitar",
+ "Zugriff angefordert": "Acceso solicitado",
+ "Zugriff anfordern": "Solicitar acceso",
+ "Einträge ansehen": "Ver elementos",
+ "Übernahme": "Toma de control",
+ "Ansehen": "Ver",
+ "Übernahme ist nur in den Bitwarden-Apps möglich.": "La toma de control solo es posible en las apps de Bitwarden.",
+ "Zur Übersicht": "Volver a la lista",
+ "Einträge von {name}": "Elementos de {name}",
+ "Nur ansehen und kopieren. Diese Einträge werden nicht ausgefüllt, nicht durchsucht und nicht exportiert; beim Sperren vergisst OmniVault sie.": "Solo ver y copiar. Estos elementos nunca se autocompletan, buscan ni exportan; OmniVault los olvida al bloquear.",
+ "Notfallzugriff: {name}": "Acceso de emergencia: {name}",
+ "nur lesen": "solo lectura",
+ "{n} Tage": {
+  "one": "{n} día",
+  "other": "{n} días"
+ },
+ "{n} Anhänge – nur in den Bitwarden-Apps abrufbar.": {
+  "one": "{n} archivo adjunto: solo disponible en las apps de Bitwarden.",
+  "other": "{n} archivos adjuntos: solo disponibles en las apps de Bitwarden."
+ },
+ "{n} Passkeys – im Notfallzugriff nicht nutzbar.": {
+  "one": "{n} passkey: no se puede usar con el acceso de emergencia.",
+  "other": "{n} passkeys: no se pueden usar con el acceso de emergencia."
+ },
+ "Notfallzugriff": "Acceso de emergencia",
+ "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "El servidor no devolvió ninguna clave para el acceso de emergencia.",
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La clave del acceso de emergencia no corresponde a tu cuenta."
 }

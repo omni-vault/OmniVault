@@ -1,13 +1,15 @@
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
-// Tools view: duplicates, bulk selection (copy / move / delete), mirror rules between accounts, import, trash, Send.
+// Tools view: duplicates, bulk selection (copy / move / delete), mirror rules between accounts, import, trash, Send,
+// emergency access.
 import { FORMATS, parseImport } from '../lib/import.js';
 import { MAX_FILE_BYTES as MAX_KDBX_BYTES, isKdbx, openKdbx } from '../lib/kdbx.js';
 import { HIBP_ORIGIN } from '../lib/hibp.js';
 import { ext } from '../lib/browser.js';
 import { openItem } from './detail.js';
 import { requestPermissions } from './resume.js';
+import { emergencyAccounts, renderEmergency, resetEmergency } from './emergency.js';
 import { renderSend, resetSend, sendAccounts } from './send.js';
 import { S, accountOf, folderPicker, providerOf, refresh, writableAccounts } from './state.js';
 import { formatDateTime, markn } from '../i18n/index.js';
@@ -95,8 +97,8 @@ export async function openTools(which, { reportScope } = {}) {
   if (which) tab = which;
   if (reportScope) scope = reportScope;
   selected.clear();
-  const opened = tab;
-  show('tools', { restore: () => openTools(opened) });
+  // coming back (from an item, or when the popup opens again) shows the tab that was open last, not the first one
+  show('tools', { restore: () => openTools(tab) });
   await render();
 }
 
@@ -104,9 +106,10 @@ async function render() {
   const view = $('#view-tools');
   const tabs = el('div', { className: 'tabs', role: 'tablist' },
     [['dupes', t('Prüfen')], ['bulk', t('Auswahl')], ['mirror', t('Spiegeln')], ['import', t('Import/Export')],
-      ...(hasTrash() ? [['trash', t('Papierkorb')]] : []), ...(sendAccounts().length ? [['send', t('Send')]] : [])].map(([id, label]) =>
+      ...(hasTrash() ? [['trash', t('Papierkorb')]] : []), ...(sendAccounts().length ? [['send', t('Send')]] : []),
+      ...(emergencyAccounts().length ? [['emergency', t('Notfallzugriff')]] : [])].map(([id, label]) =>
       el('button', { type: 'button', role: 'tab', 'aria-selected': String(tab === id), className: tab === id ? 'active' : '',
-        onclick: () => { tab = id; selected.clear(); resetSend(); render(); } }, label)));
+        onclick: () => { tab = id; selected.clear(); resetSend(); resetEmergency(); render(); } }, label)));
   const body = el('div', { className: 'tool-body' });
   view.replaceChildren(el('h2', {}, t('Werkzeuge')), tabs, body);
   if (!S.state.accounts.some((a) => a.unlocked)) {
@@ -118,6 +121,7 @@ async function render() {
   else if (tab === 'import') await renderImport(body);
   else if (tab === 'trash') await renderTrash(body);
   else if (tab === 'send') await renderSend(body, render, { footer });
+  else if (tab === 'emergency') await renderEmergency(body, render, { footer });
   else await renderMirror(body);
 }
 

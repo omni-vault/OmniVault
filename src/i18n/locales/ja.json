@@ -1007,5 +1007,40 @@
  "Die Höchstzahl der Zugriffe muss eine ganze Zahl ab 1 sein.": "最大アクセス回数は 1 以上の整数にしてください。",
  "{n} Zugriffe": {
   "other": "{n} 回アクセス"
- }
+ },
+ "Notfallzugriff wird für diesen Anbieter nicht unterstützt": "このサービスは緊急アクセスに対応していません",
+ "Entsperre ein Bitwarden-Konto, um Notfallzugriff zu nutzen.": "緊急アクセスを使うには Bitwarden アカウントをロック解除してください。",
+ "Hier erscheinen Personen, die dich in Bitwarden als Notfallkontakt eingetragen haben. Du kannst Zugriff anfordern und nach der Freigabe ihre Einträge ansehen – nur lesen. Einladen, Annehmen, Bestätigen und Übernahme gehen in den Bitwarden-Apps.": "Bitwarden であなたを緊急連絡先に登録した人がここに表示されます。アクセスを申請し、承認されるとその人のアイテムを閲覧できます（読み取り専用）。招待・承諾・確認・引き継ぎは Bitwarden アプリで行ってください。",
+ "Niemand hat dir Notfallzugriff gewährt.": "緊急アクセスを許可している人はいません。",
+ "Eingeladen – nimm die Einladung in den Bitwarden-Apps an.": "招待済み – Bitwarden アプリで招待を承諾してください。",
+ "Angenommen – {name} muss dich noch bestätigen.": "承諾済み – まだ {name} による確認が必要です。",
+ "Bereit. Wartezeit nach einer Anforderung: {wait}.": "準備完了。申請後の待機期間：{wait}。",
+ "Angefordert. {name} kann freigeben oder ablehnen; ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "申請済み。{name} は承認または拒否できます。応答がない場合、{wait}後にサーバーがアクセスを許可します。",
+ "Freigegeben": "承認済み",
+ "Unbekannter Status ({status})": "不明な状態（{status}）",
+ "Notfallzugriff auf das Konto von {name} anfordern? {name} wird benachrichtigt. Ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "{name} のアカウントへの緊急アクセスを申請しますか？{name} に通知されます。応答がない場合、{wait}後にサーバーがアクセスを許可します。",
+ "Anfordern": "申請",
+ "Zugriff angefordert": "アクセスを申請しました",
+ "Zugriff anfordern": "アクセスを申請",
+ "Einträge ansehen": "アイテムを見る",
+ "Übernahme": "引き継ぎ",
+ "Ansehen": "閲覧",
+ "Übernahme ist nur in den Bitwarden-Apps möglich.": "引き継ぎは Bitwarden アプリでのみ行えます。",
+ "Zur Übersicht": "一覧に戻る",
+ "Einträge von {name}": "{name} のアイテム",
+ "Nur ansehen und kopieren. Diese Einträge werden nicht ausgefüllt, nicht durchsucht und nicht exportiert; beim Sperren vergisst OmniVault sie.": "閲覧とコピーのみ。これらのアイテムは自動入力・検索・エクスポートの対象になりません。ロックすると OmniVault は破棄します。",
+ "Notfallzugriff: {name}": "緊急アクセス：{name}",
+ "nur lesen": "読み取り専用",
+ "{n} Tage": {
+  "other": "{n} 日"
+ },
+ "{n} Anhänge – nur in den Bitwarden-Apps abrufbar.": {
+  "other": "添付ファイル {n} 件 – Bitwarden アプリでのみ取得できます。"
+ },
+ "{n} Passkeys – im Notfallzugriff nicht nutzbar.": {
+  "other": "パスキー {n} 件 – 緊急アクセスでは使用できません。"
+ },
+ "Notfallzugriff": "緊急アクセス",
+ "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "サーバーから緊急アクセス用の鍵が返されませんでした。",
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "緊急アクセスの鍵があなたのアカウントと一致しません。"
 }

@@ -44,6 +44,8 @@ npm run test:vaultwarden  # startet ein lokales Vaultwarden und testet Provider,
                           # Send: Links werden wie von Empfängern geöffnet und mit test/send-check.py (Python, `cryptography`) entschlüsselt
 npm run test:vaultwarden-sso  # Vaultwarden mit SSO gegen einen lokalen OIDC-Anbieter: Anmeldung, Master-Passwort, Erneuerung
 npm run test:login        # Duo und SSO im Tab (simulierte Server), mit echtem Toolbar-Popup; mit `xvfb-run -a` sichtbar
+npm run test:emergency    # Bitwarden-Notfallzugriff (Vertrauensperson, nur Ansehen) gegen den simulierten Server;
+                          # gegen echtes Vaultwarden läuft derselbe Test in test:vaultwarden mit
 npm run test:passbolt     # richtet einen lokalen Passbolt CE ein (PostgreSQL) und testet Provider und Teilen dagegen
 npm run test:openbao      # startet ein lokales OpenBao (Dev-Modus, Port 8820) und testet Provider und Browser dagegen
 npm run test:inline       # Knopf im Anmeldefeld, „Login speichern?“, Karten ausfüllen

@@ -158,7 +158,7 @@ export async function startServers({ bwPort = 8787, pbPort = 8788, extraItems = 
   bw.rp = relyingParty(ORIGIN);
   const s1 = await listen(bw, bwPort);
   const s2 = await listen(pb.handle, pbPort);
-  return { ORIGIN, PB_ORIGIN, pb, rp: bw.rp, close: () => { s1.close(); s2.close(); } };
+  return { ORIGIN, PB_ORIGIN, pb, bw, rp: bw.rp, close: () => { s1.close(); s2.close(); } };
 }
 
 /** Copy of dist/chrome with localhost pre-granted (no permission prompt in automation). */

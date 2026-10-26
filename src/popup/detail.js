@@ -83,7 +83,7 @@ function totpField(source) {
   return row;
 }
 
-function typeFields(i) {
+export function typeFields(i) {
   const out = [];
   if (i.type === 'login') {
     out.push(field(mark('Benutzername'), i.username, { copyLabel: mark('Benutzer') }));

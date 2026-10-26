@@ -147,6 +147,23 @@ export async function fakeBitwarden({
     ];
     findCipherInit('c3').CollectionIds = ['col1', 'col3'];
   }
+  // Emergency access: Alice is the trusted contact of Gerda (view, 7 days) and of Theo (takeover). Gerda's user key
+  // reaches Alice encrypted with Alice's public key, as after Gerda's confirmation.
+  const gerdaKeyBytes = crypto.getRandomValues(new Uint8Array(64));
+  const gerdaKey = splitKey(gerdaKeyBytes);
+  const emergency = {
+    grants: [
+      { Id: 'ea1', Status: 2, Type: 0, WaitTimeDays: 7, GrantorId: 'u-gerda', Email: 'gerda@example.org', Name: 'Gerda', Object: 'emergencyAccessGrantorDetails' },
+      { Id: 'ea2', Status: 2, Type: 1, WaitTimeDays: 3, GrantorId: 'u-theo', Email: 'theo@example.org', Name: 'Theo', Object: 'emergencyAccessGrantorDetails' },
+    ],
+    keyEncrypted: `4.${b64(new Uint8Array(await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, rsa.publicKey, gerdaKeyBytes)))}`,
+    ciphers: [
+      { Id: 'g1', Type: 1, Name: await encryptSym('Gerdas Bank', gerdaKey), Login: { Username: await encryptSym('gerda', gerdaKey), Password: await encryptSym('gerda-bank-pw', gerdaKey), Uris: [{ Uri: await encryptSym('https://bank.example', gerdaKey) }] }, Attachments: [{ Id: 'a1', FileName: await encryptSym('Vertrag.pdf', gerdaKey), Size: '10' }] },
+      { Id: 'g2', Type: 2, Name: await encryptSym('Gerdas Testament', gerdaKey), Notes: await encryptSym('Liegt im Schrank', gerdaKey) },
+      { Id: 'g3', Type: 1, DeletedDate: '2026-01-01', Name: await encryptSym('Gerdas Papierkorb', gerdaKey) },
+    ],
+    approve(id) { const g = this.grants.find((x) => x.Id === id); if (g) g.Status = 4; },
+  };
   const folderSeq = { n: 0 };
   void folderSeq;
   const protectedKey = await encryptSym(userKeyBytes, await stretchMasterKey(mk));
@@ -289,6 +306,19 @@ export async function fakeBitwarden({
     if (owner) return owner;
     let m;
     if (path.endsWith('/api/accounts/profile') && method === 'GET') return { status: 200, body: { Id: USER_ID } };
+    if (path.endsWith('/api/emergency-access/granted') && method === 'GET') {
+      return { status: 200, body: { Data: emergency.grants, Object: 'list', ContinuationToken: null } };
+    }
+    if ((m = /\/api\/emergency-access\/([^/]+)\/(initiate|view)$/.exec(path)) && method === 'POST') {
+      const g = emergency.grants.find((x) => x.Id === m[1]);
+      if (m[2] === 'initiate') {
+        if (!g || g.Status !== 2) return { status: 400, body: { message: 'Emergency access not valid.' } };
+        g.Status = 3;
+        return { status: 200, body: { Id: g.Id, Status: g.Status, Type: g.Type, WaitTimeDays: g.WaitTimeDays, Object: 'emergencyAccess' } };
+      }
+      if (!g || g.Status !== 4 || g.Type !== 0) return { status: 400, body: { message: 'Emergency access not valid.' } };
+      return { status: 200, body: { KeyEncrypted: emergency.keyEncrypted, Ciphers: emergency.ciphers, Object: 'emergencyAccessView' } };
+    }
     // like current Vaultwarden: writes must name the user the cipher is encrypted for
     if (/\/api\/ciphers(\/[^/]+)?$/.test(path) && (method === 'POST' || method === 'PUT') && json?.encryptedFor !== USER_ID) {
       return { status: 422, body: { message: 'missing field `encryptedFor`' } };
@@ -350,6 +380,7 @@ export async function fakeBitwarden({
   handle.flow = flow;
   handle.sync = sync;
   handle.sends = sends;
+  handle.emergency = emergency;
   return handle;
 }
 

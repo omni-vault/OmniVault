@@ -1007,5 +1007,40 @@
  "Die Höchstzahl der Zugriffe muss eine ganze Zahl ab 1 sein.": "最大访问次数必须是不小于 1 的整数。",
  "{n} Zugriffe": {
   "other": "{n} 次访问"
- }
+ },
+ "Notfallzugriff wird für diesen Anbieter nicht unterstützt": "此服务不支持紧急访问",
+ "Entsperre ein Bitwarden-Konto, um Notfallzugriff zu nutzen.": "请解锁一个 Bitwarden 账户以使用紧急访问。",
+ "Hier erscheinen Personen, die dich in Bitwarden als Notfallkontakt eingetragen haben. Du kannst Zugriff anfordern und nach der Freigabe ihre Einträge ansehen – nur lesen. Einladen, Annehmen, Bestätigen und Übernahme gehen in den Bitwarden-Apps.": "这里显示在 Bitwarden 中将你设为紧急联系人的人。你可以请求访问，获批后以只读方式查看对方的项目。邀请、接受、确认和接管请在 Bitwarden 应用中进行。",
+ "Niemand hat dir Notfallzugriff gewährt.": "还没有人授予你紧急访问权限。",
+ "Eingeladen – nimm die Einladung in den Bitwarden-Apps an.": "已邀请——请在 Bitwarden 应用中接受邀请。",
+ "Angenommen – {name} muss dich noch bestätigen.": "已接受——还需要 {name} 确认你。",
+ "Bereit. Wartezeit nach einer Anforderung: {wait}.": "已就绪。请求后的等待时间：{wait}。",
+ "Angefordert. {name} kann freigeben oder ablehnen; ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "已请求。{name} 可以批准或拒绝；若无回应，服务器会在 {wait}后授予访问权限。",
+ "Freigegeben": "已批准",
+ "Unbekannter Status ({status})": "未知状态（{status}）",
+ "Notfallzugriff auf das Konto von {name} anfordern? {name} wird benachrichtigt. Ohne Antwort gibt der Server den Zugriff nach {wait} frei.": "要请求访问 {name} 的账户吗？{name} 会收到通知。若无回应，服务器会在 {wait}后授予访问权限。",
+ "Anfordern": "请求",
+ "Zugriff angefordert": "已请求访问",
+ "Zugriff anfordern": "请求访问",
+ "Einträge ansehen": "查看项目",
+ "Übernahme": "接管",
+ "Ansehen": "查看",
+ "Übernahme ist nur in den Bitwarden-Apps möglich.": "接管只能在 Bitwarden 应用中进行。",
+ "Zur Übersicht": "返回列表",
+ "Einträge von {name}": "{name} 的项目",
+ "Nur ansehen und kopieren. Diese Einträge werden nicht ausgefüllt, nicht durchsucht und nicht exportiert; beim Sperren vergisst OmniVault sie.": "仅可查看和复制。这些项目不会被自动填充、搜索或导出；锁定时 OmniVault 会将其清除。",
+ "Notfallzugriff: {name}": "紧急访问：{name}",
+ "nur lesen": "只读",
+ "{n} Tage": {
+  "other": "{n} 天"
+ },
+ "{n} Anhänge – nur in den Bitwarden-Apps abrufbar.": {
+  "other": "{n} 个附件——只能在 Bitwarden 应用中获取。"
+ },
+ "{n} Passkeys – im Notfallzugriff nicht nutzbar.": {
+  "other": "{n} 个通行密钥——紧急访问中无法使用。"
+ },
+ "Notfallzugriff": "紧急访问",
+ "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "服务器未提供紧急访问的密钥。",
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "紧急访问的密钥与你的账户不匹配。"
 }
