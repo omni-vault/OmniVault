@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.5 – 2026-10-26
 
 ### Improvements
 - **Argon2 no longer blocks OmniVault**: unlocking an account with a high Argon2 memory setting (up to 1 GiB), unlocking
