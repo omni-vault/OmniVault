@@ -82,6 +82,7 @@ const entryPointsFor = (name) => ({
   'inline-menu': 'src/inline/inline-menu.js',
   'save-bar': 'src/inline/save-bar.js',
   passkey: 'src/inline/passkey.js',
+  'argon2-worker': 'src/workers/argon2-worker.js',
   ...(name === 'chrome' ? { offscreen: 'src/offscreen/offscreen.js' } : {}),
 });
 

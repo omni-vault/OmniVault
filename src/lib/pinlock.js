@@ -8,6 +8,7 @@
 // needed again, like Bitwarden's default "lock with master password on restart".
 import { t } from '../i18n/index.js';
 import loadArgon2id from '../../vendor/argon2id.mjs';
+import { argon2 } from './argon2.js';
 import { b64, fromB64, fromUtf8, utf8 } from './bytes.js';
 import { PIN_MAX, PIN_MIN, validPin } from './pin-rules.js';
 
@@ -15,8 +16,8 @@ const { subtle } = globalThis.crypto;
 const ARGON = { passes: 3, memorySize: 64 * 1024, parallelism: 1, tagLength: 32 }; // 64 MiB
 
 async function pinKey(pin, salt) {
-  // a fresh WebAssembly instance each time, so its 64 MiB are freed afterwards instead of staying in the background
-  const raw = (await loadArgon2id())({ password: utf8(pin), salt, ...ARGON });
+  // in a worker (or a fresh WebAssembly instance), so its 64 MiB are freed afterwards instead of staying in the background
+  const raw = await argon2('argon2id', { password: utf8(pin), salt, ...ARGON }, loadArgon2id);
   return subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 

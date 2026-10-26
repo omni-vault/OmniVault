@@ -6,6 +6,7 @@
 // XAES-256-GCM): format read from Bitwarden's public sources (no code taken), implemented here independently.
 import { t } from '../../i18n/index.js';
 import loadArgon2id from '../../../vendor/argon2id.mjs';
+import { argon2 } from '../../lib/argon2.js';
 import { xchacha20poly1305 } from '../../../vendor/noble-ciphers.mjs';
 import { b64, concat, equalBytes, fromB64, fromUtf8, utf8 } from '../../lib/bytes.js';
 import { cbor, decodeCbor } from '../../lib/cbor.js';
@@ -53,17 +54,16 @@ export async function deriveMasterKey(password, email, kdf) {
   }
   if (kdf.kdf === KDF.ARGON2ID) {
     const salt = new Uint8Array(await subtle.digest('SHA-256', utf8(normalizedEmail)));
-    // A fresh WebAssembly instance per derivation: its memory (up to 1 GiB with Bitwarden's highest setting) cannot
-    // shrink, and a cached instance would keep it allocated in the background for as long as the browser runs.
-    const hash = await loadArgon2id();
-    return hash({
+    // In a worker that ends afterwards (or, as a fallback, a fresh WebAssembly instance): its memory (up to 1 GiB with
+    // Bitwarden's highest setting) cannot shrink and would otherwise stay allocated in the background.
+    return argon2('argon2id', {
       password: pw,
       salt,
       passes: kdf.kdfIterations,
       memorySize: kdf.kdfMemory * 1024, // MiB → KiB
       parallelism: kdf.kdfParallelism,
       tagLength: 32,
-    });
+    }, loadArgon2id);
   }
   throw new ProviderError(t('Unbekannter KDF-Typ {kdf}', { kdf: kdf.kdf }), 'unsupported');
 }

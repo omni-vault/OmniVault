@@ -4,6 +4,7 @@
 // Clears the clipboard after a delay. Chrome's service worker has no DOM, so it uses an offscreen
 // document; Firefox's background page has a DOM and copies directly.
 import { ext } from '../lib/browser.js';
+import { withOffscreen } from '../lib/offscreen.js';
 
 const ALARM = 'clear-clipboard';
 let timer = null;
@@ -19,13 +20,8 @@ async function writeEmpty() {
     return;
   }
   if (!ext.offscreen) return;
-  const url = ext.runtime.getURL('offscreen.html');
-  const contexts = await ext.runtime.getContexts?.({ contextTypes: ['OFFSCREEN_DOCUMENT'], documentUrls: [url] });
-  if (!contexts?.length) {
-    await ext.offscreen.createDocument({ url, reasons: ['CLIPBOARD'], justification: 'Kopierte Passwörter nach Ablauf der Frist aus der Zwischenablage entfernen' });
-  }
-  await ext.runtime.sendMessage({ target: 'offscreen', type: 'clear-clipboard' });
-  await ext.offscreen.closeDocument().catch(() => {});
+  // shared with a running Argon2 derivation, if any (one offscreen document per extension)
+  await withOffscreen(() => ext.runtime.sendMessage({ target: 'offscreen', type: 'clear-clipboard' }));
 }
 
 export async function clearClipboardNow() {

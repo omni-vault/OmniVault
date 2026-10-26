@@ -10,6 +10,7 @@
 
 import { t } from '../i18n/index.js';
 import { concat, fromB64, fromHex, fromUtf8, utf8 } from './bytes.js';
+import { argon2 } from './argon2.js';
 
 export const MAX_FILE_BYTES = 64 * 1024 * 1024;
 const MAX_XML_BYTES = 256 * 1024 * 1024;
@@ -68,8 +69,8 @@ class Reader {
 }
 
 const vendorCiphers = () => import('../../vendor/noble-ciphers.mjs');
-let argon2;
-const loadArgon2 = () => (argon2 ??= import('../../vendor/argon2.mjs').then((m) => m.default()));
+let argon2Direct;
+const loadArgon2 = () => (argon2Direct ??= import('../../vendor/argon2.mjs').then((m) => m.default()));
 
 /* ---------- keys ---------- */
 
@@ -145,9 +146,9 @@ async function argon2Kdf(key, kdf, params) {
   if (memoryKiB > MAX_ARGON2_KIB) {
     throw unsupported(t('Die Schlüsselableitung braucht {size} Arbeitsspeicher; unterstützt werden bis zu {max}.', { size: `${Math.round(memoryKiB / 1024)} MiB`, max: `${MAX_ARGON2_KIB / 1024} MiB` }));
   }
-  const hash = await loadArgon2();
   try {
-    return hash({ type: kdf === 'argon2d' ? 'd' : 'id', version: params.V ?? 0x13, password: key, salt: params.S, passes, memorySize: memoryKiB, parallelism, tagLength: 32 });
+    // in a worker, so the popup stays responsive ("Entschlüssele …") during a derivation of several seconds
+    return await argon2('argon2', { type: kdf === 'argon2d' ? 'd' : 'id', version: params.V ?? 0x13, password: key, salt: params.S, passes, memorySize: memoryKiB, parallelism, tagLength: 32 }, loadArgon2);
   } catch (e) {
     if (/memory/.test(e.message)) throw unsupported(t('Nicht genug Arbeitsspeicher für die Schlüsselableitung dieser Datenbank.'));
     throw unsupported(t('Diese Einstellungen der Schlüsselableitung werden nicht unterstützt.'));
