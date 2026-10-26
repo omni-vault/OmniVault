@@ -50,6 +50,8 @@ npm run test:inline       # Knopf im Anmeldefeld, „Login speichern?“, Karten
 npm run test:i18n         # Sprachen: Browsersprache, Sprachwahl, alle Ansichten in allen Sprachen + Pseudosprache
 npm run test:passkeys     # Passkeys: Testseite mit Prüfung auf dem Server, OmniVault-Dialog, Rückfall auf den Browser,
                           # eingebettete Frames (zwei Origins, mit und ohne Permissions Policy)
+npm run test:argon2       # Argon2 im Worker: Entsperren mit 512 MiB (ARGON2_MIB=1024) und KeePass mit 256 MiB, während
+                          # andere Nachrichten beantwortet werden; Zwischenablage leeren währenddessen und danach
 npm run test:hibp         # Prüfung gegen Datenlecks: Zustimmung zuerst, nur 5-stellige Präfixe (Dienst simuliert)
 npm run test:shortcuts    # Tastenkürzel und Kontextmenü mit echten X11-Eingaben (sichtbarer Browser unter Xvfb)
 npm run test:firefox      # dieselben Funktionen in Firefox (WebDriver BiDi, siehe unten)
@@ -81,10 +83,20 @@ als AppImage, das Mozillas offizielles Release-Archiv unverändert enthält; Has
 mit `FIREFOX_BIN=/pfad/zu/firefox` nutzt es ein eigenes. Headless reicht; unter `xvfb-run -a` läuft Firefox sichtbar,
 und Strg+Umschalt+L wird als echte X11-Taste gedrückt.
 
-**Argon2 im Hintergrund** (gemessen in Chromium, Service Worker, t=3, p=4): 64 MiB ≈ 0,7 s, 256 MiB ≈ 2,1 s,
-512 MiB ≈ 4,3 s, 1 GiB ≈ 8,5 s – auch Bitwardens Höchstwert funktioniert. Während der Ableitung warten andere
-Nachrichten an den Hintergrund. Jede Ableitung nutzt eine neue WebAssembly-Instanz, damit deren Speicher danach
-freigegeben wird (sonst blieben nach einer 1-GiB-Ableitung über 1 GiB im Hintergrund belegt).
+**Argon2 im Worker** (`src/lib/argon2.js`): Bitwarden-Argon2id, die PIN-Ableitung und KeePass-Argon2 rechnen in
+einem eigenen dedizierten Worker (`argon2-worker.js`), der nach der Ableitung beendet wird – sein WebAssembly-Speicher
+ist damit sofort frei. Firefox startet ihn direkt aus der Event-Page, das Popup ebenso; Chromes Service Worker kann
+keine Worker starten und nutzt dafür das Offscreen-Dokument (Gründe `CLIPBOARD` und `WORKERS`). Chrome erlaubt nur ein
+Offscreen-Dokument: `src/lib/offscreen.js` öffnet es für den ersten Nutzer (Zwischenablage leeren oder Ableitung),
+teilt es und schließt es nach dem letzten. Ohne Worker (Node-Tests, alte Browser) wird wie bisher direkt gerechnet.
+
+Gemessen mit `npm run test:argon2` (Chromium, 2 CPUs, Argon2id t=3, p=4; `ARGON2_MIB=1024`, Standard 512): eine
+Ableitung dauert wie zuvor etwa 0,7 s (64 MiB) bis 8–9 s (1 GiB). Vorher warteten andere Nachrichten an den
+Hintergrund so lange (bei 1 GiB bis 9,0 s), jetzt werden sie nebenher beantwortet (162 Nachrichten, Median 5 ms,
+höchstens 0,25 s beim Öffnen des Offscreen-Dokuments). Der Speicher des Browsers lag 3 s nach einer 1-GiB-Ableitung
+vorher um 1,1 GiB höher (die alte WebAssembly-Instanz wartete auf die Speicherbereinigung), jetzt um 70 MiB. In
+Firefox (256 MiB) wartete eine andere Nachricht vorher bis 2,1 s, jetzt höchstens 30 ms. Eine KeePass-Datenbank mit
+256 MiB Argon2d hielt das Popup vorher 2,8 s an („Entschlüssele …“ stand still), jetzt höchstens 25 ms.
 
 Kryptografie kommt aus etablierten Open-Source-Bibliotheken – OpenPGP.js (LGPL), argon2id (MIT), die
 Argon2-Referenzimplementierung (CC0/Apache-2.0, für Argon2d in KeePass-Dateien) und für XChaCha20-Poly1305, ChaCha20 und

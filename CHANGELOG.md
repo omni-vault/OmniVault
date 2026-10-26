@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Improvements
+- **Argon2 no longer blocks OmniVault**: unlocking an account with a high Argon2 memory setting (up to 1 GiB), unlocking
+  with a PIN and opening a KeePass database now compute the key in a separate worker. Other accounts, the popup and
+  the "Decrypting …" indicator keep responding meanwhile, and the memory is released as soon as the key is derived.
+
 ## 0.5.4 – 2026-10-26
 
 ### New password managers

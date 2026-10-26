@@ -267,6 +267,7 @@ Einstellungen → Darstellung → Sprache wechselt sofort.
 | OmniVault-Knopf in Anmeldefeldern mit passenden Logins (Opt-in) | ✅ S | ✅ S |
 | „Login speichern?“ / „Passwort aktualisieren?“ nach dem Anmelden (Opt-in) | ✅ S | ✅ S |
 | Auto-Sperre (Zeit, Bildschirmsperre), Zwischenablage leeren | ✅ | ✅ (Sperre nach Inaktivität über den Alarm der Event-Page und Leeren der Zwischenablage automatisch geprüft; Bildschirmsperre nicht) |
+| Schlüsselableitung (Argon2) in einem Worker: OmniVault reagiert währenddessen, Speicher danach frei | ✅ S (Offscreen-Dokument mit Worker; Entsperren mit 1 GiB, KeePass-Datei mit 256 MiB im Popup) | ✅ S (Worker der Event-Page; Entsperren mit 256 MiB) |
 | Native-Host für CLI-Anbieter | ✅ R | ✅ S (Manifest in `~/.mozilla/native-messaging-hosts` mit `allowed_extensions`; Firefox startet den Host, Proton Pass über simuliertes `pass-cli`) |
 | Passkeys: Seite fragt → OmniVault-Dialog (anlegen in neuem oder vorhandenem Login, anmelden, „anderes Gerät oder Browser“), Opt-in | ✅ R (Prüfseite mit unabhängiger Signaturprüfung, Passkeys gegen echtes Vaultwarden); manuell auf webauthn.io bestätigt | ✅ S (Prüfseite mit unabhängiger Signaturprüfung: anlegen, anmelden, abbrechen; simulierter Server); manuell auf webauthn.io bestätigt (19.10.2026) |
 | Passkeys in der Liste eines `username webauthn`-Felds (bedingte Anfrage, „conditional mediation“) | ✅ S | ✅ S |
