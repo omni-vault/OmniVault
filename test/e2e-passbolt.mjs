@@ -54,6 +54,23 @@ try {
   await popup.click('#unlock-submit');
   await popup.waitForSelector('#view-main:not([hidden])');
   await popup.waitForSelector('#accounts .chip:not(.locked)');
+
+  // token refresh in the browser, twice in a row (cookies of the extension are shared with Passbolt's own pages)
+  const forceRefreshAndSync = () => popup.evaluate(async () => {
+    const accounts = (await chrome.runtime.sendMessage({ type: 'state' })).result.accounts;
+    const acc = accounts.find((a) => a.provider === 'passbolt');
+    const key = `session:${acc.id}`;
+    const s = (await chrome.storage.session.get(key))[key];
+    await chrome.storage.session.set({ [key]: { ...s, expiresAt: 0 } });
+    const r = await chrome.runtime.sendMessage({ type: 'sync', id: acc.id });
+    return !r.ok ? r.error : (r.result.error ?? 'ok');
+  });
+  const first = await forceRefreshAndSync();
+  const second = await forceRefreshAndSync();
+  const third = await forceRefreshAndSync();
+  check(first === 'ok' && second === 'ok' && third === 'ok', `access token renewed three times in a row (${first} / ${second} / ${third})`);
+  const refreshCookies = (await ctx.cookies(BASE)).filter((c) => c.name === 'refresh_token');
+  check(refreshCookies.length === 0, `no refresh token left in the browser's cookies (${refreshCookies.length})`);
   check(true, 'real Passbolt account unlocked in the popup');
 
   // new login with a custom field in a new folder
@@ -70,7 +87,7 @@ try {
   await popup.selectOption('#view-edit select[name=folder]', '__new');
   await popup.fill('#dialog-input', 'Team');
   await popup.click('#dialog-ok');
-  await popup.waitForFunction(() => document.querySelector('#view-edit select[name=folder]').selectedOptions[0]?.textContent === 'Team');
+  await popup.waitForFunction(() => document.querySelector('#view-edit select[name=folder]').selectedOptions[0]?.textContent === 'Team', null, { timeout: 30000 });
   await popup.click('#view-edit button[type=submit]');
   await popup.waitForSelector('#view-item:not([hidden]) h2:has-text("Team-Zugang")');
   const detail = await popup.textContent('#view-item');

@@ -35,7 +35,7 @@ test('mapping: aliases, extra keys as hidden fields, no password → note', () =
 test('token login, recursive listing, lazy secrets, host pattern', async () => {
   const fake = setup();
   const config = { id: 'v1', server: SERVER, auth: 'token', mount: 'secret' };
-  assert.deepEqual(hostPatterns('vault', config), ['https://vault.example.org:8200/*']);
+  assert.deepEqual(hostPatterns('vault', config), ['https://vault.example.org/*']);
   await assert.rejects(VaultProvider.login(config, { password: 'falsch' }), /Token ungültig/);
   const { status, session } = await VaultProvider.login(config, { password: 'root' });
   assert.equal(status, 'ok');
@@ -145,4 +145,13 @@ test('limits, progress, forbidden sub-paths, wrong mount', async () => {
     VaultProvider.onProgress = null;
   }
   await assert.rejects(VaultProvider.login({ ...config, mount: 'kv' }, { password: 'root' }), /keine KV-Engine/);
+});
+
+test('host permissions leave out the port (Firefox ignores patterns with a port)', async () => {
+  const { originPattern } = await import('../src/providers/hosts.js');
+  assert.equal(originPattern('https://pass.example.org:8443/api'), 'https://pass.example.org/*');
+  assert.equal(originPattern('http://127.0.0.1:8200'), 'http://127.0.0.1/*');
+  assert.equal(originPattern('https://[::1]:8443/'), 'https://[::1]/*');
+  assert.equal(originPattern('file:///etc/passwd'), null);
+  assert.equal(originPattern('kein url'), null);
 });

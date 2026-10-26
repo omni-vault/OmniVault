@@ -14,6 +14,12 @@
   in the Bitwarden apps.
 
 ### Fixes
+- **Passbolt stayed signed in for only about 10 minutes**: Passbolt's access tokens last 5 minutes, and the second
+  renewal reused a refresh token that Passbolt only accepts once (Passbolt treats this as an attack and notifies the
+  user and the administrators). OmniVault now gets a new token by signing in again with the key that is already
+  unlocked, and no longer keeps a refresh token.
+- **Self-hosted servers on a non-standard port in Firefox**: Firefox ignores permissions that include a port, so
+  requests to e.g. `https://vault.example.org:8443` were blocked. OmniVault now asks for the host without the port.
 - Going back from an item opened in Tools (or reopening the popup) now returns to the tab you were on instead of the
   first one.
 

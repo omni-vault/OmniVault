@@ -5,8 +5,17 @@
 // cheaply and call permissions.request() synchronously inside a click.
 import { endpoints } from './bitwarden/api.js';
 
-function originPattern(url) {
-  try { return `${new URL(url).origin}/*`; } catch { return null; }
+/**
+ * Host permission for a server address. Without the port: Firefox does not accept match patterns with a port (a
+ * pattern like https://host:8443/* is granted but does not lift CORS), and in Chrome a pattern without a port covers
+ * every port of the host.
+ */
+export function originPattern(url) {
+  try {
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol) || !u.hostname) return null;
+    return `${u.protocol}//${u.hostname}/*`;
+  } catch { return null; }
 }
 
 export function hostPatterns(provider, config) {

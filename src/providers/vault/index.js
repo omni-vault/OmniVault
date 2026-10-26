@@ -167,10 +167,6 @@ class VaultProvider extends Provider {
     { name: 'namespace', label: mark('Namespace (optional)'), type: 'text', placeholder: 'admin/team' },
   ];
 
-  static hostPatterns(config) {
-    try { return [`${new URL(baseUrl(config.server)).origin}/*`]; } catch { return []; }
-  }
-
   /** Called with the number of entries read so far during a sync (set by the background page). */
   static onProgress = null;
 

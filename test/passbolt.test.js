@@ -46,7 +46,7 @@ for (const user of ['userRsa', 'userEcc', 'userV6']) {
     const res = await PassboltProvider.login(config, { password: pass });
     assert.equal(res.status, 'ok');
     assert.equal(res.configPatch.serverFingerprint, KEYS.server.fingerprint, 'server key pinned');
-    assert.ok(res.session.accessToken && res.session.refreshToken);
+    assert.ok(res.session.accessToken && !res.session.refreshToken, 'no refresh token kept (Passbolt rotates it through a cookie)');
     assert.match(res.session.unlockedKey, /BEGIN PGP PRIVATE KEY/);
 
     const out = await PassboltProvider.sync({ ...config, ...res.configPatch }, res.session);
@@ -113,14 +113,26 @@ test('TOTP MFA flow with passbolt_mfa cookie', async () => {
   await assert.rejects(PassboltProvider.sync(config, ok.session), /Zweiter Faktor/);
 });
 
-test('expired access token is refreshed', async () => {
+test('expired access token: signs in again with the unlocked key, any number of times, never reuses a refresh token', async () => {
   const { fake, config, pass } = await setup();
   const res = await PassboltProvider.login(config, { password: pass });
-  fake.expireAll(); // server forgets access tokens; refresh token still valid
-  const { items, session } = await PassboltProvider.sync(config, res.session);
-  assert.equal(items.length, 4);
-  assert.notEqual(session.accessToken, res.session.accessToken);
-  assert.ok(fake.log.includes('POST /auth/jwt/refresh.json'));
+  let session = res.session;
+  for (let round = 0; round < 3; round++) {
+    fake.expireAll(); // server forgets access tokens
+    const out = await PassboltProvider.sync(config, session);
+    assert.equal(out.items.length, 4);
+    assert.ok(out.session && out.session.accessToken !== session.accessToken, `new access token in round ${round}`);
+    session = out.session;
+  }
+  // also when the token is merely about to expire
+  const soon = await PassboltProvider.sync(config, { ...session, expiresAt: 0 });
+  assert.ok(soon.session.accessToken !== session.accessToken);
+  assert.equal(fake.log.filter((l) => l === 'POST /auth/jwt/refresh.json').length, 0, 'the refresh endpoint is not used');
+  assert.equal(fake.log.filter((l) => l === 'POST /auth/jwt/login.json').length, 5);
+  // a session from an older version still carrying a refresh token loses it on the next renewal
+  fake.expireAll();
+  const old = await PassboltProvider.sync(config, { ...session, refreshToken: 'alt' });
+  assert.equal(old.session.refreshToken, undefined);
 });
 
 async function unlocked(opts = {}) {

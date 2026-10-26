@@ -229,12 +229,6 @@ class BitwardenProvider extends Provider {
     },
   ];
 
-  /** Host-permission pattern the extension must hold for this account. */
-  static hostPatterns(config) {
-    const ep = api.endpoints(config.server);
-    return [...new Set([ep.api, ep.identity].map((u) => `${new URL(u).origin}/*`))];
-  }
-
   /* ---------- login ---------- */
 
   static async login(config, creds) {

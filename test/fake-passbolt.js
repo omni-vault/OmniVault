@@ -160,11 +160,12 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
     }
 
     if (p === '/auth/jwt/refresh.json' && method === 'POST') {
-      if (!refresh.has(json.refresh_token)) return err(401, 'bad refresh token');
+      // like Passbolt: a refresh token works once; the new one is only set as an HttpOnly cookie
+      if (!refresh.has(json.refresh_token)) return err(400, 'The refresh token provided was already used.');
       refresh.delete(json.refresh_token);
       const access = jwt(); const rt = crypto.randomUUID();
       tokens.set(access, { mfaCookie: null }); refresh.add(rt);
-      return ok({ access_token: access, refresh_token: rt });
+      return ok({ access_token: access });
     }
 
     const t = tokens.get(auth);

@@ -142,15 +142,11 @@ class PassboltProvider extends Provider {
     },
   ];
 
-  static async login(config, creds) {
-    const base = baseUrl(config.server);
-    let key;
-    try {
-      key = await unlockPrivateKey(config.privateKey, creds.password);
-    } catch (e) {
-      throw new ProviderError(/passphrase/i.test(e.message) ? t('Falsche Passphrase') : t('Schlüssel: {error}', { error: e.message }), 'bad_password');
-    }
-
+  /**
+   * JWT login with a GPG challenge: proves possession of the user's key and checks the server key against the pinned
+   * fingerprint. Used to sign in and to get a new access token later (see #refresh).
+   */
+  static async #challengeLogin(base, config, key) {
     const verify = await api(base, '/auth/verify.json');
     const serverKey = await openpgp.readKey({ armoredKey: verify.keydata });
     const serverFpr = fpr(serverKey);
@@ -175,6 +171,19 @@ class PassboltProvider extends Provider {
     // The verify_token can only be known to whoever decrypted our challenge with the server key.
     const answer = JSON.parse((await decryptText(res.challenge, { decryptionKeys: key, verificationKeys: serverKey })).text);
     if (answer.verify_token !== verifyToken) throw new ProviderError(t('Server-Antwort ungültig (verify_token)'), 'server');
+    return { answer, configPatch };
+  }
+
+  static async login(config, creds) {
+    const base = baseUrl(config.server);
+    let key;
+    try {
+      key = await unlockPrivateKey(config.privateKey, creds.password);
+    } catch (e) {
+      throw new ProviderError(/passphrase/i.test(e.message) ? t('Falsche Passphrase') : t('Schlüssel: {error}', { error: e.message }), 'bad_password');
+    }
+
+    const { answer, configPatch } = await this.#challengeLogin(base, config, key);
 
     const mfa = answer.providers ?? answer.mfa_providers ?? [];
     if (mfa.length) {
@@ -196,7 +205,6 @@ class PassboltProvider extends Provider {
       configPatch,
       session: {
         accessToken: answer.access_token,
-        refreshToken: answer.refresh_token,
         expiresAt: jwtExpiry(answer.access_token),
         // Decrypted key, ASCII-armored – lives only in storage.session (RAM), like Bitwarden's user key.
         unlockedKey: key.armor(),
@@ -204,9 +212,21 @@ class PassboltProvider extends Provider {
     };
   }
 
+  /**
+   * A new access token (they last 5 minutes by default). Not through /auth/jwt/refresh: Passbolt hands the new refresh
+   * token out only as an HttpOnly cookie, so the token in the request body works exactly once – a second refresh with
+   * it counts as a replay attack (Passbolt e-mails the user and the administrators). Instead OmniVault signs in again
+   * with the GPG challenge, using the key that is already unlocked in this session.
+   */
   static async #refresh(base, config, s) {
-    const body = await api(base, '/auth/jwt/refresh.json', { method: 'POST', body: { user_id: config.userId.trim(), refresh_token: s.refreshToken } });
-    return { ...s, accessToken: body.access_token, refreshToken: body.refresh_token ?? s.refreshToken, expiresAt: jwtExpiry(body.access_token) };
+    if (!s.unlockedKey) throw new ProviderError(t('Sitzung abgelaufen – bitte neu anmelden'), 'session_expired');
+    const key = await openpgp.readPrivateKey({ armoredKey: s.unlockedKey });
+    const { answer } = await this.#challengeLogin(base, { ...config, serverFingerprint: config.serverFingerprint }, key);
+    if ((answer.providers ?? answer.mfa_providers ?? []).length) {
+      throw new ProviderError(t('Zweiter Faktor erforderlich – bitte neu entsperren'), 'session_expired');
+    }
+    const { refreshToken, ...rest } = s; // sessions from older versions
+    return { ...rest, accessToken: answer.access_token, expiresAt: jwtExpiry(answer.access_token) };
   }
 
   static async sync(config, session) {
@@ -216,7 +236,7 @@ class PassboltProvider extends Provider {
     if (Date.now() > s.expiresAt - 30_000) s = await this.#refresh(base, config, s);
     const get = async (path) => {
       try { return await api(base, path, { token: s.accessToken }); } catch (e) {
-        if (e.code !== 'session_expired' || !s.refreshToken) throw e;
+        if (e.code !== 'session_expired' || !s.unlockedKey) throw e;
         s = await this.#refresh(base, config, s);
         return api(base, path, { token: s.accessToken });
       }
@@ -401,7 +421,7 @@ class PassboltProvider extends Provider {
     if (Date.now() > s.expiresAt - 30_000) s = await this.#refresh(base, config, s);
     const call = async (path, opts = {}) => {
       try { return await api(base, path, { ...opts, token: s.accessToken }); } catch (e) {
-        if (e.code !== 'session_expired' || !s.refreshToken) throw e;
+        if (e.code !== 'session_expired' || !s.unlockedKey) throw e;
         s = await this.#refresh(base, config, s);
         return api(base, path, { ...opts, token: s.accessToken });
       }
