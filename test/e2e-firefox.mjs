@@ -11,10 +11,10 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'nod
 import { cp, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { EMAIL, PASSWORD } from './fake-bitwarden.js';
+import { EMAIL, PASSWORD, fakeBitwarden } from './fake-bitwarden.js';
 import { launchFirefox, Tab } from './firefox-bidi.mjs';
 import http from 'node:http';
-import { embeddingPage, startServers } from './servers.mjs';
+import { embeddingPage, listen, startServers } from './servers.mjs';
 
 const shots = process.argv[2] ?? tmpdir();
 const ADDON = 'omnivault@royaltysoft.works';
@@ -28,13 +28,16 @@ const frameTop = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(embeddingPage(ORIGIN));
 });
 await new Promise((r) => { frameTop.listen(8829, '127.0.0.1', r); });
+// a Bitwarden account with a high Argon2id memory setting (derived in a worker of the event page)
+const ARGON_ORIGIN = 'http://localhost:8830';
+const argonServer = await listen(await fakeBitwarden({ kdf: { kdf: 1, kdfIterations: 3, kdfMemory: 256, kdfParallelism: 4 }, loginUri: `${ARGON_ORIGIN}/login.html` }), 8830);
 
 // copy of dist/firefox with localhost pre-granted and native messaging (no permission prompts in automation)
 const ext = await mkdtemp(join(tmpdir(), 'omnivault-ff-'));
 await cp('dist/firefox', ext, { recursive: true });
 const manifest = JSON.parse(await readFile(join(ext, 'manifest.json'), 'utf8'));
 // Firefox does not count http://localhost/* as covering other ports (permissions.contains), so name them
-manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${FRAME_TOP}/*`);
+manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${ARGON_ORIGIN}/*`, `${FRAME_TOP}/*`);
 manifest.permissions.push('nativeMessaging');
 await writeFile(join(ext, 'manifest.json'), JSON.stringify(manifest));
 
@@ -384,6 +387,24 @@ try {
   const protonPw = await msg('secret', { accountId: proton.id, itemId: protonItems.find((i) => i.name === 'Proton Mail').id, field: 'password' });
   check(protonPw === 'proton-pw', 'secret fetched through the host');
 
+  // Argon2id with 256 MiB runs in a dedicated worker: the event page keeps answering other messages meanwhile
+  const argonAcc = await msg('addAccount', { provider: 'bitwarden', config: { server: ARGON_ORIGIN, email: EMAIL }, label: 'Argon2' });
+  const argon = await popup.$eval(async (id, password) => {
+    const t0 = performance.now();
+    let done = false;
+    const login = browser.runtime.sendMessage({ type: 'login', id, credentials: { password } }).then((r) => { done = true; return r; });
+    const pings = [];
+    while (!done) {
+      const s = performance.now();
+      await browser.runtime.sendMessage({ type: 'state' });
+      pings.push(performance.now() - s); // no timer in between: background tabs throttle timers to 1 s
+    }
+    const r = await login;
+    return { ok: r.ok, error: r.error, ms: Math.round(performance.now() - t0), n: pings.length, max: Math.round(Math.max(...pings)) };
+  }, argonAcc.id, PASSWORD);
+  check(argon.ok && argon.n >= 3 && argon.max < 1000,
+    `Argon2id 256 MiB unlock in ${argon.ms} ms, ${argon.n} other messages answered meanwhile (max ${argon.max} ms)${argon.error ? `: ${argon.error}` : ''}`);
+
   // auto-lock after inactivity: the event page checks once a minute (alarm); pretend the last activity was long ago
   await msg('setSettings', { patch: { autoLockMinutes: 1 } });
   await popup.$eval(() => browser.storage.session.set({ lastActivity: Date.now() - 10 * 60_000 }));
@@ -403,6 +424,7 @@ try {
   await ff.close();
   closeServers();
   frameTop.close();
+  argonServer.close();
 }
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);
