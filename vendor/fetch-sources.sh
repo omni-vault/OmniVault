@@ -15,7 +15,7 @@ PY
   fi
   actual=$(git -C "$dir" rev-parse HEAD)
   if [ "$actual" != "$commit" ]; then
-    echo "FEHLER: $name ist $actual, erwartet $commit" >&2; exit 1
+    echo "ERROR: $name is $actual, expected $commit" >&2; exit 1
   fi
   echo "ok  $name $ref $commit"
 done

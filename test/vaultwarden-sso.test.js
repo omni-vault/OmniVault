@@ -14,7 +14,7 @@ import { startOidc } from './fake-oidc.mjs';
 import { seedVaultwarden } from './vaultwarden-seed.mjs';
 
 const URL_ = process.env.VAULTWARDEN_SSO_URL;
-const opts = { skip: !URL_ && 'VAULTWARDEN_SSO_URL nicht gesetzt' };
+const opts = { skip: !URL_ && 'VAULTWARDEN_SSO_URL not set' };
 let oidc;
 let seed;
 

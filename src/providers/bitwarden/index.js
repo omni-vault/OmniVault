@@ -460,7 +460,7 @@ class BitwardenProvider extends Provider {
         if (c.deletedDate) trash.push({ ...item, deletedDate: c.deletedDate }); else items.push(item);
       } catch (e) {
         failed++;
-        console.warn('OmniVault: Eintrag nicht entschlüsselbar', c.id, e);
+        console.warn('OmniVault: cannot decrypt item', c.id, e);
       }
     }
     // organizations with the collections the user may put items into (names are encrypted with the org key)
@@ -499,7 +499,7 @@ class BitwardenProvider extends Provider {
       try {
         keys[o.id] = splitKey(await decryptRsa(o.key, privateKey));
       } catch (e) {
-        console.warn('OmniVault: Organisationsschlüssel nicht entschlüsselbar', o.id, e);
+        console.warn('OmniVault: cannot decrypt organization key', o.id, e);
       }
     }
     return keys;
@@ -782,7 +782,7 @@ class BitwardenProvider extends Provider {
     const userKey = splitKey(fromB64((s ?? session).userKey));
     const sends = [];
     for (const raw of result.body?.data ?? []) {
-      try { sends.push(await send.decryptSend(raw, userKey, ep)); } catch (e) { console.warn('OmniVault: Send nicht entschlüsselbar', raw.id, e); }
+      try { sends.push(await send.decryptSend(raw, userKey, ep)); } catch (e) { console.warn('OmniVault: cannot decrypt Send', raw.id, e); }
     }
     sends.sort((a, b) => String(b.revisionDate ?? '').localeCompare(String(a.revisionDate ?? '')));
     return { sends, session: s };
@@ -1038,7 +1038,7 @@ class BitwardenProvider extends Provider {
         items.push(item);
       } catch (e) {
         failed++;
-        console.warn('OmniVault: Eintrag nicht entschlüsselbar', c.id, e);
+        console.warn('OmniVault: cannot decrypt item', c.id, e);
       }
     }
     items.sort((a, b) => a.name.localeCompare(b.name, 'de'));

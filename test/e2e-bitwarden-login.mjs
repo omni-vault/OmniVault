@@ -163,5 +163,5 @@ try {
   await ctx.close();
   for (const s of servers) s.close();
 }
-console.log(failures ? `\n${failures} Fehler` : '\nalles ok');
+console.log(failures ? `\n${failures} failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

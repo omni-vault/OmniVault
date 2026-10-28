@@ -15,7 +15,7 @@ import PassProvider from '../src/providers/pass/index.js';
 const PASS_BIN = process.env.OMNIVAULT_PASS_BIN;
 let have = false;
 try { execFileSync('gpg', ['--version']); have = !!PASS_BIN; } catch { have = false; }
-const opts = { skip: have ? false : 'pass/gpg nicht verfügbar (OMNIVAULT_PASS_BIN setzen)' };
+const opts = { skip: have ? false : 'pass/gpg not available (set OMNIVAULT_PASS_BIN)' };
 
 const dir = mkdtempSync(join(tmpdir(), 'omnivault-pass-'));
 after(() => { try { if (GNUPGHOME) execFileSync('gpgconf', ['--homedir', GNUPGHOME, '--kill', 'all']); } catch { /* ignore */ } rmSync(dir, { recursive: true, force: true }); });

@@ -248,7 +248,7 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         json.dump(fixture, f, indent=1, ensure_ascii=False)
         f.write("\n")
-    print(f"geschrieben: {out}")
+    print(f"written: {out}")
 
 
 if __name__ == "__main__":

@@ -135,10 +135,10 @@ EOF
 
     as_user "cd $APP && PHP_CLI_SERVER_WORKERS=4 setsid nohup php -S 127.0.0.1:$PORT -t webroot webroot/index.php > $DIR/web.log 2>&1 < /dev/null & echo \$! > $DIR/web.pid"
     for i in $(seq 1 50); do
-      curl -fs "http://127.0.0.1:$PORT/healthcheck/status.json" >/dev/null 2>&1 && { echo "Passbolt läuft: http://127.0.0.1:$PORT"; exit 0; }
+      curl -fs "http://127.0.0.1:$PORT/healthcheck/status.json" >/dev/null 2>&1 && { echo "Passbolt running: http://127.0.0.1:$PORT"; exit 0; }
       sleep 0.2
     done
-    echo "Passbolt startet nicht, siehe $DIR/web.log" >&2; exit 1 ;;
+    echo "Passbolt does not start, see $DIR/web.log" >&2; exit 1 ;;
   register)
     cake passbolt register_user -u "$2" -f "$3" -l "$4" -r "${5:-user}" 2>/dev/null | grep -o "http://[^ ]*/setup/start/[^ ]*" ;;
   cake)

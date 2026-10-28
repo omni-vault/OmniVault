@@ -106,7 +106,7 @@ try {
   }, 150000, 'the auto-sync run');
   check(fired, 'alarm woke the worker and the mirror rule ran');
   const report = Object.values(await local('mirrorReports'))[0];
-  check(!report.error && report.updated === 1, `mirror run after the alarm: ${report.updated} geändert, ${report.unchanged} unverändert${report.error ? `, ${report.error}` : ''}`);
+  check(!report.error && report.updated === 1, `mirror run after the alarm: ${report.updated} updated, ${report.unchanged} unchanged${report.error ? `, ${report.error}` : ''}`);
 
   // A: the woken worker synced from the server (state does not sync on its own)
   const st = await msg('state');

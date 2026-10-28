@@ -11,7 +11,7 @@ import { KEYS } from './fake-passbolt.js';
 import { enableV5, seedPassbolt } from './passbolt-seed.mjs';
 
 const BASE = process.env.PASSBOLT_URL;
-const opts = { skip: !BASE && 'PASSBOLT_URL nicht gesetzt' };
+const opts = { skip: !BASE && 'PASSBOLT_URL not set' };
 let seed;
 
 before(async () => {

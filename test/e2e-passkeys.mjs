@@ -22,7 +22,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); 
 const frameOf = (page, file) => page.frames().find((f) => f.url().includes(`/${file}`));
 const waitFrame = async (page, file) => {
   for (let i = 0; i < 100; i++) { const f = frameOf(page, file); if (f) { await f.waitForLoadState(); return f; } await page.waitForTimeout(100); }
-  throw new Error(`${file} nicht erschienen`);
+  throw new Error(`${file} did not appear`);
 };
 const gone = async (page, file) => { for (let i = 0; i < 50 && frameOf(page, file); i++) await page.waitForTimeout(100); return !frameOf(page, file); };
 

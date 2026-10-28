@@ -166,5 +166,5 @@ try {
 } finally {
   await ctx.close();
 }
-console.log(failures ? `${failures} FEHLER` : 'Alle Send-Browsertests bestanden');
+console.log(failures ? `${failures} FAILED` : 'All Send browser tests passed');
 process.exit(failures ? 1 : 0);

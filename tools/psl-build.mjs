@@ -15,7 +15,7 @@ for (const raw of src.split('\n')) {
   if (!line || line.startsWith('//')) continue;
   const prefix = line.match(/^(!|\*\.)?/)[0];
   const ascii = domainToASCII(line.slice(prefix.length));
-  if (!ascii) throw new Error(`Regel nicht umwandelbar: ${line}`);
+  if (!ascii) throw new Error(`Rule cannot be converted: ${line}`);
   rules.push(prefix + ascii);
 }
 const sha = createHash('sha256').update(src).digest('hex');

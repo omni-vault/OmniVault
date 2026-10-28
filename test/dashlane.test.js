@@ -122,7 +122,7 @@ test('Dashlane: sync runs dcli sync; a warning before the JSON does not break th
 
 let BIN = process.env.OMNIVAULT_DCLI_BIN_REAL || null;
 if (!BIN && process.env.OMNIVAULT_DCLI_DOWNLOAD === '1') BIN = execFileSync(join(root, 'test/dcli-bin.sh'), { encoding: 'utf8', env: { ...process.env, OMNIVAULT_DCLI_BIN: '' } }).trim();
-const real = { skip: BIN && existsSync(BIN) ? false : 'echtes dcli nicht verfügbar (OMNIVAULT_DCLI_BIN_REAL oder OMNIVAULT_DCLI_DOWNLOAD=1 setzen)', timeout: 120_000 };
+const real = { skip: BIN && existsSync(BIN) ? false : 'real dcli not available (set OMNIVAULT_DCLI_BIN_REAL or OMNIVAULT_DCLI_DOWNLOAD=1)', timeout: 120_000 };
 
 test('Dashlane: real dcli without an account – status, not signed in, no prompt answered', real, async () => {
   const home = join(dir, 'home'); mkdirSync(home, { recursive: true });

@@ -30,7 +30,7 @@ const check = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); 
 const dialogOf = (page) => page.frames().find((f) => f.url().includes('/passkey.html'));
 const waitDialog = async (page) => {
   for (let i = 0; i < 100; i++) { const f = dialogOf(page); if (f) { await f.waitForLoadState(); return f; } await page.waitForTimeout(100); }
-  throw new Error('Passkey-Dialog nicht erschienen');
+  throw new Error('passkey dialog did not appear');
 };
 
 try {

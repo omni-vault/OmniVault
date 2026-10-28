@@ -94,5 +94,5 @@ try {
   await ctx.close();
   closeServers();
 }
-console.log(failures ? `\n${failures} Fehler` : '\nall checks passed');
+console.log(failures ? `\n${failures} failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

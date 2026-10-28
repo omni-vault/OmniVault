@@ -39,7 +39,7 @@ NAMES = {'ctrl': 'Control_L', 'control': 'Control_L', 'shift': 'Shift_L', 'alt':
 
 dpy = xlib.XOpenDisplay(None)
 if not dpy:
-    sys.exit('Kein X-Display (DISPLAY nicht gesetzt?)')
+    sys.exit('No X display (DISPLAY not set?)')
 
 
 def keycode(name):

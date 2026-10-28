@@ -17,7 +17,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  */
 export async function launchFirefox({ bin = process.env.FIREFOX_BIN, port = 9300 + Math.floor(Math.random() * 600),
   headless = true, prefs = {}, addonId, uuid, env } = {}) {
-  if (!bin) throw new Error('FIREFOX_BIN nicht gesetzt (test/firefox.sh fetch)');
+  if (!bin) throw new Error('FIREFOX_BIN not set (test/firefox.sh fetch)');
   const profile = await mkdtemp(join(tmpdir(), 'omnivault-ff-profile-'));
   const all = {
     'browser.shell.checkDefaultBrowser': false,
@@ -52,7 +52,7 @@ export async function launchFirefox({ bin = process.env.FIREFOX_BIN, port = 9300
       s.onerror = () => resolve(null);
     });
   }
-  if (!ws) { proc.kill(); throw new Error(`Firefox-Fernsteuerung nicht erreichbar:\n${output.slice(-10).join('\n')}`); }
+  if (!ws) { proc.kill(); throw new Error(`Firefox remote control not reachable:\n${output.slice(-10).join('\n')}`); }
 
   let next = 0;
   const pending = new Map();
@@ -143,7 +143,7 @@ export class Tab {
       try { last = await this.evalWrapped(fn, args); if (last) return last; } catch (e) { last = e.message; }
       await sleep(100);
     }
-    throw new Error(`Zeitüberschreitung: ${what} (${last})`);
+    throw new Error(`Timeout: ${what} (${last})`);
   }
 
   evalWrapped(fn, args) { return this.evalIn(this.context, fn, ...args); }
@@ -230,7 +230,7 @@ export class Tab {
       if (f) return f;
       await sleep(100);
     }
-    throw new Error(`${file} nicht erschienen`);
+    throw new Error(`${file} did not appear`);
   }
 
   /** Screenshot of a web page (BiDi refuses extension pages: "privileged scope"; then nothing is written). */

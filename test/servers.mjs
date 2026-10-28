@@ -101,7 +101,7 @@ function relyingParty(origin) {
       }
       if (path === '/rp/verify') {
         try {
-          if (!req.instance) throw new Error('kein PublicKeyCredential-Objekt');
+          if (!req.instance) throw new Error('not a PublicKeyCredential object');
           if (req.kind === 'create') {
             const s = verifyRegistration(req.credential, { challenge, origin, rpId: 'localhost', topOrigins: rp.topOrigins });
             rp.clientData = s.clientData;
@@ -115,7 +115,7 @@ function relyingParty(origin) {
           const r = verifyAuthentication(req.credential, { challenge, origin, rpId: 'localhost', stored: { ...stored, credentialId: req.credential.id }, topOrigins: rp.topOrigins });
           rp.clientData = r.clientData;
           const owner = Buffer.from(r.userHandle ?? '', 'base64url').toString().replace(/^id-/, '');
-          if (owner !== stored.user) throw new Error('userHandle passt nicht');
+          if (owner !== stored.user) throw new Error('userHandle does not match');
           stored.counter = r.counter;
           return { ok: true, user: stored.user };
         } catch (e) {

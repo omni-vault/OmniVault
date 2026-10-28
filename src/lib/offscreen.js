@@ -16,7 +16,7 @@ async function open(api) {
   await api.offscreen.createDocument({
     url,
     reasons: ['CLIPBOARD', 'WORKERS'],
-    justification: 'Kopierte Passwörter nach Ablauf der Frist aus der Zwischenablage entfernen; Schlüsselableitung (Argon2) in einem Worker, damit die Erweiterung währenddessen reagiert',
+    justification: 'Remove copied passwords from the clipboard after the timeout; key derivation (Argon2) in a worker so the extension stays responsive meanwhile',
   });
 }
 

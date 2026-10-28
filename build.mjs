@@ -68,7 +68,7 @@ async function writeLocales(out) {
   for (const [dir, code] of Object.entries(LOCALES)) {
     const messages = Object.fromEntries(Object.entries(MANIFEST_TEXTS).map(([key, german]) => {
       const text = code ? catalogs[code][german] : german;
-      if (!text) throw new Error(`Übersetzung fehlt (${code}): ${german}`);
+      if (!text) throw new Error(`Translation missing (${code}): ${german}`);
       return [key, { message: text }];
     }));
     await mkdir(`${out}/_locales/${dir}`, { recursive: true });

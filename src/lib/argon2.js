@@ -56,7 +56,7 @@ export async function argon2(lib, params, direct, { Worker: WorkerClass = global
     }
   } catch (e) {
     if (!(e instanceof Unavailable)) throw e;
-    console.warn('OmniVault: Argon2 läuft ohne Worker', e.message);
+    console.warn('OmniVault: Argon2 running without a worker', e.message);
   }
   return (await direct())(params);
 }

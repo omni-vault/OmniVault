@@ -29,7 +29,7 @@ export async function clearClipboardNow() {
   timer = null;
   await ext.alarms?.clear(ALARM);
   await ext.storage.session.remove('clipboardPending');
-  try { await writeEmpty(); } catch (e) { console.warn('OmniVault: Zwischenablage nicht geleert', e); }
+  try { await writeEmpty(); } catch (e) { console.warn('OmniVault: clipboard not cleared', e); }
 }
 
 export async function scheduleClipboardClear(seconds) {

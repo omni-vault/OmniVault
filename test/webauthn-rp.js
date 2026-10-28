@@ -18,7 +18,7 @@ export function decodeCbor(buf) {
     const major = ib >> 5;
     let n = ib & 31;
     if (n === 24) n = buf[p++];
-    else if (n === 25) { n = buf.readUInt16BE(p); p += 2; } else if (n === 26) { n = buf.readUInt32BE(p); p += 4; } else if (n > 26) throw new Error(`CBOR: Länge ${n} nicht unterstützt`);
+    else if (n === 25) { n = buf.readUInt16BE(p); p += 2; } else if (n === 26) { n = buf.readUInt32BE(p); p += 4; } else if (n > 26) throw new Error(`CBOR: length ${n} not supported`);
     switch (major) {
       case 0: return n;
       case 1: return -1 - n;
@@ -26,7 +26,7 @@ export function decodeCbor(buf) {
       case 3: { const v = buf.subarray(p, p + n).toString('utf8'); p += n; return v; }
       case 4: return Array.from({ length: n }, read);
       case 5: { const m = new Map(); for (let i = 0; i < n; i++) { const k = read(); m.set(k, read()); } return m; }
-      default: throw new Error(`CBOR: Typ ${major} nicht unterstützt`);
+      default: throw new Error(`CBOR: type ${major} not supported`);
     }
   };
   const v = read();
@@ -51,16 +51,16 @@ function checkClientData(json, type, challenge, origin, topOrigins = []) {
   const raw = Buffer.from(fromB64url(json)).toString('utf8');
   const cd = JSON.parse(raw);
   if (cd.type !== type) throw new Error(`clientData.type ${cd.type}`);
-  if (cd.challenge !== challenge) throw new Error('challenge passt nicht');
+  if (cd.challenge !== challenge) throw new Error('challenge does not match');
   if (cd.origin !== origin) throw new Error(`origin ${cd.origin} ≠ ${origin}`);
-  if (cd.crossOrigin !== undefined && typeof cd.crossOrigin !== 'boolean') throw new Error('crossOrigin kein Boolean');
+  if (cd.crossOrigin !== undefined && typeof cd.crossOrigin !== 'boolean') throw new Error('crossOrigin is not a boolean');
   if (cd.crossOrigin) {
-    if (!topOrigins.includes(cd.topOrigin)) throw new Error(`crossOrigin von ${cd.topOrigin ?? '(ohne topOrigin)'}`);
+    if (!topOrigins.includes(cd.topOrigin)) throw new Error(`crossOrigin from ${cd.topOrigin ?? '(no topOrigin)'}`);
     if (cd.topOrigin === origin) throw new Error('topOrigin = origin, aber crossOrigin');
-  } else if (cd.topOrigin !== undefined) throw new Error('topOrigin ohne crossOrigin');
+  } else if (cd.topOrigin !== undefined) throw new Error('topOrigin without crossOrigin');
   // §5.8.1.2 limited verification: the first members come in this order
   const prefix = `{"type":${JSON.stringify(type)},"challenge":${JSON.stringify(challenge)},"origin":${JSON.stringify(origin)}`;
-  if (!raw.startsWith(prefix)) throw new Error('clientDataJSON: Reihenfolge der Felder');
+  if (!raw.startsWith(prefix)) throw new Error('clientDataJSON: field order');
   if (cd.crossOrigin && !raw.startsWith(`${prefix},"crossOrigin":true,"topOrigin":`)) throw new Error('clientDataJSON: crossOrigin/topOrigin');
   return cd;
 }
@@ -70,19 +70,19 @@ export function verifyRegistration(cred, { challenge, origin, rpId, requireUV = 
   if (cred.type !== 'public-key' || cred.id !== cred.rawId) throw new Error('id/type');
   const clientData = checkClientData(cred.response.clientDataJSON, 'webauthn.create', challenge, origin, topOrigins);
   const att = decodeCbor(fromB64url(cred.response.attestationObject)).value;
-  if (att.get('fmt') !== 'none' || att.get('attStmt').size !== 0) throw new Error('Attestierung nicht "none"');
+  if (att.get('fmt') !== 'none' || att.get('attStmt').size !== 0) throw new Error('attestation is not "none"');
   const ad = parseAuthData(att.get('authData'));
   if (!ad.rpIdHash.equals(sha256(rpId))) throw new Error('rpIdHash');
-  if (!ad.up) throw new Error('UP fehlt');
-  if (requireUV && !ad.uv) throw new Error('UV fehlt');
+  if (!ad.up) throw new Error('UP missing');
+  if (requireUV && !ad.uv) throw new Error('UV missing');
   if (!ad.credentialId || ad.rest !== 0) throw new Error('attested credential data');
-  if (Buffer.from(ad.credentialId).toString('base64url') !== cred.id) throw new Error('Credential-ID passt nicht');
+  if (Buffer.from(ad.credentialId).toString('base64url') !== cred.id) throw new Error('credential ID does not match');
   const c = ad.cose;
-  if (c.get(1) !== 2 || c.get(3) !== -7 || c.get(-1) !== 1) throw new Error('kein ES256-Schlüssel');
+  if (c.get(1) !== 2 || c.get(3) !== -7 || c.get(-1) !== 1) throw new Error('not an ES256 key');
   const jwk = { kty: 'EC', crv: 'P-256', x: Buffer.from(c.get(-2)).toString('base64url'), y: Buffer.from(c.get(-3)).toString('base64url') };
   if (cred.response.publicKey) { // getPublicKey(): same key as SPKI
     const spki = createPublicKey({ key: fromB64url(cred.response.publicKey), format: 'der', type: 'spki' }).export({ format: 'jwk' });
-    if (spki.x !== jwk.x || spki.y !== jwk.y) throw new Error('getPublicKey() ≠ COSE-Schlüssel');
+    if (spki.x !== jwk.x || spki.y !== jwk.y) throw new Error('getPublicKey() ≠ COSE key');
   }
   return { credentialId: cred.id, jwk, counter: ad.counter, flags: ad, clientData };
 }
@@ -94,11 +94,11 @@ export function verifyAuthentication(cred, { challenge, origin, rpId, stored, re
   const adBytes = fromB64url(cred.response.authenticatorData);
   const ad = parseAuthData(adBytes);
   if (!ad.rpIdHash.equals(sha256(rpId))) throw new Error('rpIdHash');
-  if (!ad.up) throw new Error('UP fehlt');
-  if (requireUV && !ad.uv) throw new Error('UV fehlt');
+  if (!ad.up) throw new Error('UP missing');
+  if (requireUV && !ad.uv) throw new Error('UV missing');
   const data = Buffer.concat([adBytes, sha256(fromB64url(cred.response.clientDataJSON))]);
   const key = createPublicKey({ key: stored.jwk, format: 'jwk' });
-  if (!verify('sha256', data, key, fromB64url(cred.response.signature))) throw new Error('Signatur ungültig');
-  if ((ad.counter || stored.counter) && ad.counter <= stored.counter) throw new Error('Zähler nicht gestiegen');
+  if (!verify('sha256', data, key, fromB64url(cred.response.signature))) throw new Error('invalid signature');
+  if ((ad.counter || stored.counter) && ad.counter <= stored.counter) throw new Error('counter did not increase');
   return { counter: ad.counter, userHandle: cred.response.userHandle, flags: ad, clientData };
 }

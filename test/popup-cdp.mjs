@@ -19,7 +19,7 @@ export async function attachTarget(debugPort, match, what = 'Ziel') {
     target = (await targets(debugPort)).find((t) => match(t) && t.webSocketDebuggerUrl);
     if (!target) await new Promise((r) => setTimeout(r, 100));
   }
-  if (!target) throw new Error(`${what} nicht gefunden`);
+  if (!target) throw new Error(`${what} not found`);
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
   let id = 0;
@@ -67,8 +67,8 @@ export async function attachTarget(debugPort, match, what = 'Ziel') {
       if (r.top < 0 || r.bottom > innerHeight) { e.scrollIntoView({ block: 'center' }); r = e.getBoundingClientRect(); } // like a user scrolling
  return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: innerWidth, h: innerHeight };
     })()`);
-    if (!box) throw new Error(`Element nicht gefunden: ${selector} ${text ?? ''}`);
-    if (box.x < 0 || box.y < 0 || box.x > box.w || box.y > box.h) throw new Error(`Element außerhalb des Popups: ${selector} ${JSON.stringify(box)}`);
+    if (!box) throw new Error(`Element not found: ${selector} ${text ?? ''}`);
+    if (box.x < 0 || box.y < 0 || box.x > box.w || box.y > box.h) throw new Error(`Element outside the popup: ${selector} ${JSON.stringify(box)}`);
     for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
       await send('Input.dispatchMouseEvent', { type, x: box.x, y: box.y, button: 'left', clickCount: 1 });
     }

@@ -11,7 +11,7 @@ import { fromB64 } from '../src/lib/bytes.js';
 import { seedVaultwarden } from './vaultwarden-seed.mjs';
 
 const URL_ = process.env.VAULTWARDEN_URL;
-const opts = { skip: !URL_ && 'VAULTWARDEN_URL nicht gesetzt' };
+const opts = { skip: !URL_ && 'VAULTWARDEN_URL not set' };
 let seed;
 let config;
 

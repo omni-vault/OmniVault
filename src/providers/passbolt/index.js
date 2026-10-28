@@ -261,7 +261,7 @@ class PassboltProvider extends Provider {
             const parsed = parseSessionKey(k.session_key);
             if (parsed) sessionKeys.set(`${k.foreign_model}:${k.foreign_id}`, parsed);
           }
-        } catch (e) { console.warn('OmniVault: Sitzungsschlüssel nicht lesbar', e); }
+        } catch (e) { console.warn('OmniVault: cannot read session key', e); }
       }
     }
 
@@ -297,7 +297,7 @@ class PassboltProvider extends Provider {
           if (mk.fingerprint && fpr(mkey) !== mk.fingerprint.toUpperCase()) throw new ProviderError(t('Fingerprint des Metadaten-Schlüssels passt nicht'), 'crypto');
           metaKeys.set(mk.id, mkey);
         } catch (e) {
-          console.warn('OmniVault: Metadaten-Schlüssel abgelehnt', mk.id, e);
+          console.warn('OmniVault: metadata key rejected', mk.id, e);
           warnings.push(e.message);
         }
       }
@@ -381,7 +381,7 @@ class PassboltProvider extends Provider {
         });
       } catch (e) {
         failed++;
-        console.warn('OmniVault: Passbolt-Ressource nicht lesbar', r.id, e);
+        console.warn('OmniVault: cannot read Passbolt resource', r.id, e);
       }
     }
     if (failed) warnings.push(tn(failed, '{n} Eintrag konnte nicht entschlüsselt werden', '{n} Einträge konnten nicht entschlüsselt werden'));
@@ -755,7 +755,7 @@ class PassboltProvider extends Provider {
         const sub = await view(f.id);
         const c = diff(sub.permissions ?? []);
         if (c.length) await this.#shareFolderOnly(ctx, sub, c);
-      } catch (e) { console.warn('OmniVault: Unterordner nicht geteilt', f.id, e); failed.push(f.name); }
+      } catch (e) { console.warn('OmniVault: subfolder not shared', f.id, e); failed.push(f.name); }
     }
     for (const it of items) {
       if (!inside.has(it.folderId)) continue;
@@ -763,7 +763,7 @@ class PassboltProvider extends Provider {
       try {
         const c = diff(await ctx.call(`/permissions/resource/${encodeURIComponent(it.id)}.json`));
         if (c.length) await this.#shareResource(ctx, it, c);
-      } catch (e) { console.warn('OmniVault: Eintrag im Ordner nicht geteilt', it.id, e); failed.push(it.name); }
+      } catch (e) { console.warn('OmniVault: item in folder not shared', it.id, e); failed.push(it.name); }
     }
     return { skipped, failed, session: ctx.renewed(), resync: true };
   }

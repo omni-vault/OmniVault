@@ -30,10 +30,10 @@ case "${1:-start}" in
       setsid nohup "$BIN" > "$DIR/vaultwarden.log" 2>&1 < /dev/null &
     echo $! > "$DIR/pid"
     for i in $(seq 1 50); do
-      curl -fs "http://127.0.0.1:$PORT/alive" >/dev/null 2>&1 && { echo "Vaultwarden läuft: http://127.0.0.1:$PORT"; exit 0; }
+      curl -fs "http://127.0.0.1:$PORT/alive" >/dev/null 2>&1 && { echo "Vaultwarden running: http://127.0.0.1:$PORT"; exit 0; }
       sleep 0.2
     done
-    echo "Vaultwarden startet nicht, siehe $DIR/vaultwarden.log" >&2; exit 1 ;;
+    echo "Vaultwarden does not start, see $DIR/vaultwarden.log" >&2; exit 1 ;;
   stop)
     if [ -f "$DIR/pid" ]; then
       kill "$(cat "$DIR/pid")" 2>/dev/null || true

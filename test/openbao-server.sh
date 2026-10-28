@@ -28,10 +28,10 @@ case "${1:-start}" in
       -log-level=warn > "$DIR/openbao.log" 2>&1 < /dev/null &
     echo $! > "$DIR/pid"
     for i in $(seq 1 100); do
-      curl -fs "http://127.0.0.1:$PORT/v1/sys/health" >/dev/null 2>&1 && { echo "OpenBao läuft: http://127.0.0.1:$PORT"; exit 0; }
+      curl -fs "http://127.0.0.1:$PORT/v1/sys/health" >/dev/null 2>&1 && { echo "OpenBao running: http://127.0.0.1:$PORT"; exit 0; }
       sleep 0.2
     done
-    echo "OpenBao startet nicht, siehe $DIR/openbao.log" >&2; exit 1 ;;
+    echo "OpenBao does not start, see $DIR/openbao.log" >&2; exit 1 ;;
   stop)
     if [ -f "$DIR/pid" ]; then
       kill "$(cat "$DIR/pid")" 2>/dev/null || true

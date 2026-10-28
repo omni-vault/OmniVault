@@ -14,7 +14,7 @@ import { targets } from './popup-cdp.mjs';
 import { extensionCopy, launch, startServers } from './servers.mjs';
 
 if (!process.env.DISPLAY) {
-  console.error('Braucht ein X-Display: xvfb-run -a -s "-screen 0 1400x900x24" node test/e2e-shortcuts.mjs …');
+  console.error('Needs an X display: xvfb-run -a -s "-screen 0 1400x900x24" node test/e2e-shortcuts.mjs …');
   process.exit(2);
 }
 const pwPath = process.argv[2] ?? 'playwright';
@@ -78,7 +78,7 @@ try {
   await sleep(200);
   x('key', 'ctrl+shift+l');
   await site.waitForFunction(() => document.querySelector('#p').value !== '', null, { timeout: 5000 }).catch(() => {});
-  check(await site.inputValue('#u') === 'alice' && await site.inputValue('#p') === 'gh-pass', 'Strg+Umschalt+L füllt den passenden Login aus');
+  check(await site.inputValue('#u') === 'alice' && await site.inputValue('#p') === 'gh-pass', 'Ctrl+Shift+L fills the matching login');
 
   // Alt+Shift+O: the toolbar popup opens
   x('key', 'alt+shift+o');
@@ -87,7 +87,7 @@ try {
     popupOpen = (await targets(DEBUG_PORT)).some((t) => t.url === `chrome-extension://${extId}/popup.html`);
     if (!popupOpen) await sleep(100);
   }
-  check(popupOpen, 'Alt+Umschalt+O öffnet das OmniVault-Popup');
+  check(popupOpen, 'Alt+Shift+O opens the OmniVault popup');
   x('key', 'Escape');
   await sleep(300);
   await site.bringToFront();
@@ -97,16 +97,16 @@ try {
   await site.fill('#p', '');
   await contextMenu(site, '#u', (process.env.OV_MENU_FILL ?? 'Up Up Right Return').split(' '));
   await site.waitForFunction(() => document.querySelector('#p').value !== '', null, { timeout: 5000 }).catch(() => {});
-  check(await site.inputValue('#u') === 'alice' && await site.inputValue('#p') === 'gh-pass', 'Kontextmenü „Mit OmniVault ausfüllen“ füllt den Login aus');
+  check(await site.inputValue('#u') === 'alice' && await site.inputValue('#p') === 'gh-pass', 'context menu "Mit OmniVault ausfüllen" fills the login');
 
   // context menu in the password field → "Sicheres Passwort einfügen"
   await site.fill('#p', '');
   await contextMenu(site, '#p', (process.env.OV_MENU_GENERATE ?? 'Up Up Right Down Return').split(' '));
   await site.waitForFunction(() => document.querySelector('#p').value !== '', null, { timeout: 5000 }).catch(() => {});
   const generated = await site.inputValue('#p');
-  check(generated.length >= 12 && generated !== 'gh-pass', `Kontextmenü „Sicheres Passwort einfügen“ setzt ein neues Passwort (${generated.length} Zeichen)`);
+  check(generated.length >= 12 && generated !== 'gh-pass', `context menu "Sicheres Passwort einfügen" sets a new password (${generated.length} characters)`);
   const recent = await sw.evaluate(() => chrome.storage.session.get('generated').then((r) => r.generated?.[0]?.value));
-  check(recent === generated, 'eingefügtes Passwort steht in der Liste zuletzt erzeugter Passwörter');
+  check(recent === generated, 'inserted password appears in the list of recently generated passwords');
 
   await site.screenshot({ path: join(shots, 'shortcuts.png') });
 } catch (e) {
@@ -116,5 +116,5 @@ try {
   await ctx.close();
   closeServers();
 }
-console.log(failures ? `\n${failures} Fehler` : '\nalle Prüfungen bestanden');
+console.log(failures ? `\n${failures} failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

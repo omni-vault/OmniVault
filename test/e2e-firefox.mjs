@@ -363,7 +363,7 @@ try {
     if (f) embedded = site.frame(f);
     else await new Promise((r) => setTimeout(r, 100));
   }
-  if (!embedded) throw new Error('eingebetteter Frame nicht erschienen');
+  if (!embedded) throw new Error('embedded frame did not appear');
   await embedded.wait(() => !!document.querySelector('#login'), { what: 'frame loaded' });
   const framed = await embedded.$eval(async () => {
     const ac = new AbortController();

@@ -16,7 +16,7 @@ let BIN = process.env.OMNIVAULT_GOPASS_BIN;
 if (!BIN && process.env.OMNIVAULT_GOPASS_DOWNLOAD === '1') BIN = execFileSync('test/gopass-bin.sh', { encoding: 'utf8' }).trim();
 let have = false;
 try { execFileSync('gpg', ['--version']); have = !!BIN; } catch { have = false; }
-const opts = { skip: have ? false : 'gopass/gpg nicht verfügbar (OMNIVAULT_GOPASS_BIN oder OMNIVAULT_GOPASS_DOWNLOAD=1 setzen)' };
+const opts = { skip: have ? false : 'gopass/gpg not available (set OMNIVAULT_GOPASS_BIN or OMNIVAULT_GOPASS_DOWNLOAD=1)' };
 
 // short path: gpg-agent's socket path must stay below ~100 characters
 const dir = mkdtempSync('/tmp/ovgopass-');

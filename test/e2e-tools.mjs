@@ -145,7 +145,7 @@ try {
   await new Promise((r) => setTimeout(r, 1100));
   const rep = await msg('runMirror', {});
   const r1 = Object.values(rep)[0];
-  check(r1.updated === 1 && r1.created === 0, `mirror run 2 picks up the change (${r1.updated} geändert, ${r1.unchanged} unverändert)`);
+  check(r1.updated === 1 && r1.created === 0, `mirror run 2 picks up the change (${r1.updated} updated, ${r1.unchanged} unchanged)`);
   const mirrored = (await itemsOf(accB)).filter((i) => i.name === ghA.name && i.folder === 'Arbeit');
   const mirroredPw = await Promise.all(mirrored.map((i) => msg('secret', { accountId: accB, itemId: i.id, field: 'password' })));
   check(mirroredPw.includes('gh-gespiegelt'), 'changed password arrived in the mirror');

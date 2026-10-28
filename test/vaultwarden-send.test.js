@@ -13,7 +13,7 @@ import { seedVaultwarden } from './vaultwarden-seed.mjs';
 import { pyCheck, pythonChecker, receiveSend } from './send-recipient.mjs';
 
 const URL_ = process.env.VAULTWARDEN_URL;
-const opts = { skip: (!URL_ && 'VAULTWARDEN_URL nicht gesetzt') || (!pythonChecker && 'python3 with cryptography missing') };
+const opts = { skip: (!URL_ && 'VAULTWARDEN_URL not set') || (!pythonChecker && 'python3 with cryptography missing') };
 const inDays = (d) => new Date(Date.now() + d * 86400_000).toISOString();
 let config;
 let session;
