@@ -29,7 +29,7 @@ move entries between managers – without giving up the manager you already use.
 Proton Pass support is on hold: Proton currently only offers its CLI on paid plans. It works once the CLI is enabled
 for your account.
 
-For a detailed, per-feature overview see [FEATURES.md](FEATURES.md) (German).
+For a detailed, per-feature overview see [FEATURES.md](FEATURES.md).
 
 ### HashiCorp Vault / OpenBao
 
@@ -174,7 +174,7 @@ What the official tools allow through the helper:
 - **Password history:** LastPass's and Proton Pass's tools don't output it. For 1Password it is shown if `op`
   includes it in its output (not documented by 1Password; `native/selftest.py` tells you).
 
-If a tool is installed in an unusual location, see [native/README.md](native/README.md) (German) for environment
+If a tool is installed in an unusual location, see [native/README.md](native/README.md) for environment
 variables and troubleshooting.
 
 ### KeePassXC
@@ -266,7 +266,7 @@ Bug reports and feature requests are welcome in the
 corrections from native speakers are especially appreciated.
 
 Developer documentation – build scripts, tests, project layout and how translations work – is in
-[DEVELOPMENT.md](DEVELOPMENT.md) (German).
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 

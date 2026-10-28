@@ -1,293 +1,292 @@
-# Featureliste
+# Feature list
 
-Stand 26.10.2026, Version 0.5.5. Diese Datei ist die Tracking-Liste: Jede Zeile sagt, ob **OmniVault** eine Funktion
-umsetzt und womit das geprüft ist. Wer einen Provider ändert, passt die Zeile im selben Commit an.
+As of 2026-10-26, version 0.5.5. This file is the tracking list: each row states whether **OmniVault** implements a feature
+and how it is tested. Whoever changes a provider updates the row in the same commit.
 
-**Legende**
+**Legend**
 
-| Zeichen | Bedeutung |
+| Symbol | Meaning |
 |---|---|
-| ✅ R | umgesetzt, gegen die **echte Gegenstelle** getestet: lokales Vaultwarden, lokaler Passbolt CE 5.16, lokales OpenBao 2.7.1, echtes `pass` bzw. `gopass` + GnuPG |
-| ✅ S | umgesetzt, gegen einen **simulierten** Server bzw. ein simuliertes CLI getestet |
-| ✅ U | umgesetzt, durch Unit-Tests mit Beispieldaten abgedeckt |
-| ✅ | umgesetzt, nur manuell bzw. indirekt geprüft |
-| ✅ L | umgesetzt **in OmniVault**, weil der Anbieter es nicht kennt (z. B. Favoriten lokal gespeichert) |
-| 🟡 | teilweise (Einschränkung in der Fußnote) |
-| ❌ | vom Anbieter möglich, in OmniVault **noch nicht** umgesetzt |
-| ⛔ | über die verfügbare Schnittstelle **nicht möglich** |
-| ❓ | umgesetzt, aber in diesem Browser noch nicht getestet |
-| – | gibt es beim Anbieter nicht |
+| ✅ R | implemented, tested against the **real counterpart**: local Vaultwarden, local Passbolt CE 5.16, local OpenBao 2.7.1, real `pass` or `gopass` + GnuPG |
+| ✅ S | implemented, tested against a **simulated** server or a simulated CLI |
+| ✅ U | implemented, covered by unit tests with sample data |
+| ✅ | implemented, only checked manually or indirectly |
+| ✅ L | implemented **in OmniVault** because the provider does not support it (e.g. favorites stored locally) |
+| 🟡 | partial (limitation in the footnote) |
+| ❌ | possible with the provider, **not yet** implemented in OmniVault |
+| ⛔ | **not possible** via the available interface |
+| ❓ | implemented, but not yet tested in this browser |
+| – | does not exist at the provider |
 
-## Anbieter auf einen Blick
+## Providers at a glance
 
-| Anbieter | Anbindung | Testbasis |
+| Provider | Connection | Test basis |
 |---|---|---|
-| Bitwarden (Cloud) und Vaultwarden | direkt über die Server-API, Entschlüsselung im Browser | R (Vaultwarden) |
-| Passbolt v4 und v5 | direkt über die Server-API, OpenPGP im Browser | R (Passbolt CE 5.16, zwei Nutzer) |
-| HashiCorp Vault / OpenBao (KV v2) | direkt über die HTTP-API, Token oder userpass | R (OpenBao 2.7.1) ²⁴ |
-| pass (password-store) | Native-Host → `pass` + GnuPG | R |
-| gopass | Native-Host → `gopass` + GnuPG | R (gopass 1.17.4) ²⁵ |
-| 1Password | Native-Host → offizielles `op` | S |
-| LastPass | Native-Host → offizielles `lpass` | S |
-| Dashlane | Native-Host → offizielles `dcli`, **nur lesen** | S, dazu R ohne Konto (dcli 6.2642.0) ²⁶ |
-| KeePassXC | Browser-Schnittstelle von KeePassXC über `keepassxc-proxy` (kein OmniVault-Host) | S ¹⁶ |
-| Proton Pass | Native-Host → offizielles `pass-cli` | S, **zurückgestellt** ¹ |
-| alle anderen (KeePass-Dateien `.kdbx`, Chrome, Firefox …) | Dateiimport in ein beschreibbares Konto | siehe Import |
+| Bitwarden (cloud) and Vaultwarden | direct via the server API, decryption in the browser | R (Vaultwarden) |
+| Passbolt v4 and v5 | direct via the server API, OpenPGP in the browser | R (Passbolt CE 5.16, two users) |
+| HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | R (OpenBao 2.7.1) ²⁴ |
+| pass (password-store) | native host → `pass` + GnuPG | R |
+| gopass | native host → `gopass` + GnuPG | R (gopass 1.17.4) ²⁵ |
+| 1Password | native host → official `op` | S |
+| LastPass | native host → official `lpass` | S |
+| Dashlane | native host → official `dcli`, **read only** | S, plus R without an account (dcli 6.2642.0) ²⁶ |
+| KeePassXC | KeePassXC's browser interface via `keepassxc-proxy` (no OmniVault host) | S ¹⁶ |
+| Proton Pass | native host → official `pass-cli` | S, **on hold** ¹ |
+| all others (KeePass files `.kdbx`, Chrome, Firefox …) | file import into a writable account | see Import |
 
-¹ Proton gibt `pass-cli` derzeit nur für kostenpflichtige Tarife frei („Your account is not yet allowed to use our
-CLI“). Der Provider bleibt im Code und in den Tests, wird aber nicht weiterentwickelt, bis das CLI für alle Konten
-nutzbar ist. Ein Ersatz für das offizielle CLI ist bewusst nicht vorgesehen.
+¹ Proton currently only offers `pass-cli` on paid plans ("Your account is not yet allowed to use our
+CLI"). The provider stays in the code and the tests but will not be developed further until the CLI is usable
+for all accounts. A replacement for the official CLI is deliberately not planned.
 
-¹⁶ KeePassXC: gegen einen simulierten KeePassXC getestet, der das dokumentierte Protokoll mit echter NaCl-Box
-spricht (Unit-Test und Browsertest). Über das Protokoll gehen: Logins auflisten, Benutzer und Passwort je Eintrag
-über seine Adresse holen, aktueller TOTP-Code, Logins anlegen, ändern und löschen, Gruppen anlegen. Nicht möglich
-(⛔ über die Schnittstelle): Notizen, Zusatzfelder, Titel, TOTP-Schlüssel, Karten und Identitäten, Favoriten,
-Verschieben, Einträge ohne Website-Adresse auslesen, Passkeys (das Protokoll kennt sie, OmniVault nutzt sie noch
-nicht). Ein Gegentest mit echtem KeePassXC steht noch aus.
+¹⁶ KeePassXC: tested against a simulated KeePassXC that speaks the documented protocol with a real NaCl box
+(unit test and browser test). The protocol supports: listing logins, fetching username and password per entry
+by its address, the current TOTP code, creating, editing and deleting logins, creating groups. Not possible
+(⛔ via the interface): notes, custom fields, titles, TOTP secrets, cards and identities, favorites,
+moving, reading entries without a website address, passkeys (the protocol supports them, OmniVault does not use them
+yet). A cross-check against real KeePassXC is still pending.
 
-Bitwarden Cloud und Vaultwarden nutzen denselben Provider; gegen bitwarden.com/.eu ist nichts automatisiert getestet.
+Bitwarden cloud and Vaultwarden use the same provider; nothing is tested automatically against bitwarden.com/.eu.
 
-## Parität zwischen den Anbietern
+## Parity between providers
 
-| Funktion | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | pass | gopass | 1Password | LastPass | Proton Pass | Dashlane |
+| Feature | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | pass | gopass | 1Password | LastPass | Proton Pass | Dashlane |
 |---|---| --- |---|---| --- |---|---|---|---|
-| Logins lesen, anlegen, bearbeiten, löschen | ✅ R | ✅ R ²⁴ | ✅ R | ✅ R | ✅ R ²⁵ | ✅ S | ✅ S | ✅ S | 🟡 S (nur lesen) ²⁶ |
-| Notizen | ✅ R | ✅ R (ohne `password`-Schlüssel) | ✅ R (v5) ² | – ³ | – | ✅ S | ✅ S | ✅ S | 🟡 S (sichere Notizen und Secrets, nur lesen) |
-| Karten, Identitäten lesen | ✅ R | – | – | – | – | ✅ S ⁴ | – | ✅ S | ❌ (`dcli id` liest Ausweise, OmniVault nutzt es nicht) |
-| Karten, Identitäten anlegen und bearbeiten | ✅ R | – | – | – | – | 🟡 S ⁴ | – | ⛔ | ⛔ |
-| Zusatzfelder lesen | ✅ R | ✅ R (übrige Schlüssel, verborgen) | ✅ R (v5) | ✅ R | ✅ R | ✅ S | ⛔ | ✅ S | ✅ S (E-Mail, zweiter Login) |
-| Zusatzfelder bearbeiten | ✅ R | ✅ R | ✅ R (v5-Logins) | ✅ R ⁵ | ✅ R | ✅ S | ⛔ | ⛔ | ⛔ |
-| TOTP lesen und ändern | ✅ R | ✅ R | ✅ R | ✅ R | ✅ R | ✅ S | ⛔ | 🟡 S (nur lesen) | 🟡 S (nur lesen) |
-| Favoriten | ✅ R | ✅ L | ✅ R | ✅ L | ✅ L | ✅ S | ✅ L | ✅ L | ✅ L |
-| Ordner / Tresore anzeigen und verschieben | ✅ R | ✅ R (Pfade) | ✅ R (anzeigen), ✅ S (verschieben) | ✅ R (Pfade) | ✅ R (Pfade, eingehängte Speicher) | ✅ S (Tresore) | ✅ S (Gruppen) | ✅ S (Tresore) | ⛔ (`dcli` gibt keine Ordner aus) |
-| Ordner / Tresor anlegen | ✅ R | ✅ R | ✅ R ⁶ | ✅ R | ✅ R | ✅ S | ✅ S | ❌ | ⛔ |
-| Papierkorb: Löschen landet dort | ✅ R | ✅ R (weiches Löschen der aktuellen Version) | – (endgültig) | – (endgültig) | – (endgültig) | ✅ S („Zuletzt gelöscht“) | – (endgültig) | ✅ S | ⛔ |
-| Papierkorb in OmniVault anzeigen, wiederherstellen, endgültig löschen | ✅ R | ✅ R (`undelete`; endgültig: alle Versionen) | – | – | – | ⛔ ¹⁷ | – | ❌ (zurückgestellt) | ⛔ |
-| Anhänge herunterladen | ✅ R | – | – | – | – | ✅ S ¹⁹ | ✅ S ¹⁹ | ✅ S ¹⁹ | ⛔ |
-| Anhänge hochladen und löschen | ✅ R ¹⁸ | – | – | – | – | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ |
-| Passwortverlauf | ✅ R | ❌ (Versionen gibt es, OmniVault zeigt sie nicht) | – | – | – | 🟡 S ²¹ | ⛔ ²¹ | ⛔ ²¹ | ⛔ |
-| Passkeys anzeigen | ✅ R | – | – ⁹ | – ⁹ | – | ⛔ ²² | ⛔ ²² | ✅ S (nur Seite und Benutzer) | ⛔ |
-| Passkeys auf Webseiten anlegen und damit anmelden, entfernen | ✅ R (Bitwarden-Format, mit den offiziellen Apps austauschbar) | – | – ⁹ | – ⁹ | – | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ |
-| Teilen, Rechte ändern, Zugriff entziehen | 🟡 R ⁷ | ⛔ (Policies verwaltet der Server) | ✅ R (Einträge und Ordner) | – | – | ⛔ | ⛔ | ⛔ | ⛔ |
-| Geteilte Einträge bearbeiten | ✅ R (Organisation) | ✅ R (je nach Policy) | ✅ R (Geheimnis für alle Leser neu verschlüsselt) | – | – | 🟡 (wie eigene, ungetestet) | 🟡 (wie eigene, ungetestet) | ❌ | ⛔ |
-| Konflikterkennung (veralteter Stand wird nicht überschrieben) | ✅ R | ✅ R (Check-and-Set) | ✅ R | – | – | ✅ S ¹³ | ✅ S ¹³ | ✅ S ¹³ | – (nur lesen) |
-| Geheimnisse erst bei Bedarf entschlüsseln | – (alles lokal) | ✅ R (Werte erst bei Bedarf gelesen) | ✅ R | ❌ ⁸ | ❌ | ✅ S | ✅ S | ✅ S | 🟡 S (der Host verwirft sie in der Liste) ²⁶ |
-| Rate-Limit verständlich melden | ✅ R | ✅ | ✅ | – | – | – | – | – | – |
+| Read, create, edit, delete logins | ✅ R | ✅ R ²⁴ | ✅ R | ✅ R | ✅ R ²⁵ | ✅ S | ✅ S | ✅ S | 🟡 S (read only) ²⁶ |
+| Notes | ✅ R | ✅ R (without `password` key) | ✅ R (v5) ² | – ³ | – | ✅ S | ✅ S | ✅ S | 🟡 S (secure notes and secrets, read only) |
+| Read cards, identities | ✅ R | – | – | – | – | ✅ S ⁴ | – | ✅ S | ❌ (`dcli id` reads IDs, OmniVault does not use it) |
+| Create and edit cards, identities | ✅ R | – | – | – | – | 🟡 S ⁴ | – | ⛔ | ⛔ |
+| Read custom fields | ✅ R | ✅ R (remaining keys, hidden) | ✅ R (v5) | ✅ R | ✅ R | ✅ S | ⛔ | ✅ S | ✅ S (email, second login) |
+| Edit custom fields | ✅ R | ✅ R | ✅ R (v5 logins) | ✅ R ⁵ | ✅ R | ✅ S | ⛔ | ⛔ | ⛔ |
+| Read and change TOTP | ✅ R | ✅ R | ✅ R | ✅ R | ✅ R | ✅ S | ⛔ | 🟡 S (read only) | 🟡 S (read only) |
+| Favorites | ✅ R | ✅ L | ✅ R | ✅ L | ✅ L | ✅ S | ✅ L | ✅ L | ✅ L |
+| Show folders / vaults and move between them | ✅ R | ✅ R (paths) | ✅ R (show), ✅ S (move) | ✅ R (paths) | ✅ R (paths, mounted stores) | ✅ S (vaults) | ✅ S (groups) | ✅ S (vaults) | ⛔ (`dcli` does not output folders) |
+| Create folder / vault | ✅ R | ✅ R | ✅ R ⁶ | ✅ R | ✅ R | ✅ S | ✅ S | ❌ | ⛔ |
+| Trash: deleted items end up there | ✅ R | ✅ R (soft delete of the current version) | – (permanent) | – (permanent) | – (permanent) | ✅ S ("Recently Deleted") | – (permanent) | ✅ S | ⛔ |
+| Show trash in OmniVault, restore, delete permanently | ✅ R | ✅ R (`undelete`; permanent: all versions) | – | – | – | ⛔ ¹⁷ | – | ❌ (on hold) | ⛔ |
+| Download attachments | ✅ R | – | – | – | – | ✅ S ¹⁹ | ✅ S ¹⁹ | ✅ S ¹⁹ | ⛔ |
+| Upload and delete attachments | ✅ R ¹⁸ | – | – | – | – | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ |
+| Password history | ✅ R | ❌ (versions exist, OmniVault does not show them) | – | – | – | 🟡 S ²¹ | ⛔ ²¹ | ⛔ ²¹ | ⛔ |
+| Show passkeys | ✅ R | – | – ⁹ | – ⁹ | – | ⛔ ²² | ⛔ ²² | ✅ S (site and user only) | ⛔ |
+| Create passkeys on websites, sign in with them, remove them | ✅ R (Bitwarden format, interchangeable with the official apps) | – | – ⁹ | – ⁹ | – | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ |
+| Share, change permissions, revoke access | 🟡 R ⁷ | ⛔ (policies are managed by the server) | ✅ R (entries and folders) | – | – | ⛔ | ⛔ | ⛔ | ⛔ |
+| Edit shared entries | ✅ R (organization) | ✅ R (depending on policy) | ✅ R (secret re-encrypted for all readers) | – | – | 🟡 (like own entries, untested) | 🟡 (like own entries, untested) | ❌ | ⛔ |
+| Conflict detection (an outdated state is not overwritten) | ✅ R | ✅ R (check-and-set) | ✅ R | – | – | ✅ S ¹³ | ✅ S ¹³ | ✅ S ¹³ | – (read only) |
+| Decrypt secrets only when needed | – (everything local) | ✅ R (values read only when needed) | ✅ R | ❌ ⁸ | ❌ | ✅ S | ✅ S | ✅ S | 🟡 S (the host discards them in the list) ²⁶ |
+| Report rate limits clearly | ✅ R | ✅ | ✅ | – | – | – | – | – | – |
 
-²⁴ HashiCorp Vault / OpenBao: KV-Engine Version 2, gegen echtes OpenBao 2.7.1 (Dev-Server) mit Token und userpass getestet (Integrations- und Browsertest), dazu ein simulierter Server für Unit-Tests; gegen HashiCorp Vault selbst ist nichts automatisiert getestet, die genutzte API ist dieselbe. Abbildung der Schlüssel in README.md. Grenzen: höchstens 2000 Einträge und 12 Ordnerebenen je Konto; Pfade ohne Leserecht werden mit Hinweis übersprungen; KV Version 1, andere Anmeldemethoden (OIDC, AppRole, LDAP …) und `custom_metadata` werden nicht unterstützt.
-²⁵ gopass: über den OmniVault-Host mit dem gopass-CLI, gegen das offizielle Release 1.17.4 + GnuPG getestet (auch mit einem eingehängten zweiten Speicher und Verschieben dorthin). Eintragsformat wie bei pass; eingehängte Speicher sind Ordner der obersten Ebene. Nicht unterstützt: Anhänge (`gopass fscopy`), Verlauf aus git, age-Verschlüsselung ungetestet.
-²⁶ Dashlane: über den OmniVault-Host mit dem offiziellen Dashlane-CLI `dcli` (Apache-2.0), das den Tresor nur lesen kann. Gegen ein simuliertes `dcli` getestet, dessen JSON-Ausgabe (`dcli password|note|secret --output json`) dem Quelltext und der Doku von dcli folgt; Version, `dcli status` und das Verhalten ohne Anmeldung sind gegen das echte Release 6.2642.0 (Linux x64, Hash geprüft) abgeglichen. `dcli` gibt die Liste immer mit Geheimnissen aus: Der Host entfernt Passwörter, Notiztexte und TOTP-Schlüssel, bevor die Liste zum Browser geht, und liest einen Eintrag beim Öffnen erneut über seine ID. Dashlane-„Secrets“ (z. B. SSH-Schlüssel als Text) erscheinen als Notizen. Anmelden, Zweitfaktor und SSO übernimmt `dcli` im Terminal (`dcli sync`); das Master-Passwort muss `dcli` gespeichert haben, sonst gilt der Tresor als gesperrt. Nicht unterstützt: Ausweise (`dcli id`), Ordner, Anhänge, Passkeys, Schreiben (⛔ über das CLI).
+²⁴ HashiCorp Vault / OpenBao: KV engine version 2, tested against real OpenBao 2.7.1 (dev server) with token and userpass (integration and browser test), plus a simulated server for unit tests; nothing is tested automatically against HashiCorp Vault itself, the API used is the same. Key mapping in README.md. Limits: at most 2000 entries and 12 folder levels per account; paths without read permission are skipped with a notice; KV version 1, other auth methods (OIDC, AppRole, LDAP …) and `custom_metadata` are not supported.
+²⁵ gopass: via the OmniVault host with the gopass CLI, tested against the official release 1.17.4 + GnuPG (also with a mounted second store and moving into it). Entry format as in pass; mounted stores are top-level folders. Not supported: attachments (`gopass fscopy`), history from git; age encryption untested.
+²⁶ Dashlane: via the OmniVault host with the official Dashlane CLI `dcli` (Apache-2.0), which can only read the vault. Tested against a simulated `dcli` whose JSON output (`dcli password|note|secret --output json`) follows the dcli source code and documentation; version, `dcli status` and the behavior when not signed in have been compared against the real release 6.2642.0 (Linux x64, hash verified). `dcli` always outputs the list including secrets: the host removes passwords, note texts and TOTP secrets before the list goes to the browser, and reads an entry again by its ID when it is opened. Dashlane "secrets" (e.g. SSH keys as text) appear as notes. Sign-in, second factor and SSO are handled by `dcli` in the terminal (`dcli sync`); `dcli` must have stored the master password, otherwise the vault is considered locked. Not supported: IDs (`dcli id`), folders, attachments, passkeys, writing (⛔ via the CLI).
 
-² Ein frisch installierter Passbolt 5.16 arbeitet mit v4-Ressourcen; Notizen ohne Passwort und Zusatzfelder gibt es
-erst, wenn ein Admin die verschlüsselten Metadaten (v5) einschaltet. Beide Zustände sind gegen den echten Server getestet.
-³ In pass beginnt jeder Eintrag mit einer Passwortzeile.
-⁴ 1Password: Karten und Identitäten werden aus der Kategorievorlage des installierten `op` angelegt
-(`op item template get "Credit Card"` bzw. `"Identity"`, JSON über stdin), so behalten die Felder die IDs, Typen und
-Abschnitte von 1Password; Ablaufdatum als `MONTH_YEAR` im Format JJJJMM. Geschrieben werden Karteninhaber, Nummer,
-Prüfnummer, Ablaufdatum, Name, Firma, Benutzername, E-Mail und Telefon. Den Kartentyp leitet 1Password aus der Nummer
-ab. Die Adresse einer Identität (Feldtyp `ADDRESS`) wird gelesen, lässt sich über `op` aber nicht zuverlässig schreiben
-(Nutzerbericht im 1Password-Forum: Validator verlangt ein Objekt, der Parser einen Text); eine neue Adresse steht
-deshalb in den Notizen, eine Änderung lehnt OmniVault mit Hinweis auf die 1Password-App ab. Die Feld-IDs der Vorlagen
-nennt die 1Password-Doku nicht; das simulierte `op` bildet sie nach, `selftest.py onepassword --write` prüft sie
-gegen das echte Programm.
-⁵ pass: Zusatzfelder sind `Name: Wert`-Zeilen; pass kennt keine verborgenen Felder.
-⁶ Passbolt 5.16 lehnt v5-Ordner ab, solange sein Aktionsprotokoll aktiv ist (es verlangt einen Klartextnamen);
-OmniVault legt dann einen einfachen Ordner an, wenn der Server das erlaubt.
-⁷ Bitwarden teilt über Organisationen und Sammlungen: OmniVault verschiebt persönliche Einträge in eine Organisation
-und wählt die Sammlungen (alle Werte samt Passwortverlauf, Passkeys und Anhängen werden mit dem Organisationsschlüssel
-neu verschlüsselt, bzw. nur der Item-Key; geprüft gegen echtes Vaultwarden). Bei Organisationseinträgen ändert
-OmniVault die Sammlungen (`collections_v2`, Rückfall auf den älteren Endpunkt; nur Sammlungen, die der Nutzer
-bearbeiten darf, mindestens eine bleibt; geprüft gegen echtes Vaultwarden mit Besitzer und Mitglied mit
-schreibgeschützter Sammlung, gegen bitwarden.com nicht automatisiert). Rechte vergibt die Organisation; das geht
-weiterhin nur in den Bitwarden-Apps. Anhänge im ganz alten Format (ohne eigenen Schlüssel) lehnt OmniVault beim
-Verschieben ab.
-¹⁹ Herunterladen bis 30 MB je Datei, über eine Datei in einem privaten temporären Ordner, nie über die Shell.
-1Password: Dateien an Einträgen mit `op read op://<Tresor-ID>/<Eintrags-ID>/<Datei-ID>` (Dateianhänge über ihren
-Namen bzw. ihre ID adressierbar laut [Secret-Reference-Syntax](https://www.1password.dev/cli/secret-reference-syntax)),
-Dokument-Einträge mit `op document get` ([Doku](https://www.1password.dev/cli/reference/management-commands/document)).
-LastPass: `lpass show` listet Anhänge als `att-<ID>: Dateiname`, `lpass show --attach=att-<ID> --quiet` gibt die Datei
-aus ([lpass.1](https://github.com/lastpass/lastpass-cli/blob/master/lpass.1.txt), Abschnitt Examples). Proton Pass:
-`pass-cli item attachment download --share-id … --item-id … --attachment-id … --output <Datei>` (vorhanden in 2.3.1
-und 2.5.0, [Doku](https://protonpass.github.io/pass-cli/commands/item/)); die Liste kommt aus `item view --output json`.
-²⁰ `lpass` und `pass-cli` (2.5.0) haben keinen Befehl zum Hochladen oder Löschen von Anhängen. `op` kann Dateien nur beim
-**Anlegen** eines Eintrags per Zuweisung `[file]=<Pfad>` anhängen ([Doku](https://www.1password.dev/cli/item-create));
-für vorhandene Einträge dokumentiert `op item edit` keine Datei-Felder, und laut 1Password-Mitarbeitern geht das nur
-beim Anlegen ([Forum](https://www.1password.community/developers-69/how-do-i-create-attach-a-file-field-to-an-existing-item-using-the-1password-cli-10003)).
-²¹ 1Password: `op` gibt den Verlauf nicht dokumentiert aus; laut Nutzerbericht im 1Password-Forum als Liste alter
-Passwörter ohne Zeitpunkt (`password_details.history`). OmniVault zeigt ihn, wenn `op` ihn liefert; ob das echte `op`
-es tut, zeigt `selftest.py`. LastPass: `lpass show --json` enthält nur id, name, fullname, username, password,
-last_modified_gmt, last_touch, share, group, url und note
-([json-format.c](https://github.com/lastpass/lastpass-cli/blob/master/json-format.c)), keinen Verlauf. Proton Pass:
-`pass-cli` 2.5.0 hat keinen Befehl und kein Feld für den Passwortverlauf
-([Doku](https://protonpass.github.io/pass-cli/commands/item/)).
-²² 1Password: Die Doku nennt Passkeys nur mit der Warnung, dass JSON-Vorlagen sie nicht unterstützen und ein
-`op item edit` mit Vorlage einen vorhandenen Passkey überschreibt ([Edit items](https://www.1password.dev/cli/item-edit),
-seit `op` 2.33.1 auch in der Hilfe); in der Ausgabe von `op item get` sind sie nicht dokumentiert. OmniVault warnt im
-Editor vor diesem Verlust. LastPass: `lastpass-cli` kennt keine Passkeys (weder in `show` noch in `--json`).
-¹⁷ `op` kann „Zuletzt gelöscht“ weder auflisten noch wiederherstellen; das geht laut 1Password-Doku nur in den
-1Password-Apps (geprüft 20.10.2026). Gelöschte Einträge bleiben dort 30 Tage.
-¹⁸ Wie in den offiziellen Apps: eigener Schlüssel je Datei, mit dem Eintrags- bzw. Organisationsschlüssel verschlüsselt;
-bis 30 MB je Datei. Gegen Vaultwarden (direktes Hochladen) getestet, auch für Organisationseinträge. Bitwarden.com/.eu
-legen Dateien in Azure Blob Storage ab; OmniVault fragt dafür beim ersten Hochladen nach der Berechtigung für
-`*.blob.core.windows.net`. Dieser Weg ist nicht automatisiert getestet. Anhänge setzen in der Bitwarden-Cloud ein
-Premium- oder Organisationskonto voraus.
-⁸ pass legt URL und Benutzer in der verschlüsselten Datei ab; ohne Entschlüsseln gäbe es keinen Seitenabgleich.
-⁹ Passbolt und pass kennen keine Passkeys.
-¹⁰ Die Programme `op`, `lpass`, `dcli` und `pass-cli` geben die privaten Schlüssel von Passkeys nicht heraus; Proton Pass
-zeigt nur, für welche Seite und welchen Benutzer ein Passkey existiert.
-¹³ Der Host vergleicht vor dem Ändern den Änderungsstand des Programms (1Password `version`, LastPass
-`last_modified_gmt`, Proton `modify_time`). Meldet ein Programm keinen, wird nicht geprüft; `selftest.py --write`
-zeigt, ob das echte Programm ihn liefert.
+² A freshly installed Passbolt 5.16 works with v4 resources; notes without a password and custom fields only exist
+once an admin enables encrypted metadata (v5). Both states are tested against the real server.
+³ In pass, every entry starts with a password line.
+⁴ 1Password: cards and identities are created from the category template of the installed `op`
+(`op item template get "Credit Card"` or `"Identity"`, JSON via stdin), so the fields keep 1Password's IDs, types and
+sections; expiry date as `MONTH_YEAR` in the format YYYYMM. Written fields are cardholder, number,
+verification number, expiry date, name, company, username, email and phone. 1Password derives the card type from the number.
+The address of an identity (field type `ADDRESS`) is read but cannot be written reliably via `op`
+(user report in the 1Password forum: the validator expects an object, the parser a string); a new address is therefore
+put in the notes, and OmniVault rejects a change with a pointer to the 1Password app. The 1Password documentation does not
+list the field IDs of the templates; the simulated `op` reproduces them, and `selftest.py onepassword --write` checks them
+against the real program.
+⁵ pass: custom fields are `Name: value` lines; pass has no hidden fields.
+⁶ Passbolt 5.16 rejects v5 folders while its action log is active (it requires a plaintext name);
+OmniVault then creates a simple folder if the server allows it.
+⁷ Bitwarden shares via organizations and collections: OmniVault moves personal entries into an organization
+and selects the collections (all values including password history, passkeys and attachments are re-encrypted with the
+organization key, or only the item key; checked against real Vaultwarden). For organization entries, OmniVault
+changes the collections (`collections_v2`, falling back to the older endpoint; only collections the user
+may edit, at least one remains; checked against real Vaultwarden with an owner and a member with a
+read-only collection, not automated against bitwarden.com). Permissions are assigned by the organization; that is
+still only possible in the Bitwarden apps. OmniVault refuses to move attachments in the very old format (without their own key).
+¹⁹ Downloads up to 30 MB per file, via a file in a private temporary folder, never via the shell.
+1Password: files attached to items with `op read op://<vault ID>/<item ID>/<file ID>` (file attachments addressable by their
+name or ID according to the [secret reference syntax](https://www.1password.dev/cli/secret-reference-syntax)),
+document items with `op document get` ([docs](https://www.1password.dev/cli/reference/management-commands/document)).
+LastPass: `lpass show` lists attachments as `att-<ID>: filename`, `lpass show --attach=att-<ID> --quiet` outputs the file
+([lpass.1](https://github.com/lastpass/lastpass-cli/blob/master/lpass.1.txt), section Examples). Proton Pass:
+`pass-cli item attachment download --share-id … --item-id … --attachment-id … --output <file>` (present in 2.3.1
+and 2.5.0, [docs](https://protonpass.github.io/pass-cli/commands/item/)); the list comes from `item view --output json`.
+²⁰ `lpass` and `pass-cli` (2.5.0) have no command for uploading or deleting attachments. `op` can only attach files when
+**creating** an item via the assignment `[file]=<path>` ([docs](https://www.1password.dev/cli/item-create));
+for existing items `op item edit` documents no file fields, and according to 1Password staff this only works
+on creation ([forum](https://www.1password.community/developers-69/how-do-i-create-attach-a-file-field-to-an-existing-item-using-the-1password-cli-10003)).
+²¹ 1Password: `op` outputs the history in an undocumented way; according to a user report in the 1Password forum as a list of old
+passwords without timestamps (`password_details.history`). OmniVault shows it if `op` provides it; whether the real `op`
+does is shown by `selftest.py`. LastPass: `lpass show --json` contains only id, name, fullname, username, password,
+last_modified_gmt, last_touch, share, group, url and note
+([json-format.c](https://github.com/lastpass/lastpass-cli/blob/master/json-format.c)), no history. Proton Pass:
+`pass-cli` 2.5.0 has no command and no field for password history
+([docs](https://protonpass.github.io/pass-cli/commands/item/)).
+²² 1Password: the documentation only mentions passkeys with the warning that JSON templates do not support them and that an
+`op item edit` with a template overwrites an existing passkey ([Edit items](https://www.1password.dev/cli/item-edit),
+also in the help since `op` 2.33.1); they are not documented in the output of `op item get`. OmniVault warns about this loss in the
+editor. LastPass: `lastpass-cli` has no passkeys (neither in `show` nor in `--json`).
+¹⁷ `op` can neither list nor restore "Recently Deleted"; according to the 1Password documentation this is only possible in the
+1Password apps (checked 2026-10-20). Deleted items remain there for 30 days.
+¹⁸ As in the official apps: a separate key per file, encrypted with the item or organization key;
+up to 30 MB per file. Tested against Vaultwarden (direct upload), also for organization entries. Bitwarden.com/.eu
+store files in Azure Blob Storage; for this, OmniVault asks for permission for
+`*.blob.core.windows.net` on the first upload. This path is not tested automatically. In the Bitwarden cloud, attachments require
+a premium or organization account.
+⁸ pass stores URL and username in the encrypted file; without decrypting there would be no site matching.
+⁹ Passbolt and pass have no passkeys.
+¹⁰ The programs `op`, `lpass`, `dcli` and `pass-cli` do not hand out the private keys of passkeys; Proton Pass
+only shows for which site and which user a passkey exists.
+¹³ Before changing an entry, the host compares the program's revision (1Password `version`, LastPass
+`last_modified_gmt`, Proton `modify_time`). If a program reports none, no check is made; `selftest.py --write`
+shows whether the real program provides it.
 
-## Anmeldung und Sitzung
+## Sign-in and session
 
-| Funktion | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | CLI-Anbieter |
+| Feature | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | CLI providers |
 |---|---| --- |---|---|
-| Anmelden mit Master-Passwort / Passphrase | ✅ R (PBKDF2, Argon2id) | ✅ R (Token oder userpass) | ✅ R (privater Schlüssel + Passphrase) | im CLI (`op signin`, `lpass login`, `dcli sync`, gpg-Agent) |
-| OpenPGP-Schlüssel: RSA, Ed25519/Cv25519, v6 nach RFC 9580 (Argon2-S2K, AEAD, SEIPD v2) | – | – | ✅ R (RSA, ECC), ✅ U (v6) ¹⁵ | – |
-| Bitwardens neues Verschlüsselungsformat („Encryption V2“: COSE, XAES-256-GCM, Cipher-Blobs) | ✅ U lesen; Schreiben gesperrt ¹⁴ | – | – | – |
-| Anmelden mit API-Schlüssel | ✅ R | – | – | – |
-| Zwei-Faktor | 🟡 S ¹¹ | ❌ (MFA des Servers) | 🟡 S ¹² | übernimmt das CLI |
-| Duo Universal Prompt (persönlich und Organisation) im Tab, Popup setzt danach fort | ✅ S ²⁷ | – | ❌ | – |
-| Bestätigung neuer Geräte (E-Mail-Code) | ✅ S | – | – | – |
-| Selbst gehosteter Server | ✅ R | ✅ R | ✅ R | – |
-| Token-Erneuerung / Sitzung halten | ✅ R | ✅ R (`renew-self`) | ✅ S | ✅ S |
-| Serveridentität prüfen | – | – (TLS des Browsers) | ✅ R (Schlüssel-Pinning) | – |
-| Entsperren mit PIN, 4–12 Ziffern, Prüfung schon bei der Eingabe (nach Auto-Sperre, bis zum Browser-Neustart) | ✅ S | ✅ (gleicher Weg, nicht eigens getestet) | ✅ S | ✅ (gleicher Weg, nicht eigens getestet) |
-| SSO der Organisation (OIDC mit PKCE im Tab), danach Master-Passwort | ✅ R (Vaultwarden mit lokalem OIDC-Anbieter), ✅ S (Bitwarden) ²⁷ | ❌ (OIDC) | ❌ | – |
-| Konten ohne Master-Passwort (vertrauenswürdige Geräte, Key Connector) | ❌ – klare Meldung (R + S) | – | – | – |
-| Biometrie | ⛔ (Browser-Erweiterungen haben keinen Zugriff) | ⛔ | ⛔ | – |
+| Sign in with master password / passphrase | ✅ R (PBKDF2, Argon2id) | ✅ R (token or userpass) | ✅ R (private key + passphrase) | in the CLI (`op signin`, `lpass login`, `dcli sync`, gpg agent) |
+| OpenPGP keys: RSA, Ed25519/Cv25519, v6 according to RFC 9580 (Argon2 S2K, AEAD, SEIPD v2) | – | – | ✅ R (RSA, ECC), ✅ U (v6) ¹⁵ | – |
+| Bitwarden's new encryption format ("Encryption V2": COSE, XAES-256-GCM, cipher blobs) | ✅ U read; writing blocked ¹⁴ | – | – | – |
+| Sign in with API key | ✅ R | – | – | – |
+| Two-factor | 🟡 S ¹¹ | ❌ (server MFA) | 🟡 S ¹² | handled by the CLI |
+| Duo Universal Prompt (personal and organization) in a tab, popup continues afterwards | ✅ S ²⁷ | – | ❌ | – |
+| New device verification (email code) | ✅ S | – | – | – |
+| Self-hosted server | ✅ R | ✅ R | ✅ R | – |
+| Token renewal / keeping the session alive | ✅ R | ✅ R (`renew-self`) | ✅ S | ✅ S |
+| Verify server identity | – | – (browser TLS) | ✅ R (key pinning) | – |
+| Unlock with PIN, 4–12 digits, checked while typing (after auto-lock, until the browser restarts) | ✅ S | ✅ (same path, not tested separately) | ✅ S | ✅ (same path, not tested separately) |
+| Organization SSO (OIDC with PKCE in a tab), then master password | ✅ R (Vaultwarden with local OIDC provider), ✅ S (Bitwarden) ²⁷ | ❌ (OIDC) | ❌ | – |
+| Accounts without master password (trusted devices, Key Connector) | ❌ – clear message (R + S) | – | – | – |
+| Biometrics | ⛔ (browser extensions have no access) | ⛔ | ⛔ | – |
 
-¹¹ TOTP, E-Mail, YubiKey-OTP, Duo (²⁷). WebAuthn fehlt; in diesem Fall hilft der API-Schlüssel.
-¹² TOTP und YubiKey-OTP. Duo fehlt.
-¹⁴ Noch von keinem Produktivkonto genutzt und von Vaultwarden nicht unterstützt (Stand 19.10.2026). Geprüft gegen
-die Vektoren der XAES-Spezifikation, Bitwardens veröffentlichte Vektoren (nur lokal) und ein unabhängig in Python
-erzeugtes V2-Konto. Solche Konten sind in OmniVault nur lesbar, bis Schreiben im neuen Format umgesetzt ist.
-¹⁵ OmniVault kann v6-Schlüssel, Passbolt CE 5.16 nimmt sie aber nicht an (geprüft): Die Kontoeinrichtung mit einem
-v6-Schlüssel scheitert mit „A valid OpenPGP key must be provided.“ („The public key could not be parsed.“), weil der Server
-öffentliche Schlüssel mit einem Parser für v4-Pakete prüft; auch sein GnuPG 2.4 kennt RFC 9580 nicht.
-²⁷ Duo und SSO schicken den Browser nur auf feste Seiten des Web-Tresors zurück (`duo-redirect-connector.html`,
-`sso-connector.html`). OmniVault öffnet dafür einen Tab, wartet im Hintergrund, bis er dort ankommt, liest Code und
-State aus der Adresse, schließt den Tab und meldet an; das Popup, das sich beim Tabwechsel schließt, zeigt beim
-nächsten Öffnen das Ergebnis oder fragt nach dem Master-Passwort. Keine zusätzliche Berechtigung: Die Seiten liegen
-auf dem Server, auf den das Konto ohnehin zugreift. SSO ist gegen ein echtes Vaultwarden mit einem lokalen
-OIDC-Anbieter getestet (auch Token-Erneuerung); Bitwardens Ablauf (`/sso/prevalidate`, `ssoToken`) und Duo nur gegen
-den simulierten Server, der Adressen wie die echten Server aufbaut. Mit echtem Duo und Bitwarden-SSO ungeprüft.
+¹¹ TOTP, email, YubiKey OTP, Duo (²⁷). WebAuthn is missing; in that case the API key helps.
+¹² TOTP and YubiKey OTP. Duo is missing.
+¹⁴ Not yet used by any production account and not supported by Vaultwarden (as of 2026-10-19). Checked against
+the vectors of the XAES specification, Bitwarden's published vectors (local only) and a V2 account generated independently in Python.
+In OmniVault, such accounts are read-only until writing in the new format is implemented.
+¹⁵ OmniVault supports v6 keys, but Passbolt CE 5.16 does not accept them (checked): account setup with a
+v6 key fails with "A valid OpenPGP key must be provided." ("The public key could not be parsed."), because the server
+checks public keys with a parser for v4 packets; its GnuPG 2.4 does not support RFC 9580 either.
+²⁷ Duo and SSO only send the browser back to fixed pages of the web vault (`duo-redirect-connector.html`,
+`sso-connector.html`). For this, OmniVault opens a tab, waits in the background until it arrives there, reads code and
+state from the address, closes the tab and signs in; the popup, which closes when the tab switches, shows the result the
+next time it is opened or asks for the master password. No additional permission: the pages are
+on the server the account accesses anyway. SSO is tested against a real Vaultwarden with a local
+OIDC provider (including token renewal); Bitwarden's flow (`/sso/prevalidate`, `ssoToken`) and Duo only against
+the simulated server, which builds addresses like the real servers. Not verified with real Duo and Bitwarden SSO.
 
-## Werkzeuge (anbieterübergreifend)
+## Tools (across providers)
 
-| Funktion | Stand |
+| Feature | Status |
 |---|---|
-| Duplikate in einem Konto und zwischen Konten (Website + Benutzer) | ✅ R + U |
-| Mehrfach verwendete und schwache Passwörter (Werkzeuge → Prüfen, nur lokal) | ✅ R + U |
-| In Datenlecks bekannte Passwörter (Have I Been Pwned, k-Anonymität: nur 5 Zeichen des SHA-1 je Passwort, mit Padding; erst nach Zustimmung über die optionale Berechtigung `api.pwnedpasswords.com`) | ✅ S + U (Dienst im Browsertest simuliert) |
-| Mehrfachauswahl: kopieren, verschieben, löschen | ✅ R |
-| Kopieren / Verschieben aus Detailansicht und Editor | ✅ R |
-| Übertragen zwischen Anbietern | ✅ R: Logins, Notizen, Karten, Identitäten und Zusatzfelder, soweit das Ziel sie speichern kann; sonst stehen sie lesbar in den Notizen. Passkeys gehen mit, wenn das Ziel sie speichern kann (Bitwarden → Bitwarden); Anhänge, Verlauf und sonst auch Passkeys bleiben im Original (Hinweis vorher, je nach Zielkonto). |
-| Spiegel-Regeln (Quelle → Ziel, optional mit Löschen, ohne Ping-Pong) | ✅ R + U |
-| Automatischer Abgleich entsperrter Konten (auch nach Neustart des Service Workers, mit Spiegel-Regeln) | ✅ R (Browsertest: Worker beendet, Alarm weckt ihn, Änderung eines anderen Clients kommt an und wird gespiegelt) |
-| Papierkorb (Werkzeuge → Papierkorb) | ✅ R (Bitwarden/Vaultwarden, Vault/OpenBao) |
-| Bitwarden Send (Werkzeuge → Send, nur Bitwarden/Vaultwarden): eigene Sends auflisten (Name, Art, Ablauf bzw. Löschung, Zugriffe), Text- und Datei-Send anlegen (bis 30 MB) mit Löschdatum (höchstens 31 Tage), Ablaufdatum, Höchstzahl der Zugriffe, Passwort, Text verbergen, E-Mail verbergen, deaktiviert; bearbeiten (Link bleibt gleich, die Datei selbst nicht änderbar), Link kopieren, Passwort entfernen, löschen | ✅ R + S + U: gegen Vaultwarden (Text und Datei, direkter Upload); jeder Link wird wie von einem Empfänger über die öffentliche Schnittstelle geöffnet (`send_access`-Token, `/sends/access`, Datei-Download) und von einem unabhängigen Python-Prüfer entschlüsselt; Passwortschutz, Ablauf, Zugriffsgrenze, Deaktivieren und Löschen gegen den echten Server; Azure-Upload und die Premium-Meldung der Bitwarden-Cloud nur simuliert ²⁸ |
-| Bitwarden-Notfallzugriff als Vertrauensperson, nur Ansehen (Werkzeuge → Notfallzugriff): Konten, die dir Zugriff gewähren, mit Art, Status und Wartezeit; Zugriff anfordern (mit Rückfrage); nach der Freigabe die eigenen Einträge der Person (ohne Papierkorb und Organisationseinträge) als eigene schreibgeschützte Liste mit Detailansicht, Anzeigen und Kopieren – kein Ausfüllen, keine Suche, kein Export, kein Spiegeln; beim Sperren verworfen. Einladen, Annehmen, Bestätigen, Freigeben und Übernahme: in den Bitwarden-Apps | ✅ R + S + U: gegen Vaultwarden vollständig (zwei Konten; Einladen, Bestätigen und Freigeben über die API, Anfordern und Ansehen in OmniVault); Übernahme-Freigaben nur simuliert ²⁹ |
-| Export: Bitwarden-JSON (vollständig, mit Passkeys samt Schlüssel wie bei Bitwarden) und CSV, je Konto oder alle | ✅ R + U |
+| Duplicates within an account and between accounts (website + username) | ✅ R + U |
+| Reused and weak passwords (Tools → Check, local only) | ✅ R + U |
+| Passwords known from data breaches (Have I Been Pwned, k-anonymity: only 5 characters of the SHA-1 per password, with padding; only after consent, via the optional permission `api.pwnedpasswords.com`) | ✅ S + U (service simulated in the browser test) |
+| Multi-select: copy, move, delete | ✅ R |
+| Copy / move from the detail view and the editor | ✅ R |
+| Transfer between providers | ✅ R: logins, notes, cards, identities and custom fields, as far as the target can store them; otherwise they are written readably into the notes. Passkeys are carried over if the target can store them (Bitwarden → Bitwarden); attachments, history and otherwise also passkeys stay in the original (notice beforehand, depending on the target account). |
+| Mirror rules (source → target, optionally with deletion, without ping-pong) | ✅ R + U |
+| Automatic sync of unlocked accounts (also after a service worker restart, with mirror rules) | ✅ R (browser test: worker terminated, alarm wakes it, a change from another client arrives and is mirrored) |
+| Trash (Tools → Trash) | ✅ R (Bitwarden/Vaultwarden, Vault/OpenBao) |
+| Bitwarden Send (Tools → Send, Bitwarden/Vaultwarden only): list own Sends (name, type, expiration or deletion, access count), create text and file Sends (up to 30 MB) with deletion date (at most 31 days), expiration date, maximum access count, password, hide text, hide email, disabled; edit (the link stays the same, the file itself cannot be changed), copy link, remove password, delete | ✅ R + S + U: against Vaultwarden (text and file, direct upload); every link is opened as a recipient would via the public interface (`send_access` token, `/sends/access`, file download) and decrypted by an independent Python checker; password protection, expiration, access limit, disabling and deletion against the real server; Azure upload and the premium message of the Bitwarden cloud only simulated ²⁸ |
+| Bitwarden emergency access as a trusted contact, view only (Tools → Emergency access): accounts that grant you access, with type, status and wait time; request access (with confirmation); after approval, the person's own entries (without trash and organization entries) as a separate read-only list with detail view, reveal and copy – no filling, no search, no export, no mirroring; discarded on locking. Inviting, accepting, confirming, approving and takeover: in the Bitwarden apps | ✅ R + S + U: fully against Vaultwarden (two accounts; inviting, confirming and approving via the API, requesting and viewing in OmniVault); takeover approvals only simulated ²⁹ |
+| Export: Bitwarden JSON (complete, with passkeys including keys as in Bitwarden) and CSV, per account or all | ✅ R + U |
 
-²⁸ Send-Format aus den öffentlichen Quellen von Bitwarden-Server, Bitwarden-SDK und Vaultwarden (kein Code übernommen): 16 Zufallsbytes je Send, mit dem Benutzerschlüssel verschlüsselt; Inhalte mit dem daraus per HKDF-SHA256 (Salt „bitwarden-send“, Info „send“) abgeleiteten 64-Byte-Schlüssel; Passwort als PBKDF2-SHA256 (100 000 Runden, Salt = Send-Schlüssel). Links: `https://send.bitwarden.com/#…` (bitwarden.com), sonst `{Web-Tresor}/#/send/…`. Datei-Sends verlangen in der Bitwarden-Cloud Premium und eine bestätigte E-Mail-Adresse; OmniVault zeigt die Meldung des Servers verständlich an. Ein Passwort wird ohne `authType` gesendet, damit beide Server es genau dann setzen, wenn eines angegeben ist. Sends mit E-Mail-Bestätigung (neu bei Bitwarden, Premium) und Eintrags-Sends legt OmniVault nicht an.
+²⁸ Send format from the public sources of the Bitwarden server, the Bitwarden SDK and Vaultwarden (no code copied): 16 random bytes per Send, encrypted with the user key; contents with the 64-byte key derived from it via HKDF-SHA256 (salt "bitwarden-send", info "send"); password as PBKDF2-SHA256 (100,000 iterations, salt = Send key). Links: `https://send.bitwarden.com/#…` (bitwarden.com), otherwise `{web vault}/#/send/…`. In the Bitwarden cloud, file Sends require premium and a verified email address; OmniVault shows the server's message in an understandable way. A password is sent without `authType` so that both servers set it exactly when one is given. OmniVault does not create Sends with email verification (new at Bitwarden, premium) or item Sends.
 
-²⁹ Ablauf aus den öffentlichen Quellen von Bitwarden-Server und Vaultwarden (kein Code übernommen): `GET /emergency-access/granted`, `POST /emergency-access/{id}/initiate`, `POST /emergency-access/{id}/view` liefert `keyEncrypted` (Benutzerschlüssel der gewährenden Person, RSA-OAEP für den eigenen öffentlichen Schlüssel) und deren eigene Einträge. Beide Server erlauben Ansehen nur bei der Art „Ansehen“ und nach der Freigabe; die Wartezeit beträgt 1–90 Tage, die Antwort nennt keinen Zeitpunkt der Anforderung, deshalb zeigt OmniVault nur die Wartezeit. Vaultwarden ohne SMTP: Notfallzugriff ist erlaubt (`EMERGENCY_ACCESS_ALLOWED`, Standard an); die Einladung eines bestehenden Kontos gilt sofort als angenommen, ein Einladungs-Token ist nicht nötig. Anhänge der gewährenden Person lädt OmniVault nicht herunter.
+²⁹ Flow from the public sources of the Bitwarden server and Vaultwarden (no code copied): `GET /emergency-access/granted`, `POST /emergency-access/{id}/initiate`, `POST /emergency-access/{id}/view` returns `keyEncrypted` (the grantor's user key, RSA-OAEP for your own public key) and the grantor's own entries. Both servers only allow viewing for the type "View" and after approval; the wait time is 1–90 days, and the response does not include the time of the request, so OmniVault only shows the wait time. Vaultwarden without SMTP: emergency access is allowed (`EMERGENCY_ACCESS_ALLOWED`, on by default); inviting an existing account counts as accepted immediately, no invitation token is needed. OmniVault does not download the grantor's attachments.
 
-## Dateiimport
+## File import
 
-Import eines Exports in ein bestehendes, beschreibbares Konto (Werkzeuge → Import/Export). Die Datei wird nur im
-Browser gelesen. Karten, Identitäten und Zusatzfelder bleiben erhalten, wenn das Zielkonto sie speichern kann, sonst
-stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen.
+Import of an export into an existing, writable account (Tools → Import/Export). The file is read only in the
+browser. Cards, identities and custom fields are preserved if the target account can store them, otherwise
+they are written into the notes. Unmapped CSV columns end up in the notes.
 
-| Format | Stand |
+| Format | Status |
 |---|---|
-| CSV mit Kopfzeile (Bitwarden, LastPass, Chrome, Firefox, NordPass, Dashlane, 1Password, KeePass, Safari …) | ✅ R + U |
-| Bitwarden / Vaultwarden JSON (unverschlüsselt), auch OmniVaults eigener Export; Passkeys gehen in Bitwarden-Konten mit | ✅ R + U |
-| Proton Pass JSON (`data.json` aus dem Export) | ✅ U |
-| KeePass 2 XML (KeePass, KeePassXC); eigene Felder bleiben Felder, Gruppen werden Ordner | ✅ R |
-| Format automatisch erkennen | ✅ U |
-| Ziel: Konto und Ordner wählbar | ✅ R |
-| Verschlüsselte Exporte, ZIP-Archive (1PUX, Proton-ZIP) | ⛔ (vorher unverschlüsselt bzw. entpackt exportieren) |
-| KeePass-Datenbank `.kdbx` direkt öffnen (KDBX 3.1, 4.0, 4.1; AES-KDF, Argon2d, Argon2id; AES-256, ChaCha20; Master-Passwort und/oder Schlüsseldatei – XML v1/v2, 32/64 Byte, beliebige Datei); Papierkorb und Anhänge werden nicht übernommen und im Bericht genannt | ✅ R + U ²³ |
-| `.kdbx` mit Twofish, KeePass 1 (`.kdb`), Schreiben zurück in die Datei | ⛔ bzw. ❌ (Twofish und `.kdb` mit Hinweis abgelehnt) |
+| CSV with header row (Bitwarden, LastPass, Chrome, Firefox, NordPass, Dashlane, 1Password, KeePass, Safari …) | ✅ R + U |
+| Bitwarden / Vaultwarden JSON (unencrypted), also OmniVault's own export; passkeys are carried over into Bitwarden accounts | ✅ R + U |
+| Proton Pass JSON (`data.json` from the export) | ✅ U |
+| KeePass 2 XML (KeePass, KeePassXC); custom fields stay fields, groups become folders | ✅ R |
+| Detect format automatically | ✅ U |
+| Target: account and folder selectable | ✅ R |
+| Encrypted exports, ZIP archives (1PUX, Proton ZIP) | ⛔ (export unencrypted or unpacked first) |
+| Open a KeePass database `.kdbx` directly (KDBX 3.1, 4.0, 4.1; AES-KDF, Argon2d, Argon2id; AES-256, ChaCha20; master password and/or key file – XML v1/v2, 32/64 bytes, any file); trash and attachments are not imported and are listed in the report | ✅ R + U ²³ |
+| `.kdbx` with Twofish, KeePass 1 (`.kdb`), writing back to the file | ⛔ or ❌ (Twofish and `.kdb` rejected with a notice) |
 
-²³ `.kdbx`: geprüft gegen Dateien, die das echte KeePassXC (keepassxc-cli 2.7) geschrieben hat, gegen einen unabhängigen
-Python-Schreiber (`test/fixtures/kdbx/generate.py`) und gegen die Beispieldateien aus kdbxweb (MIT); im Browser gegen
-echtes Vaultwarden importiert (`test/e2e-tools.mjs`).
+²³ `.kdbx`: checked against files written by real KeePassXC (keepassxc-cli 2.7), against an independent
+Python writer (`test/fixtures/kdbx/generate.py`) and against the sample files from kdbxweb (MIT); imported into
+real Vaultwarden in the browser (`test/e2e-tools.mjs`).
 
-## Oberfläche
+## Interface
 
-| Funktion | Stand |
+| Feature | Status |
 |---|---|
-| Mehrere Konten gleichzeitig, auch vom selben Anbieter | ✅ R |
-| Kontofarbe und Kürzel an jedem Eintrag | ✅ R |
-| Passende Einträge zur aktuellen Seite oben | ✅ R |
-| Suche über Name, Benutzer, Adresse, Ordner, Konto; Filter nach Typ und Favoriten | ✅ R |
-| Schnellkopie: Benutzer, Passwort, TOTP | ✅ R |
-| Detailansicht mit allen Feldern, verdeckte Werte auf Anfrage, Live-TOTP | ✅ R |
-| Editor: Logins, Notizen, Karten, Identitäten, Zusatzfelder (Text, verborgen, Ja/Nein), mehrere Adressen | ✅ R |
-| „Neuer Ordner …“ direkt im Ordnerfeld | ✅ R |
-| Teilen-Dialog (Passbolt): Personen und Gruppen suchen, Rechte Lesen/Bearbeiten/Besitzer | ✅ R |
-| „Ordner „…“ teilen …“ (Passbolt, im Menü eines Eintrags): Rechte des Ordners; dieselbe Änderung gilt für eigene Unterordner und Einträge darin, neue Leser bekommen die Geheimnisse verschlüsselt; fremde Einträge bleiben unverändert | ✅ R (echter Passbolt, Browsertest) |
-| „In Organisation verschieben …“ (Bitwarden): Organisation und Sammlungen wählen | ✅ R (echtes Vaultwarden, Browsertest) |
-| „Sammlungen ändern …“ (Bitwarden-Organisationseintrag): schreibgeschützte Sammlungen sichtbar, aber gesperrt | ✅ R (echtes Vaultwarden, Browsertest) |
-| Passwortgenerator (Zeichenklassen, ohne Verwechsler, PIN, Stärkeanzeige), Liste zuletzt erzeugter Passwörter; Passwörter verdeckt, Anzeigen per Auge | ✅ R + U |
-| Helles und dunkles Erscheinungsbild (folgt dem System), eigene Strich-Icons | ✅ |
-| Tastaturbedienung: Menüs mit Pfeiltasten, Esc geht zurück | ✅ R |
-| Zurück/Vorwärts zwischen Ansichten wie im Browser: Pfeile im Kopf, Alt+←/→ (Mac: ⌘[ / ⌘]), Maustasten 4/5; Formulare behalten beim Zurückkehren ihre Eingaben | ✅ R (echtes Popup) |
-| Einstellungen listen alle Konten mit Status; sperren, entsperren, bearbeiten, entfernen | ✅ R |
-| Einheitliche Kontrollkästchen in allen Ansichten (Browsertest prüft die Größe) | ✅ R |
-| Muster-Identitäten: erfundene Daten (E-Mail unter example.com, keine Ausweisnummern) im Neu-Menü und im Editor | ✅ R + U |
-| Nach einer Berechtigungsabfrage (Popup schließt sich) geht es an derselben Stelle weiter, ohne Passwörter zu merken | ✅ R |
+| Several accounts at once, also from the same provider | ✅ R |
+| Account color and initials on every entry | ✅ R |
+| Entries matching the current page at the top | ✅ R |
+| Search by name, username, address, folder, account; filter by type and favorites | ✅ R |
+| Quick copy: username, password, TOTP | ✅ R |
+| Detail view with all fields, hidden values on request, live TOTP | ✅ R |
+| Editor: logins, notes, cards, identities, custom fields (text, hidden, yes/no), multiple addresses | ✅ R |
+| "New folder …" directly in the folder field | ✅ R |
+| Share dialog (Passbolt): search people and groups, permissions read/edit/owner | ✅ R |
+| "Share folder "…" …" (Passbolt, in an entry's menu): the folder's permissions; the same change applies to own subfolders and entries in it, new readers receive the secrets encrypted; other people's entries stay unchanged | ✅ R (real Passbolt, browser test) |
+| "Move to organization …" (Bitwarden): choose organization and collections | ✅ R (real Vaultwarden, browser test) |
+| "Change collections …" (Bitwarden organization entry): read-only collections visible but locked | ✅ R (real Vaultwarden, browser test) |
+| Password generator (character classes, without ambiguous characters, PIN, strength meter), list of recently generated passwords; passwords hidden, revealed via the eye icon | ✅ R + U |
+| Light and dark appearance (follows the system), custom line icons | ✅ |
+| Keyboard navigation: menus with arrow keys, Esc goes back | ✅ R |
+| Back/forward between views as in the browser: arrows in the header, Alt+←/→ (Mac: ⌘[ / ⌘]), mouse buttons 4/5; forms keep their input when you return | ✅ R (real popup) |
+| Settings list all accounts with status; lock, unlock, edit, remove | ✅ R |
+| Consistent checkboxes in all views (the browser test checks the size) | ✅ R |
+| Sample identities: made-up data (email under example.com, no ID numbers) in the New menu and in the editor | ✅ R + U |
+| After a permission prompt (the popup closes) you continue at the same place, without passwords being remembered | ✅ R |
 
-## Sprachen
+## Languages
 
-Deutsch, Englisch, Spanisch, Französisch, Italienisch, Portugiesisch (Brasilien), Chinesisch (vereinfacht) und
-Japanisch. Ohne Einstellung gilt die Sprache des Browsers (bei anderen Sprachen Englisch); gefragt wird nicht.
-Einstellungen → Darstellung → Sprache wechselt sofort.
+German, English, Spanish, French, Italian, Portuguese (Brazil), Chinese (Simplified) and
+Japanese. Without a setting, the browser's language applies (English for other languages); there is no prompt.
+Settings → Appearance → Language switches immediately.
 
-| Funktion | Stand |
+| Feature | Status |
 |---|---|
-| Popup, Seitenleiste, Fenster, Liste im Anmeldefeld, „Login speichern?“ | ✅ R (alle Sprachen durchgeklickt) |
-| Meldungen aus dem Hintergrund und der Anbieter, Kontextmenü, Texte des lokalen Hosts | ✅ U |
-| Name, Beschreibung und Tastenkürzel im Browser (`_locales`) | ✅ R |
-| Mehrzahl nach den Regeln der Sprache (`Intl.PluralRules`), Datum und Uhrzeit (`Intl.DateTimeFormat`) | ✅ U |
-| Sprachwahl als Raster (Tastatur: Pfeiltasten in beiden Richtungen, Pos1/Ende, Esc) | ✅ R |
-| Übersetzungen im Verwendungskontext formuliert (Knopf, Hinweis, Fehlermeldung), mit den üblichen Begriffen der Passwortmanager je Sprache | ✅ |
-| Übersetzung durch Muttersprachler geprüft | ❌ (alle Übersetzungen außer Deutsch sind maschinell erstellt) |
-| Sprachen mit Schrift von rechts nach links | ❌ (nicht angeboten) |
+| Popup, sidebar, window, list in the login field, "Save login?" | ✅ R (clicked through in all languages) |
+| Messages from the background and the providers, context menu, texts of the local host | ✅ U |
+| Name, description and keyboard shortcuts in the browser (`_locales`) | ✅ R |
+| Plurals according to the rules of the language (`Intl.PluralRules`), date and time (`Intl.DateTimeFormat`) | ✅ U |
+| Language picker as a grid (keyboard: arrow keys in both directions, Home/End, Esc) | ✅ R |
+| Translations worded for the context of use (button, hint, error message), with the usual password manager terms in each language | ✅ |
+| Translation reviewed by native speakers | ❌ (all translations except German are machine-generated) |
+| Right-to-left languages | ❌ (not offered) |
 
-## Browser
+## Browsers
 
-| Funktion | Chrome / Chromium | Firefox |
+| Feature | Chrome / Chromium | Firefox |
 |---|---|---|
-| Toolbar-Popup | ✅ R (echtes Popup getestet) | ✅ R (echtes Popup über das Browserfenster geöffnet, feste Größe 380 × 560; Firefox 158) |
-| Eigenes Fenster, Seitenleiste; Wechsel Fenster ↔ Seitenleiste in beide Richtungen | ✅ R | ✅ R (echte Seitenleiste per Symbol öffnen und schließen; Übergabe Fenster → Seitenleiste: Symbol öffnet sie, das Fenster schließt sich) |
-| Ausfüllen per Klick, Tastenkürzel, Kontextmenü (auch „Sicheres Passwort einfügen“) | ✅ R (Kürzel und Kontextmenü mit echten Tastatur- und Mauseingaben) | ✅ R (Kontextmenü per Rechtsklick geöffnet, Eintrag über das Browserfenster gewählt; Kürzel unter Xvfb als echte Taste, headless über den registrierten Befehl) |
-| Karten und Identitäten in Zahlungs- und Adressformulare ausfüllen | ✅ S | ✅ S |
-| OmniVault-Knopf in Anmeldefeldern mit passenden Logins (Opt-in) | ✅ S | ✅ S |
-| „Login speichern?“ / „Passwort aktualisieren?“ nach dem Anmelden (Opt-in) | ✅ S | ✅ S |
-| Auto-Sperre (Zeit, Bildschirmsperre), Zwischenablage leeren | ✅ | ✅ (Sperre nach Inaktivität über den Alarm der Event-Page und Leeren der Zwischenablage automatisch geprüft; Bildschirmsperre nicht) |
-| Schlüsselableitung (Argon2) in einem Worker: OmniVault reagiert währenddessen, Speicher danach frei | ✅ S (Offscreen-Dokument mit Worker; Entsperren mit 1 GiB, KeePass-Datei mit 256 MiB im Popup) | ✅ S (Worker der Event-Page; Entsperren mit 256 MiB) |
-| Native-Host für CLI-Anbieter | ✅ R | ✅ S (Manifest in `~/.mozilla/native-messaging-hosts` mit `allowed_extensions`; Firefox startet den Host, Proton Pass über simuliertes `pass-cli`) |
-| Passkeys: Seite fragt → OmniVault-Dialog (anlegen in neuem oder vorhandenem Login, anmelden, „anderes Gerät oder Browser“), Opt-in | ✅ R (Prüfseite mit unabhängiger Signaturprüfung, Passkeys gegen echtes Vaultwarden); manuell auf webauthn.io bestätigt | ✅ S (Prüfseite mit unabhängiger Signaturprüfung: anlegen, anmelden, abbrechen; simulierter Server); manuell auf webauthn.io bestätigt (19.10.2026) |
-| Passkeys in der Liste eines `username webauthn`-Felds (bedingte Anfrage, „conditional mediation“) | ✅ S | ✅ S |
-| Gesperrtes Konto: Dialog bietet Entsperren an, wenn dort ein Passkey für die Seite liegen kann | ✅ S | ✅ S |
-| Passkeys in eingebetteten Frames anderer Origins, nur mit Permissions Policy (`allow="publickey-credentials-get"` / `-create`), Dialog im obersten Frame mit Frame und Seite, `crossOrigin`/`topOrigin` in `clientDataJSON` | ✅ S (zwei Origins: mit Policy bedient OmniVault, ohne Policy und bei manipulierter Policy im Seitenskript antwortet der Browser; Prüfseite kontrolliert `crossOrigin`/`topOrigin`) | – (Firefox kann Policy und Vorfahren eines Frames nicht bestätigen: der Browser übernimmt, geprüft) |
-| Passkey-Erweiterungen: `credProps` beantwortet; PRF und largeBlob abgelehnt (`prf.enabled: false`, `largeBlob.supported: false`) | ✅ S | ✅ (gleicher Code) |
+| Toolbar popup | ✅ R (real popup tested) | ✅ R (real popup opened via the browser window, fixed size 380 × 560; Firefox 158) |
+| Separate window, sidebar; switching window ↔ sidebar in both directions | ✅ R | ✅ R (real sidebar opened and closed via its icon; handover window → sidebar: the icon opens it, the window closes) |
+| Fill by click, keyboard shortcut, context menu (also "Insert secure password") | ✅ R (shortcuts and context menu with real keyboard and mouse input) | ✅ R (context menu opened by right-click, item chosen via the browser window; shortcut as a real key under Xvfb, headless via the registered command) |
+| Fill cards and identities into payment and address forms | ✅ S | ✅ S |
+| OmniVault button in login fields with matching logins (opt-in) | ✅ S | ✅ S |
+| "Save login?" / "Update password?" after signing in (opt-in) | ✅ S | ✅ S |
+| Auto-lock (time, screen lock), clearing the clipboard | ✅ | ✅ (lock after inactivity via the event page's alarm and clipboard clearing checked automatically; screen lock not) |
+| Key derivation (Argon2) in a worker: OmniVault stays responsive meanwhile, memory freed afterwards | ✅ S (offscreen document with worker; unlocking with 1 GiB, KeePass file with 256 MiB in the popup) | ✅ S (event page worker; unlocking with 256 MiB) |
+| Native host for CLI providers | ✅ R | ✅ S (manifest in `~/.mozilla/native-messaging-hosts` with `allowed_extensions`; Firefox starts the host, Proton Pass via simulated `pass-cli`) |
+| Passkeys: site asks → OmniVault dialog (create in a new or existing login, sign in, "other device or browser"), opt-in | ✅ R (test page with independent signature verification, passkeys against real Vaultwarden); confirmed manually on webauthn.io | ✅ S (test page with independent signature verification: create, sign in, cancel; simulated server); confirmed manually on webauthn.io (2026-10-19) |
+| Passkeys in the list of a `username webauthn` field (conditional request, "conditional mediation") | ✅ S | ✅ S |
+| Locked account: the dialog offers unlocking if a passkey for the site may be stored there | ✅ S | ✅ S |
+| Passkeys in embedded frames of other origins, only with Permissions Policy (`allow="publickey-credentials-get"` / `-create`), dialog in the top-level frame with frame and page, `crossOrigin`/`topOrigin` in `clientDataJSON` | ✅ S (two origins: with policy OmniVault answers; without policy and with a policy manipulated in the page script the browser answers; the test page checks `crossOrigin`/`topOrigin`) | – (Firefox cannot confirm a frame's policy and ancestors: the browser takes over, checked) |
+| Passkey extensions: `credProps` answered; PRF and largeBlob declined (`prf.enabled: false`, `largeBlob.supported: false`) | ✅ S | ✅ (same code) |
 
-## Was gegenüber den offiziellen Apps noch fehlt
+## Still missing compared to the official apps
 
-| Funktion | Grund |
+| Feature | Reason |
 |---|---|
-| Passkeys in eingebetteten Frames in Firefox | Firefox gibt Erweiterungen keine sichere Auskunft über Permissions Policy und Vorfahren eines Frames; der Browser übernimmt diese Anfragen |
-| Passkey-Erweiterungen PRF und largeBlob | das Bitwarden-Format der Passkeys hat kein Feld für das PRF-Geheimnis oder den Blob; die Bitwarden-Apps würden beides verwerfen |
-| Passkeys für 1Password, LastPass, Dashlane, Proton Pass | deren Kommandozeilenprogramme geben die Schlüssel nicht heraus |
-| Dashlane: Einträge anlegen, ändern, löschen | das offizielle `dcli` kann nur lesen |
-| Bitwarden: Notfallzugriff einladen, annehmen, bestätigen, freigeben, übernehmen | nur in den Bitwarden-Apps; OmniVault kann als Vertrauensperson nur anfordern und ansehen. Die Übernahme setzt das Master-Passwort eines anderen neu und bleibt bewusst außen vor |
-| Bitwarden: Rechte in einer Organisation verwalten (Mitglieder, Gruppen, Rechte je Sammlung) | nicht umgesetzt; Sammlungen eines Eintrags ändert OmniVault |
-| Bitwarden: WebAuthn- und Duo-Zweitfaktor, SSO | brauchen den Web-Tresor des Anbieters als Gegenstelle; Ausweg API-Schlüssel |
-| Passbolt: Duo, Kontowiederherstellung | Duo geht mit OmniVaults JWT-Anmeldung nicht ohne neue Berechtigung: Prompt (`POST /mfa/verify/duo/prompt`) und Rückruf (`/mfa/verify/duo/callback`) verlangen das Zugriffstoken im `Authorization`-Header, das ein Tab nicht mitsendet (gegen Passbolt CE 5.16 geprüft: ohne Header 403, mit Header erreicht der Prompt den Duo-Healthcheck), und die Weiterleitungsadresse zu Duo kann der Hintergrund nicht lesen (`redirect: 'manual'` liefert in Chrome und Firefox eine leere `opaqueredirect`-Antwort, `follow` scheitert an CORS bei Duo). Möglich wäre es mit `webRequest` oder `declarativeNetRequestWithHostAccess`. Die Kontowiederherstellung gibt es nur in Passbolt Pro |
-| Entsperren nach Browser-Neustart ohne Master-Passwort | bewusst nicht: die versiegelten Sitzungen liegen nur im Arbeitsspeicher |
+| Passkeys in embedded frames in Firefox | Firefox gives extensions no reliable information about a frame's Permissions Policy and ancestors; the browser handles these requests |
+| Passkey extensions PRF and largeBlob | the Bitwarden passkey format has no field for the PRF secret or the blob; the Bitwarden apps would discard both |
+| Passkeys for 1Password, LastPass, Dashlane, Proton Pass | their command-line programs do not hand out the keys |
+| Dashlane: create, edit, delete entries | the official `dcli` can only read |
+| Bitwarden: invite, accept, confirm, approve, take over emergency access | only in the Bitwarden apps; as a trusted contact OmniVault can only request and view. Takeover resets someone else's master password and is deliberately left out |
+| Bitwarden: manage permissions in an organization (members, groups, permissions per collection) | not implemented; OmniVault changes an entry's collections |
+| Bitwarden: WebAuthn and Duo second factor, SSO | require the provider's web vault as a counterpart; workaround: API key |
+| Passbolt: Duo, account recovery | Duo does not work with OmniVault's JWT sign-in without a new permission: the prompt (`POST /mfa/verify/duo/prompt`) and the callback (`/mfa/verify/duo/callback`) require the access token in the `Authorization` header, which a tab does not send (checked against Passbolt CE 5.16: without the header 403, with the header the prompt reaches the Duo health check), and the background cannot read the redirect address to Duo (`redirect: 'manual'` returns an empty `opaqueredirect` response in Chrome and Firefox, `follow` fails due to CORS at Duo). It would be possible with `webRequest` or `declarativeNetRequestWithHostAccess`. Account recovery only exists in Passbolt Pro |
+| Unlocking after a browser restart without the master password | deliberately not: the sealed sessions are kept in memory only |

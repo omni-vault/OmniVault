@@ -1,32 +1,32 @@
-# Web-Demo des Popups
+# Web demo of the popup
 
-Die Projektseite (omni-vault.github.io) zeigt das **echte Popup** der Erweiterung, nicht einen Nachbau. Popup und
-Hintergrund laufen unverändert als ES-Module in einer Webseite; ausgetauscht werden nur zwei Dateien:
+The project site (omni-vault.github.io) shows the extension's **real popup**, not a replica. Popup and
+background run unmodified as ES modules in a web page; only two files are replaced:
 
-| Datei im Demo-Build | Quelle | Zweck |
+| File in the demo build | Source | Purpose |
 |---|---|---|
-| `src/lib/browser.js` | `demo/browser.js` | die genutzten `chrome.*`-APIs, im selben Fenster; Speicher im `sessionStorage` des Tabs |
-| `src/providers/registry.js` | aus dem echten `registry.js` erzeugt | Anbieter mit den echten Metadaten (Name, Kontoformular, Fähigkeiten), aber simulierten Tresoren (`demo/vault.js`) |
+| `src/lib/browser.js` | `demo/browser.js` | the `chrome.*` APIs in use, in the same window; storage in the tab's `sessionStorage` |
+| `src/providers/registry.js` | generated from the real `registry.js` | providers with the real metadata (name, account form, capabilities), but simulated vaults (`demo/vault.js`) |
 
-Dazu kommen Beispielkonten und -einträge (`demo/data.js`), eine neutrale Beispielseite zum Ausfüllen (`demo/page.html`,
-example.com) und eine Browser-Symbolleiste drumherum (`demo/index.html`). Die Beispielseite liegt hinter dem Knopf
-„Show sample website“ und wird automatisch eingeblendet, wenn das Popup ausfüllt: „Ausfüllen“ führt die echte
-`fillInPage`- bzw. `fillFormInPage`-Funktion darin aus. Das Popup bleibt offen und schließt sich nur über das
-OmniVault-Symbol. Eingebettet meldet `index.html` der umgebenden Seite per `postMessage`
-(`{ omnivaultDemo: 'layout', expanded }`), ob die Beispielseite offen ist, damit diese mehr Platz gibt.
+On top of that come sample accounts and entries (`demo/data.js`), a neutral sample page for filling (`demo/page.html`,
+example.com) and a browser toolbar around it (`demo/index.html`). The sample page is behind the button
+"Show sample website" and is shown automatically when the popup fills: "Fill" runs the real
+`fillInPage` or `fillFormInPage` function in it. The popup stays open and only closes via the
+OmniVault icon. When embedded, `index.html` tells the surrounding page via `postMessage`
+(`{ omnivaultDemo: 'layout', expanded }`) whether the sample page is open, so that it can make more room.
 
 ```bash
-npm run build:demo        # → dist/demo (keine Abhängigkeiten, kein Bundler)
-python3 -m http.server -d dist/demo 8765   # ES-Module brauchen http://, nicht file://
+npm run build:demo        # → dist/demo (no dependencies, no bundler)
+python3 -m http.server -d dist/demo 8765   # ES modules need http://, not file://
 ```
 
-Für die Projektseite den Inhalt von `dist/demo` nach `demo/` im Repository `omni-vault.github.io` kopieren.
+For the project site, copy the contents of `dist/demo` to `demo/` in the repository `omni-vault.github.io`.
 
-Hinweise:
+Notes:
 
-- Jeder Tab startet mit vier entsperrten Konten (Bitwarden, Passbolt, 1Password, KeePassXC). Gesperrte Konten
-  lassen sich mit einem beliebigen Passwort entsperren; neu angelegte Konten sind leer.
-- `demo/build.mjs` bricht ab, wenn sich `popup.html` oder die Importe in `registry.js` so ändern, dass der Austausch
-  nicht mehr greift.
-- Nicht in der Demo: Seitenleiste (der Browser „bietet keine an“), Inhaltsskripte (Knopf im Anmeldefeld, „Login
-  speichern?“, Passkeys auf Webseiten) und echte Server.
+- Every tab starts with four unlocked accounts (Bitwarden, Passbolt, 1Password, KeePassXC). Locked accounts
+  can be unlocked with any password; newly created accounts are empty.
+- `demo/build.mjs` aborts if `popup.html` or the imports in `registry.js` change in a way that the replacement
+  no longer works.
+- Not in the demo: sidebar (the browser "does not offer one"), content scripts (button in the login field, "Save
+  login?", passkeys on websites) and real servers.

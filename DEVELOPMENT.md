@@ -1,212 +1,216 @@
-# OmniVault – Entwicklung
+# OmniVault – Development
 
-Browser-Erweiterung (Chrome und Firefox, Manifest V3), die mehrere Passwortmanager in einer Oberfläche
-zusammenführt: Einträge aus allen Konten suchen, kopieren und auf Webseiten ausfüllen (auf Wunsch mit Knopf im
-Anmeldefeld und „Login speichern?“), Passkeys anlegen und damit anmelden (in Bitwarden-/Vaultwarden-Konten, im
-Format der Bitwarden-Apps), Einträge zwischen Konten kopieren, verschieben und spiegeln, Duplikate und schwache
-Passwörter finden, Exporte anderer Manager importieren und alles wieder exportieren.
+Browser extension (Chrome and Firefox, Manifest V3) that brings several password managers together in one interface:
+search entries from all accounts, copy them and fill them in on websites (optionally with a button in the login field
+and "Save login?"), create passkeys and sign in with them (in Bitwarden/Vaultwarden accounts, in the format of the
+Bitwarden apps), copy, move and mirror entries between accounts, find duplicates and weak passwords, import exports
+from other managers and export everything again.
 
-| Anbieter | Anbindung | Stand |
+| Provider | Connection | Status |
 |---|---|---|
-| Bitwarden (bitwarden.com, bitwarden.eu) | direkt, Entschlüsselung im Browser | lesen und schreiben, gegen echtes Vaultwarden getestet |
-| Vaultwarden / selbst gehostetes Bitwarden | direkt | wie oben |
-| Passbolt v4 und v5 | direkt, OpenPGP im Browser | lesen, schreiben, teilen; gegen echten Passbolt CE 5.16 getestet |
-| HashiCorp Vault / OpenBao (KV v2) | direkt über die HTTP-API, Token oder userpass | lesen, schreiben, Papierkorb; gegen echtes OpenBao 2.7.1 getestet |
-| pass (password-store) | lokaler Host → `pass` + GnuPG | lesen und schreiben, gegen echtes pass getestet |
-| gopass | lokaler Host → `gopass` + GnuPG | lesen und schreiben, Speicher als Ordner; gegen echtes gopass 1.17.4 getestet |
-| 1Password | lokaler Host → offizielles `op` | lesen und schreiben, gegen simuliertes CLI getestet |
-| LastPass | lokaler Host → offizielles `lpass` | lesen und schreiben, gegen simuliertes CLI getestet |
-| Dashlane | lokaler Host → offizielles `dcli` | nur lesen (dcli kann nicht schreiben); gegen simuliertes CLI, ohne Konto gegen echtes dcli 6.2642.0 getestet |
-| KeePassXC | KeePassXCs Browser-Schnittstelle über `keepassxc-proxy` | Logins lesen, anlegen, ändern, löschen; gegen simulierten KeePassXC getestet |
-| Proton Pass | lokaler Host → offizielles `pass-cli` | zurückgestellt: Proton gibt das CLI nur für kostenpflichtige Tarife frei |
-| KeePass-Dateien, Browser und andere | Dateiimport (KeePass-Datenbank `.kdbx`, CSV, JSON, KeePass-XML) | in ein beliebiges beschreibbares Konto |
+| Bitwarden (bitwarden.com, bitwarden.eu) | direct, decryption in the browser | read and write, tested against real Vaultwarden |
+| Vaultwarden / self-hosted Bitwarden | direct | as above |
+| Passbolt v4 and v5 | direct, OpenPGP in the browser | read, write, share; tested against real Passbolt CE 5.16 |
+| HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash; tested against real OpenBao 2.7.1 |
+| pass (password-store) | local host → `pass` + GnuPG | read and write, tested against real pass |
+| gopass | local host → `gopass` + GnuPG | read and write, stores as folders; tested against real gopass 1.17.4 |
+| 1Password | local host → official `op` | read and write, tested against a simulated CLI |
+| LastPass | local host → official `lpass` | read and write, tested against a simulated CLI |
+| Dashlane | local host → official `dcli` | read only (dcli cannot write); tested against a simulated CLI, and without an account against real dcli 6.2642.0 |
+| KeePassXC | KeePassXC's browser interface via `keepassxc-proxy` | read, create, edit, delete logins; tested against a simulated KeePassXC |
+| Proton Pass | local host → official `pass-cli` | on hold: Proton only offers the CLI on paid plans |
+| KeePass files, browsers and others | file import (KeePass database `.kdbx`, CSV, JSON, KeePass XML) | into any writable account |
 
-- **Stand je Funktion und Anbieter:** [FEATURES.md](FEATURES.md)
-- **Lokaler Host für pass, gopass, 1Password, LastPass, Dashlane, Proton:** [native/README.md](native/README.md)
-- Fremdsoftware und Lizenzen: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- **Status by feature and provider:** [FEATURES.md](FEATURES.md)
+- **Local host for pass, gopass, 1Password, LastPass, Dashlane, Proton:** [native/README.md](native/README.md)
+- Third-party software and licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
-OmniVault ist ein unabhängiges Projekt und nicht mit Bitwarden Inc., Passbolt S.A., Proton AG, AgileBits Inc.
-(1Password), LastPass US LP, Dashlane SAS, HashiCorp oder der Linux Foundation (OpenBao) verbunden. Alle genannten Marken gehören ihren Inhabern.
+OmniVault is an independent project and is not affiliated with Bitwarden Inc., Passbolt S.A., Proton AG, AgileBits Inc.
+(1Password), LastPass US LP, Dashlane SAS, HashiCorp or the Linux Foundation (OpenBao). All trademarks mentioned belong to their owners.
 
-## Bauen
+## Building
 
 ```bash
 npm install
 npm run build        # → dist/chrome, dist/firefox
-npm run package      # baut und packt dist/packages/: Chrome-, Firefox- und Quellpaket (reproduzierbar) + SHA256SUMS
-npm test             # Unit-Tests: Krypto-Testvektoren, simulierte Server und CLIs, Import, Werkzeuge
-npm run test:cli     # pass und gopass (echt, mit gpg), 1Password, LastPass und Dashlane (simulierte CLIs) über den Host
-npm run test:e2e     # Erweiterung in Chromium: Popup als Tab, eigenes Fenster (Playwright)
-npm run test:popup   # echtes Toolbar-Popup über CDP; mit `xvfb-run -a` sichtbar statt headless
-npm run test:proton  # Proton Pass: Chromium → Native Messaging → Host → simuliertes pass-cli
-npm run test:vaultwarden  # startet ein lokales Vaultwarden und testet Provider, Werkzeuge, Import, Anhänge, Send, Organisationen
-                          # (Verschieben, Sammlungen) und den automatischen Abgleich über einen Neustart des Service Workers
-                          # Send: Links werden wie von Empfängern geöffnet und mit test/send-check.py (Python, `cryptography`) entschlüsselt
-npm run test:vaultwarden-sso  # Vaultwarden mit SSO gegen einen lokalen OIDC-Anbieter: Anmeldung, Master-Passwort, Erneuerung
-npm run test:login        # Duo und SSO im Tab (simulierte Server), mit echtem Toolbar-Popup; mit `xvfb-run -a` sichtbar
-npm run test:emergency    # Bitwarden-Notfallzugriff (Vertrauensperson, nur Ansehen) gegen den simulierten Server;
-                          # gegen echtes Vaultwarden läuft derselbe Test in test:vaultwarden mit
-npm run test:passbolt     # richtet einen lokalen Passbolt CE ein (PostgreSQL) und testet Provider und Teilen dagegen
-npm run test:openbao      # startet ein lokales OpenBao (Dev-Modus, Port 8820) und testet Provider und Browser dagegen
-npm run test:inline       # Knopf im Anmeldefeld, „Login speichern?“, Karten ausfüllen
-npm run test:i18n         # Sprachen: Browsersprache, Sprachwahl, alle Ansichten in allen Sprachen + Pseudosprache
-npm run test:passkeys     # Passkeys: Testseite mit Prüfung auf dem Server, OmniVault-Dialog, Rückfall auf den Browser,
-                          # eingebettete Frames (zwei Origins, mit und ohne Permissions Policy)
-npm run test:argon2       # Argon2 im Worker: Entsperren mit 512 MiB (ARGON2_MIB=1024) und KeePass mit 256 MiB, während
-                          # andere Nachrichten beantwortet werden; Zwischenablage leeren währenddessen und danach
-npm run test:hibp         # Prüfung gegen Datenlecks: Zustimmung zuerst, nur 5-stellige Präfixe (Dienst simuliert)
-npm run test:shortcuts    # Tastenkürzel und Kontextmenü mit echten X11-Eingaben (sichtbarer Browser unter Xvfb)
-npm run test:firefox      # dieselben Funktionen in Firefox (WebDriver BiDi, siehe unten)
+npm run package      # builds and packs dist/packages/: Chrome, Firefox and source package (reproducible) + SHA256SUMS
+npm test             # unit tests: crypto test vectors, simulated servers and CLIs, import, tools
+npm run test:cli     # pass and gopass (real, with gpg), 1Password, LastPass and Dashlane (simulated CLIs) via the host
+npm run test:e2e     # extension in Chromium: popup as a tab, separate window (Playwright)
+npm run test:popup   # real toolbar popup via CDP; visible instead of headless with `xvfb-run -a`
+npm run test:proton  # Proton Pass: Chromium → native messaging → host → simulated pass-cli
+npm run test:vaultwarden  # starts a local Vaultwarden and tests provider, tools, import, attachments, Send, organizations
+                          # (moving, collections) and automatic sync across a service worker restart
+                          # Send: links are opened as a recipient would and decrypted with test/send-check.py (Python, `cryptography`)
+npm run test:vaultwarden-sso  # Vaultwarden with SSO against a local OIDC provider: sign-in, master password, renewal
+npm run test:login        # Duo and SSO in a tab (simulated servers), with a real toolbar popup; visible with `xvfb-run -a`
+npm run test:emergency    # Bitwarden emergency access (trusted contact, view only) against the simulated server;
+                          # the same test runs against real Vaultwarden as part of test:vaultwarden
+npm run test:passbolt     # sets up a local Passbolt CE (PostgreSQL) and tests provider and sharing against it
+npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it
+npm run test:inline       # button in the login field, "Save login?", filling cards
+npm run test:i18n         # languages: browser language, language picker, every view in every language + pseudo-locale
+npm run test:passkeys     # passkeys: test page with server-side verification, OmniVault dialog, fallback to the browser,
+                          # embedded frames (two origins, with and without Permissions Policy)
+npm run test:argon2       # Argon2 in a worker: unlocking with 512 MiB (ARGON2_MIB=1024) and KeePass with 256 MiB while
+                          # other messages are answered; clearing the clipboard during and after
+npm run test:hibp         # data breach check: consent first, only 5-character prefixes (service simulated)
+npm run test:shortcuts    # keyboard shortcuts and context menu with real X11 input (visible browser under Xvfb)
+npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see below)
 ```
 
-Die e2e-Skripte nehmen den Pfad zu Playwright als erstes Argument, falls es nicht im Projekt installiert ist.
-`test:popup` prüft die feste Popup-Größe; das gelingt nur mit sichtbarem Browser (`xvfb-run -a npm run test:popup`).
-`test:vaultwarden` lädt beim ersten Lauf ein statisches Vaultwarden-Linux-Binary (Fremd-Build, Hash geprüft, siehe
-`test/vaultwarden-server.sh`); mit `VAULTWARDEN_BIN=/pfad/zu/vaultwarden` nutzt es ein eigenes. Die GnuPG-Gegenproben
-in `npm test` brauchen ein installiertes `gpg`, sonst werden sie übersprungen; die pass-Tests laufen mit
-`OMNIVAULT_PASS_BIN=/pfad/zu/pass`, die gopass-Tests mit `OMNIVAULT_GOPASS_BIN=/pfad/zu/gopass` oder
-`OMNIVAULT_GOPASS_DOWNLOAD=1` (lädt das gepinnte Release 1.17.4, Hash geprüft, siehe `test/gopass-bin.sh`). Die Dashlane-Tests laufen mit einem simulierten `dcli`; mit
-`OMNIVAULT_DCLI_DOWNLOAD=1` (bzw. `OMNIVAULT_DCLI_BIN_REAL=/pfad/zu/dcli`) prüft ein Test zusätzlich das echte Release 6.2642.0
-ohne Konto (Hash geprüft, siehe `test/dcli-bin.sh`). `test:passbolt` braucht PHP ≥ 8.2 (mit `phpize`), Composer, git, einen C-Compiler,
-GnuPG mit libgpgme und die PostgreSQL-Programme; Paketquellen, packagist.org und pecl.php.net sind nicht nötig. Passbolt CE
-5.16.0 und seine Abhängigkeiten kommen aus ihren Git-Quellen (Commits gepinnt: Tag bzw. `composer.lock`); fehlt PHP die
-gnupg-Erweiterung, baut das Skript php-gnupg 1.5.4 einmalig gegen die vorhandene libgpgme (Header aus den Git-Quellen von
-libgpg-error 1.47 und gpgme 1.18.0 erzeugt, alle Commits geprüft). Erster Lauf ca. 3–4 Minuten, danach etwa 1,5 Minuten
-(Details in `test/passbolt-server.sh`). `test:openbao` lädt beim ersten Lauf das offizielle
-OpenBao-Release 2.7.1 für Linux amd64 (Hash geprüft, siehe `test/openbao-server.sh`); mit `OPENBAO_BIN=/pfad/zu/bao`
-nutzt es ein eigenes.
+The e2e scripts take the path to Playwright as their first argument if it is not installed in the project.
+`test:popup` checks the fixed popup size; this only works with a visible browser (`xvfb-run -a npm run test:popup`).
+On its first run, `test:vaultwarden` downloads a static Vaultwarden Linux binary (third-party build, hash verified, see
+`test/vaultwarden-server.sh`); with `VAULTWARDEN_BIN=/path/to/vaultwarden` it uses your own. The GnuPG cross-checks
+in `npm test` need an installed `gpg`, otherwise they are skipped; the pass tests run with
+`OMNIVAULT_PASS_BIN=/path/to/pass`, the gopass tests with `OMNIVAULT_GOPASS_BIN=/path/to/gopass` or
+`OMNIVAULT_GOPASS_DOWNLOAD=1` (downloads the pinned release 1.17.4, hash verified, see `test/gopass-bin.sh`). The Dashlane tests run with a simulated `dcli`; with
+`OMNIVAULT_DCLI_DOWNLOAD=1` (or `OMNIVAULT_DCLI_BIN_REAL=/path/to/dcli`) one test additionally checks the real release 6.2642.0
+without an account (hash verified, see `test/dcli-bin.sh`). `test:passbolt` needs PHP ≥ 8.2 (with `phpize`), Composer, git, a C compiler,
+GnuPG with libgpgme and the PostgreSQL programs; package repositories, packagist.org and pecl.php.net are not needed. Passbolt CE
+5.16.0 and its dependencies come from their Git sources (commits pinned: tag or `composer.lock`); if PHP lacks the
+gnupg extension, the script builds php-gnupg 1.5.4 once against the existing libgpgme (headers generated from the Git sources of
+libgpg-error 1.47 and gpgme 1.18.0, all commits verified). First run takes about 3–4 minutes, afterwards about 1.5 minutes
+(details in `test/passbolt-server.sh`). On its first run, `test:openbao` downloads the official
+OpenBao release 2.7.1 for Linux amd64 (hash verified, see `test/openbao-server.sh`); with `OPENBAO_BIN=/path/to/bao`
+it uses your own.
 
-**Firefox-Test** (`test/e2e-firefox.mjs`): Playwrights Firefox kann keine Erweiterungen laden, deshalb startet der
-Test ein gewöhnliches Firefox ≥ 140 und steuert es über WebDriver BiDi (`test/firefox-bidi.mjs`, ohne Zusatzpakete,
-Node ≥ 22). Die Erweiterung wird temporär installiert (`webExtension.install`, keine Signatur nötig). Mit
-`-remote-allow-system-access` erreicht der Test auch das Browserfenster selbst: Toolbar-Popup, Seitenleiste,
-Tastenkürzel, Kontextmenü, Browserkonsole. `npm run test:firefox` lädt beim ersten Lauf ein Firefox 158 (Fremd-Build
-als AppImage, das Mozillas offizielles Release-Archiv unverändert enthält; Hash geprüft, siehe `test/firefox.sh`);
-mit `FIREFOX_BIN=/pfad/zu/firefox` nutzt es ein eigenes. Headless reicht; unter `xvfb-run -a` läuft Firefox sichtbar,
-und Strg+Umschalt+L wird als echte X11-Taste gedrückt.
+**Firefox test** (`test/e2e-firefox.mjs`): Playwright's Firefox cannot load extensions, so the test starts a regular
+Firefox ≥ 140 and controls it via WebDriver BiDi (`test/firefox-bidi.mjs`, no extra packages,
+Node ≥ 22). The extension is installed temporarily (`webExtension.install`, no signature needed). With
+`-remote-allow-system-access` the test also reaches the browser window itself: toolbar popup, sidebar,
+keyboard shortcuts, context menu, browser console. On its first run, `npm run test:firefox` downloads Firefox 158 (third-party build
+as an AppImage that contains Mozilla's official release archive unchanged; hash verified, see `test/firefox.sh`);
+with `FIREFOX_BIN=/path/to/firefox` it uses your own. Headless is sufficient; under `xvfb-run -a` Firefox runs visibly,
+and Ctrl+Shift+L is pressed as a real X11 key.
 
-**Argon2 im Worker** (`src/lib/argon2.js`): Bitwarden-Argon2id, die PIN-Ableitung und KeePass-Argon2 rechnen in
-einem eigenen dedizierten Worker (`argon2-worker.js`), der nach der Ableitung beendet wird – sein WebAssembly-Speicher
-ist damit sofort frei. Firefox startet ihn direkt aus der Event-Page, das Popup ebenso; Chromes Service Worker kann
-keine Worker starten und nutzt dafür das Offscreen-Dokument (Gründe `CLIPBOARD` und `WORKERS`). Chrome erlaubt nur ein
-Offscreen-Dokument: `src/lib/offscreen.js` öffnet es für den ersten Nutzer (Zwischenablage leeren oder Ableitung),
-teilt es und schließt es nach dem letzten. Ohne Worker (Node-Tests, alte Browser) wird wie bisher direkt gerechnet.
+**Argon2 in a worker** (`src/lib/argon2.js`): Bitwarden Argon2id, the PIN derivation and KeePass Argon2 run in
+a separate dedicated worker (`argon2-worker.js`) that is terminated after the derivation – which frees its WebAssembly
+memory immediately. Firefox starts it directly from the event page, and so does the popup; Chrome's service worker cannot
+start workers and uses the offscreen document instead (reasons `CLIPBOARD` and `WORKERS`). Chrome only allows one
+offscreen document: `src/lib/offscreen.js` opens it for the first user (clearing the clipboard or a derivation),
+shares it and closes it after the last one. Without workers (Node tests, old browsers) the computation runs directly as before.
 
-Gemessen mit `npm run test:argon2` (Chromium, 2 CPUs, Argon2id t=3, p=4; `ARGON2_MIB=1024`, Standard 512): eine
-Ableitung dauert wie zuvor etwa 0,7 s (64 MiB) bis 8–9 s (1 GiB). Vorher warteten andere Nachrichten an den
-Hintergrund so lange (bei 1 GiB bis 9,0 s), jetzt werden sie nebenher beantwortet (162 Nachrichten, Median 5 ms,
-höchstens 0,25 s beim Öffnen des Offscreen-Dokuments). Der Speicher des Browsers lag 3 s nach einer 1-GiB-Ableitung
-vorher um 1,1 GiB höher (die alte WebAssembly-Instanz wartete auf die Speicherbereinigung), jetzt um 70 MiB. In
-Firefox (256 MiB) wartete eine andere Nachricht vorher bis 2,1 s, jetzt höchstens 30 ms. Eine KeePass-Datenbank mit
-256 MiB Argon2d hielt das Popup vorher 2,8 s an („Entschlüssele …“ stand still), jetzt höchstens 25 ms.
+Measured with `npm run test:argon2` (Chromium, 2 CPUs, Argon2id t=3, p=4; `ARGON2_MIB=1024`, default 512): a
+derivation still takes about 0.7 s (64 MiB) to 8–9 s (1 GiB). Previously, other messages to the
+background waited that long (up to 9.0 s at 1 GiB); now they are answered in the meantime (162 messages, median 5 ms,
+at most 0.25 s while the offscreen document opens). 3 s after a 1 GiB derivation, browser memory used to be
+1.1 GiB higher (the old WebAssembly instance was waiting for garbage collection); now it is 70 MiB higher. In
+Firefox (256 MiB), another message used to wait up to 2.1 s, now at most 30 ms. A KeePass database with
+256 MiB Argon2d used to freeze the popup for 2.8 s ("Decrypting …" stood still), now at most 25 ms.
 
-Kryptografie kommt aus etablierten Open-Source-Bibliotheken – OpenPGP.js (LGPL), argon2id (MIT), die
-Argon2-Referenzimplementierung (CC0/Apache-2.0, für Argon2d in KeePass-Dateien) und für XChaCha20-Poly1305, ChaCha20 und
-Salsa20 @noble/ciphers (MIT), alle als separate Dateien in `vendor/` – und aus WebCrypto. Sonst gibt es keine Laufzeitabhängigkeiten. Bibliotheken neu bauen
-(normalerweise nicht nötig, die Ergebnisse liegen im Repository):
+Cryptography comes from established open-source libraries – OpenPGP.js (LGPL), argon2id (MIT), the
+Argon2 reference implementation (CC0/Apache-2.0, for Argon2d in KeePass files) and, for XChaCha20-Poly1305, ChaCha20 and
+Salsa20, @noble/ciphers (MIT), all as separate files in `vendor/` – and from WebCrypto. There are no other runtime dependencies. Rebuilding the libraries
+(normally not necessary, the results are in the repository):
 
 ```bash
-npm run vendor:fetch   # klont die Quellen an den Commits aus vendor/sources.json und prüft die Hashes
-npm run vendor:build   # baut alle Dateien in vendor/ (braucht clang mit wasm32-Ziel)
+npm run vendor:fetch   # clones the sources at the commits from vendor/sources.json and verifies the hashes
+npm run vendor:build   # builds all files in vendor/ (needs clang with the wasm32 target)
 ```
 
-## Sprachen
+## Languages
 
-Die Oberfläche gibt es auf Deutsch, Englisch, Spanisch, Französisch, Italienisch, Portugiesisch (Brasilien),
-Chinesisch (vereinfacht) und Japanisch. Ohne Einstellung gilt die Browsersprache; Einstellungen → Darstellung →
-Sprache wählt eine andere.
+The interface is available in German, English, Spanish, French, Italian, Portuguese (Brazil),
+Chinese (Simplified) and Japanese. Without a setting, the browser language applies; Settings → Appearance →
+Language selects another one.
 
-Der deutsche Text im Code ist zugleich der Schlüssel: `t('Konto hinzufügen')`, `tn(n, '{n} Eintrag', '{n} Einträge')`.
-Die Übersetzungen liegen in `src/i18n/locales/<sprache>.json`. Neue oder geänderte Texte findet
-`npm run i18n:keys`; `npm test` meldet fehlende, veraltete und falsch übersetzte Einträge.
+**The source strings of the user interface are written in German, and the German text is the translation key.**
+Every user-visible string in the code is German: `t('Konto hinzufügen')`, `tn(n, '{n} Eintrag', '{n} Einträge')`,
+`mark('…')` for strings that are translated later, and the German text in the HTML pages (translated by walking the DOM).
+These German strings must not be translated in place – changing one changes the key and breaks every translation of it.
+The translations, including English, are in `src/i18n/locales/<language>.json`. `npm run i18n:keys` finds new or changed
+strings; `npm test` reports missing, outdated and incorrectly translated entries. Everything else in the repository
+(documentation, code comments, command-line output) is in English.
 
-Was die Qualitätssicherung prüft:
+What quality assurance checks:
 
-- **Vollständigkeit:** Jeder Text, den der Code verwendet (aus `t()`, `tn()`, `tx()`, den HTML-Seiten und dem
-  Manifest gesammelt), ist in jeder Sprache vorhanden; nichts Veraltetes bleibt liegen.
-- **Platzhalter und Mehrzahl:** `{name}` usw. stimmen überein; Mehrzahlformen passen zu den Regeln der Sprache.
-- **Reste:** keine deutschen Wörter oder Umlaute in Übersetzungen, kein HTML; kein deutscher Text im Code außerhalb von
+- **Completeness:** every string the code uses (collected from `t()`, `tn()`, `tx()`, the HTML pages and the
+  manifest) exists in every language; nothing outdated is left behind.
+- **Placeholders and plurals:** `{name}` etc. match; plural forms fit the rules of the language.
+- **Leftovers:** no German words or umlauts in translations, no HTML; no German text in the code outside of
   `t()`.
-- **Pseudosprache** (`qps`, nur für Tests): markiert jeden übersetzten Text (⟦…⟧) und macht ihn 40 % länger. Der
-  Browsertest klickt damit alle Ansichten durch und meldet jeden unmarkierten Text (am Übersetzer vorbei) sowie
-  abgeschnittene Knöpfe, Reiter und Überschriften.
-- **Jede Sprache im Browser:** dieselben Ansichten in allen acht Sprachen, ohne waagrechtes Scrollen und abgeschnittene
-  Bedienelemente; dazu ein Kontaktabzug aller Bildschirme (`index.html` im Screenshot-Ordner) zur Durchsicht.
-- **Sprachwahl:** Browsersprache ohne Rückfrage, Tastaturbedienung des Rasters, sofortiger Wechsel, Meldungen des
-  Hintergrunds in der gewählten Sprache, Datumsformat.
+- **Pseudo-locale** (`qps`, tests only): marks every translated string (⟦…⟧) and makes it 40 % longer. The
+  browser test clicks through every view with it and reports every unmarked string (one that bypassed the translator) as well as
+  truncated buttons, tabs and headings.
+- **Every language in the browser:** the same views in all eight languages, without horizontal scrolling or truncated
+  controls; plus a contact sheet of all screens (`index.html` in the screenshot folder) for review.
+- **Language picker:** browser language without asking, keyboard navigation of the grid, immediate switching, messages from the
+  background in the selected language, date format.
 
-Nicht automatisch prüfbar sind Ton, Fachbegriffe und Sinn: Die Übersetzungen sind maschinell erstellt und sollten vor
-einer Veröffentlichung von Muttersprachlern anhand des Kontaktabzugs gegengelesen werden.
+Tone, terminology and meaning cannot be checked automatically: the translations are machine-generated and should be
+proofread by native speakers using the contact sheet before a release.
 
-## Laden
+## Loading
 
-- **Chrome, Edge, Brave:** `chrome://extensions` → Entwicklermodus → „Entpackte Erweiterung laden“ → `dist/chrome`
-- **Firefox (≥ 140):** `about:debugging#/runtime/this-firefox` → „Temporäres Add-on laden“ → `dist/firefox/manifest.json`
+- **Chrome, Edge, Brave:** `chrome://extensions` → Developer mode → "Load unpacked" → `dist/chrome`
+- **Firefox (≥ 140):** `about:debugging#/runtime/this-firefox` → "Load Temporary Add-on" → `dist/firefox/manifest.json`
 
-## Aufbau
+## Structure
 
 ```
 src/
-  background/        Router, Kontenspeicher, Autofill, Werkzeuge (hält als einziger Schlüssel und Klartext)
-  popup/             Oberfläche – bekommt Geheimnisse nur auf Anforderung (Kopieren, Anzeigen, Ausfüllen)
-    icons.js         eigene Strich-Icons (SVG)
+  background/        router, account store, autofill, tools (the only part that holds keys and plaintext)
+  popup/             interface – receives secrets only on request (copy, reveal, fill)
+    icons.js         custom line icons (SVG)
   providers/
-    provider.js      Schnittstelle für alle Anbieter
-    native-host.js   gemeinsamer Native-Messaging-Transport und Basisklasse für CLI-Anbieter
-    bitwarden/       API, Krypto, Provider (deckt Vaultwarden ab)
-    passbolt/        JWT-Login, MFA, v4/v5-Ressourcen, Ordner, Geheimnisse bei Bedarf entschlüsseln
-    vault/           HashiCorp Vault / OpenBao: KV v2, Token/userpass, Check-and-Set, Papierkorb über undelete
-    pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   dünne Provider über den Host
-  content/inline.js  Inhaltsskript (Opt-in): Knopf im Anmeldefeld, „Login speichern?“
-  inline/            Liste und Speichern-Leiste als Erweiterungsseiten in iframes
-  lib/               TOTP, URL-Abgleich, Generator, Duplikate, Import (inkl. KeePass-Datenbanken), Export, Passwortprüfung, PIN-Sperre
-  i18n/              Sprachwahl, t()/tn()/tx(), Übersetzungen (locales/*.json)
-tools/i18n-extract.mjs  sammelt alle Texte für die Übersetzung
-tools/store-screenshots.mjs  Bildschirmfotos (1280 × 800) aus der Web-Demo: `npm run build:demo`, dann
-                     `node tools/store-screenshots.mjs <Zielordner> [Playwright-Pfad] [en,de]`
-native/              ein Host für alle CLI-Anbieter (Python 3, nur Standardbibliothek), Installer, Selbsttest
-vendor/              OpenPGP.js, argon2id, Argon2-Referenz, @noble/ciphers, TweetNaCl (separate Dateien), Quellen-Manifest, Build-Skripte
+    provider.js      interface for all providers
+    native-host.js   shared native messaging transport and base class for CLI providers
+    bitwarden/       API, crypto, provider (also covers Vaultwarden)
+    passbolt/        JWT login, MFA, v4/v5 resources, folders, decrypting secrets on demand
+    vault/           HashiCorp Vault / OpenBao: KV v2, token/userpass, check-and-set, trash via undelete
+    pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   thin providers via the host
+  content/inline.js  content script (opt-in): button in the login field, "Save login?"
+  inline/            list and save bar as extension pages in iframes
+  lib/               TOTP, URL matching, generator, duplicates, import (incl. KeePass databases), export, password check, PIN lock
+  i18n/              language selection, t()/tn()/tx(), translations (locales/*.json)
+tools/i18n-extract.mjs  collects all strings for translation
+tools/store-screenshots.mjs  screenshots (1280 × 800) from the web demo: `npm run build:demo`, then
+                     `node tools/store-screenshots.mjs <output folder> [Playwright path] [en,de]`
+native/              one host for all CLI providers (Python 3, standard library only), installer, self-test
+vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, TweetNaCl (separate files), source manifest, build scripts
 ```
 
-## Sicherheit in Kürze
+## Security in brief
 
-- Master-Passwörter werden nie gespeichert. Entschlüsselte Schlüssel liegen nur in `storage.session` (Arbeitsspeicher)
-  und verschwinden beim Sperren, nach der eingestellten Inaktivität, bei Bildschirmsperre und beim Beenden des Browsers.
-- Die Hintergrundseite beantwortet nur Nachrichten von eigenen Erweiterungsseiten; die Inhaltsskripte dürfen nur
-  wenige Aufrufe nutzen, keiner liefert Geheimnisse. Ausfüllen nur per Klick, mit Rückfrage, wenn die Adresse nicht passt;
-  die Liste im Anmeldefeld füllt nur Logins der Seite aus.
-- Entsperren mit PIN: Beim Sperren werden die Sitzungen mit einem öffentlichen Schlüssel versiegelt; den privaten
-  öffnet nur die PIN (Argon2id). Das Siegel liegt nur im Arbeitsspeicher, fünf Fehlversuche verwerfen es. Deshalb
-  genügen 4 bis 12 Ziffern: Ohne das Siegel nützt die PIN nichts, und nach einem Browser-Neustart gilt wieder das
-  Master-Passwort.
-- Passkeys: Die Seite erfährt nichts über Konten; sie bekommt nur ihren eigenen Passkey zurück. Origin und rpId
-  nimmt OmniVault aus der Adresse des Tabs (rpId-Prüfung mit der Public Suffix List), private Schlüssel verlassen den
-  Hintergrund nur verschlüsselt zum Server und erreichen nie die Oberfläche. Für gesperrte Konten liegen nur
-  gesalzene Hashes der Seiten mit Passkeys vor.
-- Passkeys in eingebetteten Frames: Ein fremder Frame darf WebAuthn nur nutzen, wenn ihm die Seite darüber das per
-  Permissions Policy erlaubt (`allow="publickey-credentials-get"` bzw. `-create`). Diese Erlaubnis darf OmniVault
-  nicht dem Seitenskript glauben, das der Frame selbst manipulieren kann. Deshalb prüft der Hintergrund jede
-  Frame-Anfrage selbst: per `scripting.executeScript` in der isolierten Welt genau dieses Frames
-  (`document.featurePolicy.allowsFeature`, `location.ancestorOrigins`, beim Anlegen in fremden Frames
-  `navigator.userActivation.isActive`); die Seite kann diese Welt nicht verändern. Die Origin des Frames muss mit
-  `sender.origin`/`sender.url` übereinstimmen, die oberste Origin mit der Adresse des Tabs, alle Vorfahren müssen
-  sichere Origins sein, und die rpId muss wie sonst zur Origin des Frames passen. Der Dialog öffnet sich immer im
-  obersten Frame und nennt Frame und Seite; `clientDataJSON` enthält `crossOrigin: true` und `topOrigin`, sodass
-  die Website selbst prüfen kann, wo sie eingebettet war. Bedingte Anfragen aus Frames gehen an den Browser.
-  Firefox bietet weder `featurePolicy` noch `ancestorOrigins`: Dort gehen Frame-Anfragen weiterhin an den Browser.
-- Passkey-Erweiterungen PRF und largeBlob bietet OmniVault nicht an (beim Anlegen `prf.enabled: false`,
-  `largeBlob.supported: false`; `largeBlob.support: "required"` geht an den Browser). Das Bitwarden-Format
-  `login.fido2Credentials` hat kein Feld für ein PRF-Geheimnis oder einen Blob (geprüft am Quelltext von
-  Bitwarden-Server und -Clients, Oktober 2026); ein eigenes Feld ginge beim Bearbeiten in den Bitwarden-Apps
-  verloren, und der Passkey lieferte danach still andere PRF-Werte – für Seiten, die damit Daten verschlüsseln,
-  wäre das Datenverlust.
-- Selbst gehostete Server: Die Host-Berechtigung wird erst beim Verbinden angefragt.
-- Passbolt: Der private Schlüssel liegt passphrasegeschützt in `storage.local` (wie in der offiziellen Erweiterung);
-  der Serverschlüssel wird beim ersten Login gemerkt, ändert er sich, bricht die Anmeldung ab. Beim Bearbeiten und
-  Teilen werden Geheimnisse mit den öffentlichen Schlüsseln verschlüsselt, die der Server für die Leser nennt.
-- CLI-Anbieter: Geheimnisse gehen über stdin an die Programme, nie über die Kommandozeile (Ausnahme: Ändern bei
-  Proton Pass, siehe native/README.md).
+- Master passwords are never stored. Decrypted keys are kept only in `storage.session` (memory)
+  and disappear on locking, after the configured inactivity period, on screen lock and when the browser is closed.
+- The background page only answers messages from the extension's own pages; content scripts may only use
+  a few calls, none of which returns secrets. Filling happens only on click, with a confirmation if the address does not match;
+  the list in the login field only fills logins for the page.
+- Unlocking with a PIN: on locking, the sessions are sealed with a public key; the private key is
+  opened only by the PIN (Argon2id). The seal is kept in memory only, and five failed attempts discard it. That is why
+  4 to 12 digits are enough: without the seal the PIN is useless, and after a browser restart the
+  master password is required again.
+- Passkeys: the website learns nothing about accounts; it only gets its own passkey back. OmniVault takes the origin and rpId
+  from the tab's address (rpId check with the Public Suffix List); private keys leave the
+  background only encrypted, to the server, and never reach the interface. For locked accounts only
+  salted hashes of the sites with passkeys are available.
+- Passkeys in embedded frames: a cross-origin frame may only use WebAuthn if the page above it allows this via
+  Permissions Policy (`allow="publickey-credentials-get"` or `-create`). OmniVault must not take the page script's
+  word for this permission, since the frame itself can manipulate it. That is why the background checks every
+  frame request itself: via `scripting.executeScript` in the isolated world of exactly that frame
+  (`document.featurePolicy.allowsFeature`, `location.ancestorOrigins`, and when creating in cross-origin frames
+  `navigator.userActivation.isActive`); the page cannot modify this world. The frame's origin must match
+  `sender.origin`/`sender.url`, the top-level origin must match the tab's address, all ancestors must be
+  secure origins, and the rpId must match the frame's origin as usual. The dialog always opens in the
+  top-level frame and names the frame and the page; `clientDataJSON` contains `crossOrigin: true` and `topOrigin`, so
+  the website itself can check where it was embedded. Conditional requests from frames go to the browser.
+  Firefox offers neither `featurePolicy` nor `ancestorOrigins`: there, frame requests still go to the browser.
+- OmniVault does not offer the passkey extensions PRF and largeBlob (on creation `prf.enabled: false`,
+  `largeBlob.supported: false`; `largeBlob.support: "required"` goes to the browser). The Bitwarden format
+  `login.fido2Credentials` has no field for a PRF secret or a blob (checked against the source code of the
+  Bitwarden server and clients, October 2026); a custom field would be lost when editing in the Bitwarden apps,
+  and the passkey would then silently return different PRF values – for websites that encrypt data with them,
+  that would mean data loss.
+- Self-hosted servers: host permission is only requested when connecting.
+- Passbolt: the private key is stored passphrase-protected in `storage.local` (as in the official extension);
+  the server key is remembered on the first login; if it changes, sign-in is aborted. When editing and
+  sharing, secrets are encrypted with the public keys that the server names for the readers.
+- CLI providers: secrets are passed to the programs via stdin, never on the command line (exception: editing in
+  Proton Pass, see native/README.md).
 
-## Lizenz
+## License
 
 MPL-2.0 ([LICENSE](LICENSE)), © Die OmniVault-Mitwirkenden.
