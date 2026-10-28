@@ -148,12 +148,12 @@ def remove_legacy(dirs):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--chrome-id", action="append", default=[], help="ID der OmniVault-Erweiterung in Chrome (mehrfach möglich)")
+    ap.add_argument("--chrome-id", action="append", default=[], help="ID of the OmniVault extension in Chrome (can be given more than once)")
     ap.add_argument("--firefox-only", action="store_true")
-    ap.add_argument("--chrome-profile-dir", help="nur für Tests: Chromium-Benutzerdatenordner (--user-data-dir)")
+    ap.add_argument("--chrome-profile-dir", help="for tests only: Chromium user data folder (--user-data-dir)")
     ap.add_argument("--uninstall", action="store_true")
-    ap.add_argument("--keepassxc", action="store_true", help="KeePassXC über dessen keepassxc-proxy anbinden")
-    ap.add_argument("--keepassxc-proxy", help="Pfad zu keepassxc-proxy, falls nicht automatisch gefunden")
+    ap.add_argument("--keepassxc", action="store_true", help="connect KeePassXC via its keepassxc-proxy")
+    ap.add_argument("--keepassxc-proxy", help="path to keepassxc-proxy if it is not found automatically")
     a = ap.parse_args()
 
     dirs = manifest_dirs()
@@ -165,7 +165,7 @@ def main():
                 p = os.path.join(d, f"{name}.json")
                 if os.path.exists(p):
                     os.remove(p)
-                    print(f"entfernt: {p}")
+                    print(f"removed: {p}")
         if SYSTEM == "Windows":
             import winreg
             for key in WINDOWS_KEYS["chrome"] + WINDOWS_KEYS["firefox"]:
@@ -178,7 +178,7 @@ def main():
         return
 
     if not a.firefox_only and not a.chrome_id:
-        ap.error("--chrome-id fehlt (oder --firefox-only angeben)")
+        ap.error("--chrome-id is missing (or pass --firefox-only)")
     remove_legacy(dirs)
     written = []
     targets = ([] if a.firefox_only else [("chrome", d) for d in dirs["chrome"]]) + [("firefox", d) for d in dirs["firefox"]]
@@ -186,8 +186,8 @@ def main():
     if a.keepassxc or a.keepassxc_proxy:
         proxy = a.keepassxc_proxy or find_keepassxc_proxy()
         if not proxy or not os.path.isfile(proxy):
-            print("keepassxc-proxy wurde nicht gefunden. Bitte mit --keepassxc-proxy PFAD angeben "
-                  "(bei Flatpak: siehe native/README.md).", file=sys.stderr)
+            print("keepassxc-proxy was not found. Pass it with --keepassxc-proxy PATH "
+                  "(for Flatpak: see native/README.md).", file=sys.stderr)
             sys.exit(1)
         hosts.append({"name": KEEPASSXC_HOST, "proxy": os.path.abspath(proxy), "desc": "OmniVault – KeePassXC (keepassxc-proxy)"})
     for host in hosts:
@@ -213,11 +213,11 @@ def main():
                 p = os.path.join(d, f"{host['name']}.json")
                 write_json(p, chrome if kind == "chrome" else firefox)
                 written.append(p)
-        print(f"KeePassXC-Proxy verwendet: {path}" if "proxy" in host else f"Host installiert: {path}")
+        print(f"Using KeePassXC proxy: {path}" if "proxy" in host else f"Host installed: {path}")
     for w in written:
-        print(f"registriert: {w}")
+        print(f"registered: {w}")
     if not written:
-        print("Kein unterstützter Browser gefunden.", file=sys.stderr)
+        print("No supported browser found.", file=sys.stderr)
         sys.exit(1)
 
 

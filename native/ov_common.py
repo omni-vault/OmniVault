@@ -19,7 +19,9 @@ PATH_ID = re.compile(r"^[A-Za-z0-9 _./@:+=-]{1,512}$")  # entry paths / ids of t
 
 
 class HostError(Exception):
-    """An error whose message is shown to the user as is. `code` lets the extension tell kinds apart
+    """An error whose message is shown to the user. Messages are deliberately German: the extension uses the German
+    text as the translation key (src/providers/native-host.js matches it exactly or by pattern), so do not change a
+    message here without updating that list and the translations. `code` lets the extension tell kinds apart
     (e.g. "conflict"); without it the error is a plain host error."""
 
     def __init__(self, message, code=None):
