@@ -3,5 +3,5 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // BZip2 decompression is deliberately not shipped (rarely used, extra code). OpenPGP.js imports this lazily.
 export default function unbzip2Stream() {
-  throw new Error('BZip2-komprimierte OpenPGP-Nachrichten werden von OmniVault nicht unterstützt');
+  throw new Error('BZip2-compressed OpenPGP messages are not supported by OmniVault');
 }

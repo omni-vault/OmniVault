@@ -8,6 +8,7 @@
 //   credentialId  UUID string, or "b64." + base64url for ids that are not 16 bytes (imported passkeys)
 //   keyValue      PKCS #8 private key, base64url        userHandle  user.id from the site, base64url
 //   counter       "0" (synced passkeys do not count)   discoverable "true" | "false"
+import { t } from '../i18n/index.js';
 import { b64url, concat, fromB64, utf8 } from './bytes.js';
 import { cbor } from './cbor.js';
 
@@ -129,8 +130,8 @@ export async function createPasskey({ rpId, rpName, user, discoverable, clientDa
 
 /** Signs in with a stored passkey: authenticator data and a DER signature over it and the client data hash. */
 export async function signAssertion({ record, clientData, userVerified, counter = 0 }) {
-  if (record.keyAlgorithm && record.keyAlgorithm !== 'ECDSA') throw new Error(`Algorithmus ${record.keyAlgorithm} wird nicht unterstützt`);
-  if (record.keyCurve && record.keyCurve !== 'P-256') throw new Error(`Kurve ${record.keyCurve} wird nicht unterstützt`);
+  if (record.keyAlgorithm && record.keyAlgorithm !== 'ECDSA') throw new Error(t('Passkey-Algorithmus {alg} wird nicht unterstützt', { alg: record.keyAlgorithm }));
+  if (record.keyCurve && record.keyCurve !== 'P-256') throw new Error(t('Passkey-Kurve {curve} wird nicht unterstützt', { curve: record.keyCurve }));
   const key = await subtle.importKey('pkcs8', fromB64(record.keyValue), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const authData = await authenticatorData({ rpId: record.rpId, userVerified, counter });
   const signed = concat(authData, await sha256(clientData));

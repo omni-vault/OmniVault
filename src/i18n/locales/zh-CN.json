@@ -1042,5 +1042,7 @@
  },
  "Notfallzugriff": "紧急访问",
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "服务器未提供紧急访问的密钥。",
- "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "紧急访问的密钥与你的账户不匹配。"
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "紧急访问的密钥与你的账户不匹配。",
+ "Passkey-Algorithmus {alg} wird nicht unterstützt": "不支持通行密钥算法 {alg}",
+ "Passkey-Kurve {curve} wird nicht unterstützt": "不支持通行密钥曲线 {curve}"
 }

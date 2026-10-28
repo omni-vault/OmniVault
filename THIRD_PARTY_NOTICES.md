@@ -65,6 +65,9 @@ themselves.
 | GnuPG (`gpg`) | GPL-3.0-or-later | Used by `pass` for decryption and encryption |
 | [1Password CLI](https://developer.1password.com/docs/cli/) (`op`) | proprietary | Provider 1Password |
 | [lastpass-cli](https://github.com/lastpass/lastpass-cli) (`lpass`) | GPL-2.0-or-later | Provider LastPass |
+| [KeePassXC](https://keepassxc.org) (`keepassxc-proxy`) | GPL-2.0 or GPL-3.0 | Provider KeePassXC: OmniVault registers its own native-messaging manifest that starts KeePassXC's proxy and speaks KeePassXC's documented browser protocol. Not started by the OmniVault host. |
+| [gopass](https://github.com/gopasspw/gopass) (`gopass`) | MIT | Provider gopass (uses GnuPG like `pass`) |
+| [Dashlane CLI](https://github.com/Dashlane/dashlane-cli) (`dcli`) | Apache-2.0 | Provider Dashlane (read only). Only the JSON output format was read from its source code; no code was copied. |
 | [Proton Pass CLI](https://github.com/protonpass/pass-cli) (`pass-cli`) | GPL-3.0 | Provider Proton Pass (on hold). Only the JSON output format was read from the source code of `pass-cli` and `proton-pass-common`; no code was copied. |
 
 ## Downloaded for testing only (not redistributed)

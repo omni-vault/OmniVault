@@ -1042,5 +1042,7 @@
  },
  "Notfallzugriff": "緊急アクセス",
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "サーバーから緊急アクセス用の鍵が返されませんでした。",
- "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "緊急アクセスの鍵があなたのアカウントと一致しません。"
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "緊急アクセスの鍵があなたのアカウントと一致しません。",
+ "Passkey-Algorithmus {alg} wird nicht unterstützt": "パスキーのアルゴリズム {alg} には対応していません",
+ "Passkey-Kurve {curve} wird nicht unterstützt": "パスキーの曲線 {curve} には対応していません"
 }

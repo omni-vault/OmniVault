@@ -1080,5 +1080,7 @@
  },
  "Notfallzugriff": "Emergency access",
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "The server didn't return a key for emergency access.",
- "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "The emergency access key doesn't match your account."
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "The emergency access key doesn't match your account.",
+ "Passkey-Algorithmus {alg} wird nicht unterstützt": "Passkey algorithm {alg} is not supported",
+ "Passkey-Kurve {curve} wird nicht unterstützt": "Passkey curve {curve} is not supported"
 }

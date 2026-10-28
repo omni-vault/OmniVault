@@ -1080,5 +1080,7 @@
  },
  "Notfallzugriff": "Accès d'urgence",
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "Le serveur n'a fourni aucune clé pour l'accès d'urgence.",
- "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La clé de l'accès d'urgence ne correspond pas à votre compte."
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La clé de l'accès d'urgence ne correspond pas à votre compte.",
+ "Passkey-Algorithmus {alg} wird nicht unterstützt": "L’algorithme de clé d’accès {alg} n’est pas pris en charge",
+ "Passkey-Kurve {curve} wird nicht unterstützt": "La courbe de clé d’accès {curve} n’est pas prise en charge"
 }

@@ -11271,7 +11271,7 @@ __export(unbzip2_exports, {
   default: () => unbzip2Stream
 });
 function unbzip2Stream() {
-  throw new Error("BZip2-komprimierte OpenPGP-Nachrichten werden von OmniVault nicht unterst\xFCtzt");
+  throw new Error("BZip2-compressed OpenPGP messages are not supported by OmniVault");
 }
 var init_unbzip2 = __esm({
   "vendor/shims/unbzip2.js"() {

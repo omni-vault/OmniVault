@@ -1080,5 +1080,7 @@
  },
  "Notfallzugriff": "Accesso di emergenza",
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "Il server non ha fornito alcuna chiave per l'accesso di emergenza.",
- "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La chiave dell'accesso di emergenza non corrisponde al tuo account."
+ "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La chiave dell'accesso di emergenza non corrisponde al tuo account.",
+ "Passkey-Algorithmus {alg} wird nicht unterstützt": "L’algoritmo della passkey {alg} non è supportato",
+ "Passkey-Kurve {curve} wird nicht unterstützt": "La curva della passkey {curve} non è supportata"
 }
