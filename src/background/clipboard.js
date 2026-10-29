@@ -1,28 +1,33 @@
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
-// Clears the clipboard after a delay. Chrome's service worker has no DOM, so it uses an offscreen
-// document; Firefox's background page has a DOM and copies directly.
+// Writes to the clipboard from the background (a TOTP code after filling) and clears it after a delay. Chrome's
+// service worker has no DOM, so it uses the offscreen document (reason CLIPBOARD); Firefox's event page has a DOM and
+// copies directly (clipboardWrite permission).
 import { ext } from '../lib/browser.js';
 import { withOffscreen } from '../lib/offscreen.js';
 
 const ALARM = 'clear-clipboard';
 let timer = null;
 
-async function writeEmpty() {
+/** Puts `text` on the clipboard from the background; true if the browser accepted it. */
+export async function writeClipboard(text) {
   if (typeof document !== 'undefined' && document.body) {
     const ta = document.createElement('textarea');
-    ta.value = ' ';
+    ta.value = text;
     document.body.append(ta);
     ta.select();
-    document.execCommand('copy');
-    ta.remove();
-    return;
+    let ok = false;
+    try { ok = document.execCommand('copy'); } finally { ta.value = ''; ta.remove(); }
+    if (!ok && navigator.clipboard?.writeText) ok = await navigator.clipboard.writeText(text).then(() => true, () => false);
+    return ok;
   }
-  if (!ext.offscreen) return;
+  if (!ext.offscreen) return false;
   // shared with a running Argon2 derivation, if any (one offscreen document per extension)
-  await withOffscreen(() => ext.runtime.sendMessage({ target: 'offscreen', type: 'clear-clipboard' }));
+  return !!await withOffscreen(() => ext.runtime.sendMessage({ target: 'offscreen', type: 'write-clipboard', text }));
 }
+
+const writeEmpty = () => writeClipboard(' ');
 
 export async function clearClipboardNow() {
   clearTimeout(timer);

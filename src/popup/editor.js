@@ -4,10 +4,11 @@
 // Create / edit items: logins, notes, cards and identities (where the provider stores them) and custom fields.
 // For other types (SSH keys) the editor changes name, folder, favorite and notes and leaves the rest untouched.
 import { mark } from '../i18n/index.js';
-import { generatePassword } from '../lib/generator.js';
+import { generateSecret, generateUsername } from '../lib/generator.js';
 import { sampleIdentity } from '../lib/sample-identity.js';
 import { openItem } from './detail.js';
 import { openGenerator } from './generator.js';
+import { scanTotpFromTab } from './qrscan.js';
 import { S, accountOf, folderPicker, providerOf, refresh, writableAccounts } from './state.js';
 import { $, TYPE_LABEL, back, badge, call, el, icon, iconButton, show, t, toast, uiLanguage } from './ui.js';
 
@@ -126,19 +127,44 @@ export async function openEditor({ accountId, item = null, preset = {} } = {}) {
   const fieldsSection = el('div', { className: 'fields-edit' }, el('span', { className: 'hint' }, t('Zusatzfelder')), fieldBox,
     el('button', { type: 'button', className: 'link', onclick: () => addField().focus() }, t('+ Feld')));
 
+  const usernameGenerator = () => openGenerator({ kind: 'username', onUse: (u) => { username.value = u; back(); } });
+  const totpHint = el('p', { className: 'hint', 'data-hint': 'totp-scan', hidden: true, style: { marginTop: '-6px' } });
+  const scanBtn = iconButton('qr', t('QR-Code auf der Seite scannen'), { 'data-action': 'scan-qr', onclick: async () => {
+    totpHint.hidden = true;
+    scanBtn.disabled = true;
+    try {
+      const r = await scanTotpFromTab(S.tab);
+      totpIn.value = r.uri;
+      // only fill what is still empty: the QR code names the service and the account
+      if (!name.value.trim() && r.issuer) name.value = r.issuer;
+      if (!username.value.trim() && r.account) username.value = r.account;
+      totpHint.textContent = r.issuer ? t('Einmalcode für {issuer} übernommen', { issuer: r.issuer }) : t('Einmalcode übernommen');
+      totpHint.className = 'hint';
+    } catch (e) {
+      totpHint.textContent = e.message;
+      totpHint.className = 'hint error';
+    } finally {
+      totpHint.hidden = false;
+      scanBtn.disabled = false;
+    }
+  } });
   const loginOnly = el('div', {},
-    el('label', {}, t('Benutzername'), username),
+    el('label', {}, t('Benutzername'), el('div', { className: 'pw-row single' }, username,
+      iconButton('dice', t('Generieren'), { 'aria-label': t('Benutzernamen generieren'), 'data-action': 'generate-username', onclick: () => {
+        try { username.value = generateUsername(S.state.settings?.generator); } catch { usernameGenerator(); } // address or domain still missing
+      }, oncontextmenu: (e) => { e.preventDefault(); usernameGenerator(); } }))),
     el('label', {}, t('Passwort'), el('div', { className: 'pw-row' }, password,
       iconButton('eye', t('Anzeigen'), { 'aria-label': t('Passwort anzeigen'), onclick: (e) => {
         password.type = password.type === 'password' ? 'text' : 'password';
         e.currentTarget.replaceChildren(icon(password.type === 'password' ? 'eye' : 'eyeOff'));
       } }),
       iconButton('dice', t('Generieren'), { 'aria-label': t('Passwort generieren'), onclick: async () => {
-        password.value = generatePassword(S.state.settings?.generator); // stays hidden; the eye shows it
+        password.value = generateSecret(S.state.settings?.generator); // stays hidden; the eye shows it
         call('rememberGenerated', { value: password.value }).catch(() => {});
       }, oncontextmenu: (e) => { e.preventDefault(); openGenerator({ onUse: (pw) => { password.value = pw; back(); } }); } }))),
-    el('p', { className: 'hint', style: { marginTop: '-6px' } }, t('Der Würfel erzeugt ein Passwort nach deinen Generator-Einstellungen; Rechtsklick öffnet den Generator.')),
-    el('label', {}, t('Einmalcode (TOTP)'), totpIn),
+    el('p', { className: 'hint', style: { marginTop: '-6px' } }, t('Die Würfel erzeugen Benutzername und Passwort nach deinen Generator-Einstellungen; Rechtsklick öffnet den Generator.')),
+    el('label', { 'data-field': 'totp' }, t('Einmalcode (TOTP)'), el('div', { className: 'pw-row single' }, totpIn, scanBtn)),
+    totpHint,
     el('div', {}, el('span', { className: 'hint' }, t('Websites')), uriBox,
       el('button', { type: 'button', className: 'link', onclick: () => addUri().focus() }, t('+ Website'))));
 
@@ -162,6 +188,7 @@ export async function openEditor({ accountId, item = null, preset = {} } = {}) {
     typeHint.hidden = !typeHint.textContent || !editable(type);
     fieldsSection.hidden = !caps().fields;
     totpIn.closest('label').hidden = caps().totp === false || (editing && caps().editTotp === false);
+    if (totpIn.closest('label').hidden) totpHint.hidden = true;
     nameLabel.hidden = caps().name === false;
     nameHint.hidden = caps().name !== false;
     name.required = caps().name !== false;

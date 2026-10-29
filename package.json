@@ -29,6 +29,8 @@
     "test:passkeys": "node test/e2e-passkeys.mjs && node test/e2e-passkeys-frames.mjs",
     "test:argon2": "node test/e2e-argon2.mjs",
     "test:hibp": "node test/e2e-hibp.mjs",
+    "test:generator": "node test/e2e-generator.mjs",
+    "wordlist:build": "node tools/wordlist-build.mjs",
     "test:shortcuts": "xvfb-run -a -s \"-screen 0 1400x900x24\" node test/e2e-shortcuts.mjs",
     "test:firefox": "test/firefox.sh test",
     "test:device-unlock": "node test/e2e-device-unlock.mjs",

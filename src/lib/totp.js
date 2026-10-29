@@ -19,6 +19,36 @@ function base32Decode(s) {
   return new Uint8Array(out);
 }
 
+const ALGORITHMS = { SHA1: 'SHA-1', SHA256: 'SHA-256', SHA512: 'SHA-512' };
+
+/**
+ * Strict check of an otpauth:// URI as found in QR codes (Key URI Format): only `otpauth://totp/…`, a valid base32
+ * secret, SHA1/SHA256/SHA512, 6–8 digits, a period of 1–300 s. Returns the parameters plus issuer and account name
+ * from the label; throws with a message for the user otherwise.
+ */
+export function parseOtpauthUri(input) {
+  const text = String(input ?? '').trim();
+  let u;
+  try { u = new URL(text); } catch { u = null; }
+  if (!u || u.protocol.toLowerCase() !== 'otpauth:') throw new Error(t('Kein Einmalcode-QR-Code (otpauth://) gefunden'));
+  if (u.host.toLowerCase() !== 'totp') throw new Error(t('Nur zeitbasierte Einmalcodes (TOTP) werden unterstützt'));
+  const p = u.searchParams;
+  const secret = (p.get('secret') ?? '').toUpperCase().replace(/[\s=]/g, '');
+  if (!secret || !/^[A-Z2-7]+$/.test(secret) || base32Decode(secret).length < 1) throw new Error(t('Der QR-Code enthält kein gültiges Geheimnis'));
+  const algorithm = ALGORITHMS[(p.get('algorithm') ?? 'SHA1').toUpperCase().replace('-', '')];
+  const digits = Number(p.get('digits') ?? 6);
+  const period = Number(p.get('period') ?? 30);
+  if (!algorithm || ![6, 7, 8].includes(digits) || !Number.isInteger(period) || period < 1 || period > 300) {
+    throw new Error(t('Der QR-Code enthält ungültige Parameter'));
+  }
+  let label = '';
+  try { label = decodeURIComponent(u.pathname.replace(/^\//, '')); } catch { label = u.pathname.slice(1); }
+  const colon = label.indexOf(':');
+  const issuer = (p.get('issuer') ?? (colon >= 0 ? label.slice(0, colon) : '')).trim();
+  const account = (colon >= 0 ? label.slice(colon + 1) : label).trim();
+  return { uri: text, secret, algorithm, digits, period, issuer, account };
+}
+
 export function parseTotp(input) {
   if (input.startsWith('otpauth://')) {
     const u = new URL(input);

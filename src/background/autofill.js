@@ -169,7 +169,7 @@ function formValues(item) {
   };
 }
 
-const hostLabel = (origin) => { try { return new URL(origin).host; } catch { return origin; } };
+export const hostLabel = (origin) => { try { return new URL(origin).host; } catch { return origin; } };
 
 /**
  * What every reachable frame of the tab holds. Frames OmniVault may not access (other sites without the site
@@ -229,8 +229,9 @@ function noticeInPage(text, iconUrl) {
   document.documentElement.append(host);
   setTimeout(() => host.remove(), 6000);
 }
-export async function showNotice(tabId, text) {
-  await ext.scripting.executeScript({ target: { tabId, frameIds: [0] }, func: noticeInPage, args: [text, ext.runtime.getURL('icons/icon32.png')] }).catch(() => {});
+/** Shows the note in the top page, or in the frame `frameId` (the one the list in a login field filled). */
+export async function showNotice(tabId, text, frameId = 0) {
+  await ext.scripting.executeScript({ target: { tabId, frameIds: [frameId] }, func: noticeInPage, args: [text, ext.runtime.getURL('icons/icon32.png')] }).catch(() => {});
 }
 
 async function siteAccess() {
@@ -354,3 +355,4 @@ export async function insertIntoFocused(tabId, frameId, value) {
   const [r] = await ext.scripting.executeScript({ target: { tabId, frameIds: [frameId] }, func: insertInPage, args: [value] });
   return r?.result ?? false;
 }
+

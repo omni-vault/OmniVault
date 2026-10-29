@@ -12,7 +12,7 @@ import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { EMAIL, PASSWORD } from './fake-bitwarden.js';
-import { targets } from './popup-cdp.mjs';
+import { attachTarget, targets } from './popup-cdp.mjs';
 import { extensionCopy, launch, startServers } from './servers.mjs';
 
 if (!process.env.DISPLAY) {
@@ -158,6 +158,27 @@ try {
   await contextMenu(portal, '#u', (process.env.OV_MENU_FILL ?? 'Up Up Right Return').split(' '), inner);
   await inner.waitForFunction(() => document.querySelector('#p').value !== '', null, { timeout: 5000 }).catch(() => {});
   check(await inner.inputValue('#u') === 'alice' && await inner.inputValue('#p') === 'gh-pass', 'context menu in the frame fills the embedded login');
+
+  // Alt+Shift+O grants activeTab (this copy of the extension has no <all_urls>): the popup reads a TOTP QR code
+  // from the page via tabs.captureVisibleTab
+  const uri = 'otpauth://totp/Shortcut:bob?secret=JBSWY3DPEHPK3PXP&issuer=Shortcut';
+  await site.goto(`${ORIGIN}/qr.html?text=${encodeURIComponent(uri)}`);
+  await site.bringToFront();
+  await sleep(300);
+  x('key', 'alt+shift+o');
+  const p = await attachTarget(DEBUG_PORT, (t) => t.url === `chrome-extension://${extId}/popup.html`, 'Toolbar-Popup');
+  await p.waitFor(`!!document.querySelector('#btn-new') && !document.querySelector('#view-main').hidden`);
+  await p.evaluate(`document.querySelector('#btn-new').click()`);
+  await p.waitFor(`!document.querySelector('#menu').hidden`);
+  await p.evaluate(`[...document.querySelectorAll('#menu [role=menuitem]')].find((m) => m.textContent.includes('Neuer Login')).click()`);
+  await p.waitFor(`!document.querySelector('#view-edit').hidden`);
+  await p.evaluate(`document.querySelector('#view-edit [data-action=scan-qr]').click()`);
+  await p.waitFor(`!document.querySelector('#view-edit [data-hint=totp-scan]').hidden`, 15000);
+  const scanned = await p.evaluate(`document.querySelector('#view-edit input[name=totp]').value`);
+  const scanHint = await p.evaluate(`document.querySelector('#view-edit [data-hint=totp-scan]').textContent`);
+  check(scanned === uri, `toolbar popup opened by the shortcut scans the QR code on the page (activeTab): "${scanHint}"`);
+  p.close();
+  x('key', 'Escape');
 } catch (e) {
   console.log('FAIL', e.stack ?? e);
   failures++;

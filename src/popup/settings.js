@@ -34,17 +34,18 @@ export async function openSettings() {
   actionOpens.disabled = !sidebarSupported;
   const autoSync = select('autoSyncMinutes', s.autoSyncMinutes, [[0, t('aus')], [5, t('alle {n} Minuten', { n: 5 })], [15, t('alle {n} Minuten', { n: 15 })], [30, t('alle {n} Minuten', { n: 30 })], [60, t('stündlich')]]);
   const sysLock = el('input', { type: 'checkbox', name: 'lockOnSystemLock', checked: s.lockOnSystemLock });
+  const totpCopy = el('input', { type: 'checkbox', name: 'copyTotpAfterFill', checked: !!s.copyTotpAfterFill });
   const commands = await ext.commands?.getAll?.().catch(() => []) ?? [];
   const shortcut = (name) => commands.find((c) => c.name === name)?.shortcut || t('nicht belegt');
 
   const save = async () => {
     S.state.settings = await call('setSettings', { patch: {
       autoLockMinutes: Number(autoLock.value), clipboardSeconds: Number(clip.value), lockOnSystemLock: sysLock.checked,
-      actionOpens: actionOpens.value, autoSyncMinutes: Number(autoSync.value),
+      actionOpens: actionOpens.value, autoSyncMinutes: Number(autoSync.value), copyTotpAfterFill: totpCopy.checked,
     } });
     toast(t('Einstellungen gespeichert'));
   };
-  for (const c of [autoLock, clip, sysLock, actionOpens, autoSync]) c.addEventListener('change', () => save().catch((e) => toast(e.message)));
+  for (const c of [autoLock, clip, sysLock, actionOpens, autoSync, totpCopy]) c.addEventListener('change', () => save().catch((e) => toast(e.message)));
 
   view.replaceChildren(
     el('h2', {}, t('Einstellungen')),
@@ -58,6 +59,7 @@ export async function openSettings() {
     el('label', {}, t('Automatisch sperren nach Inaktivität'), autoLock),
     el('label', { className: 'inline-check' }, sysLock, t('Sperren, wenn der Bildschirm gesperrt wird')),
     el('label', {}, t('Kopierte Werte aus der Zwischenablage entfernen nach'), clip),
+    el('label', { className: 'inline-check' }, totpCopy, t('Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren')),
     pinSection(),
     deviceSection(),
     el('h3', {}, t('Auf Webseiten')),

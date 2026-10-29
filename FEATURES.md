@@ -235,6 +235,10 @@ real Vaultwarden in the browser (`test/e2e-tools.mjs`).
 | "Move to organization …" (Bitwarden): choose organization and collections | ✅ R (real Vaultwarden, browser test) |
 | "Change collections …" (Bitwarden organization entry): read-only collections visible but locked | ✅ R (real Vaultwarden, browser test) |
 | Password generator (character classes, without ambiguous characters, PIN, strength meter), list of recently generated passwords; passwords hidden, revealed via the eye icon | ✅ R + U |
+| Passphrases: 3–20 words from the EFF Large Wordlist (7,776 words), separator, capital letters, digit; strength meter with the exact entropy (12.9 bits per word) | ✅ R + U |
+| Usernames: random word (+ number), plus address (`name+random@domain`), catch-all address (`random@domain`); generated locally, no alias services; die next to the username in the editor | ✅ R + U |
+| Copy the TOTP code after filling (setting, off by default): code on the clipboard, cleared after the usual delay, notice on the page | ✅ R (clipboard read back in Chromium and Firefox) |
+| Scan a TOTP QR code on the page (editor): one screenshot of the visible tab (`captureVisibleTab`, activeTab), decoded locally with jsQR, only valid `otpauth://totp/…` | ✅ R (test page with a QR code; Chromium via the real keyboard shortcut, Firefox after the toolbar button) + U |
 | Light and dark appearance (follows the system), custom line icons | ✅ |
 | Keyboard navigation: menus with arrow keys, Esc goes back | ✅ R |
 | Back/forward between views as in the browser: arrows in the header, Alt+←/→ (Mac: ⌘[ / ⌘]), mouse buttons 4/5; forms keep their input when you return | ✅ R (real popup) |

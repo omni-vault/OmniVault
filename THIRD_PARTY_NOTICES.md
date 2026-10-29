@@ -1,11 +1,11 @@
 # Open-source software and licenses used
 
 License texts: folder [`LICENSES/`](LICENSES/). OmniVault itself is licensed under the MPL-2.0 ([LICENSE](LICENSE)).
-Principle: as little third-party software as possible. Third-party code is only added for cryptography, and only as an established open-source library.
+Principle: as little third-party software as possible. Third-party code is only added for cryptography and, where the browser has nothing comparable, for reading QR codes, and only as an established open-source library.
 
 ## Included in the extension
 
-All five files are kept as **separate, unmodified libraries** in `vendor/` and are imported at runtime,
+All six files are kept as **separate, unmodified libraries** in `vendor/` and are imported at runtime,
 not bundled into OmniVault's own code. They are built reproducibly from the upstream commits pinned in
 [`vendor/sources.json`](vendor/sources.json)
 (`vendor/fetch-sources.sh` verifies the commit hashes, `vendor/build.mjs` builds).
@@ -25,6 +25,7 @@ not bundled into OmniVault's own code. They are built reproducibly from the upst
 | `vendor/argon2.mjs` | [Argon2 reference implementation](https://github.com/P-H-C/phc-winner-argon2) (C sources unmodified, compiled to WebAssembly without threads, minimal libc in `vendor/shims/argon2-ref`) | 20190702 | CC0-1.0 or Apache-2.0 ([text](LICENSES/argon2-ref-CC0-1.0.txt)) | KeePass files (.kdbx 4): key derivation with Argon2d and Argon2id |
 | `vendor/noble-ciphers.mjs` | [@noble/ciphers](https://github.com/paulmillr/noble-ciphers), only `xchacha20poly1305`, `chacha20` and `salsa20` | 1.3.0 (same commit as in OpenPGP.js) | MIT ([text](LICENSES/noble-ciphers-MIT.txt)) | Bitwarden "Encryption V2": older envelopes with XChaCha20-Poly1305; KeePass files: ChaCha20 (content, protected values) and Salsa20 (protected values in KDBX 3.1) – WebCrypto provides neither |
 | `vendor/tweetnacl.mjs` | [TweetNaCl.js](https://github.com/dchest/tweetnacl-js), `nacl-fast.js` unmodified | 1.0.3 | Unlicense ([text](LICENSES/tweetnacl-js-Unlicense.txt)) | KeePassXC: NaCl box (X25519, XSalsa20-Poly1305) for the browser protocol |
+| `vendor/jsqr.mjs` | [jsQR](https://github.com/cozmo/jsQR) (© Cosmo Wolfe and contributors), TypeScript sources unmodified, decoding only (no camera access) | 1.4.0 + later fixes (commit `8e6a036`, 2021-08-24) | Apache-2.0 ([text](LICENSES/jsqr-Apache-2.0.txt)) | Reading a TOTP QR code from a screenshot of the current tab; loaded only when the user scans |
 
 **Differences from the official build:** built with esbuild instead of rollup; the WebAssembly core of argon2id is
 compiled with clang instead of Emscripten, only in the portable variant without SIMD. The SIMD variant is omitted; the library
@@ -45,6 +46,7 @@ XAES-256-GCM), for KeePass files (AES-256-CBC, AES-KDF, SHA-256/512, HMAC-SHA-25
 | File | Source | Date | License | Use |
 |---|---|---|---|---|
 | `vendor/public_suffix_list.dat` → `src/lib/psl-data.js` | [Public Suffix List](https://publicsuffix.org/) (Mozilla Foundation and contributors) | 2026-10-17 (SHA-256 `3d92f70d…25e5f33`, [publicsuffix/list](https://github.com/publicsuffix/list) commit `52b71b3`) | MPL-2.0 (like OmniVault, [LICENSE](LICENSE)) | Registrable domain for site matching and the rpId check for passkeys |
+| `vendor/eff_large_wordlist.txt` → `src/lib/eff-wordlist.js` | [EFF Large Wordlist for passphrases](https://www.eff.org/dice) (Electronic Frontier Foundation, 2016) | `eff_large_wordlist.txt` of 2016-07-18, unchanged (SHA-256 `addd3553…996b903e`; eff.org was not reachable from the build environment, so the file was taken from the mirrors [ulif/diceware](https://github.com/ulif/diceware) `b3138e9` and [dmuth/diceware](https://github.com/dmuth/diceware) `02992c9`, byte-identical, and compared word for word with [micahflee/passphraseme](https://github.com/micahflee/passphraseme) `e305e21`) | CC BY 3.0 US ([text](LICENSES/eff-wordlist-CC-BY-3.0-US.txt)) | Passphrases and random-word usernames in the generator. `src/lib/eff-wordlist.js` holds only the 7,776 words in their original order (dice numbers dropped) and is regenerated with `npm run wordlist:build`, which checks the hash |
 | `test/fixtures/psl-test.txt` | Test cases of the Public Suffix List (`tests/test_psl.txt`, same repository and same commit) | 2026-10-17 | Public domain (CC0) | test only: `test/psl.test.js` checks OmniVault's evaluation against all cases |
 
 `src/lib/psl-data.js` contains only the rules of the list (comments removed, domains in ASCII form) and is
@@ -94,5 +96,7 @@ themselves.
 |---|---|
 | RFC 5869 (HKDF) | Stretching the Bitwarden master key (HMAC from WebCrypto) |
 | RFC 6238 / RFC 4226 | TOTP codes (HMAC from WebCrypto) |
+| Key Uri Format (`otpauth://`, as documented for Google Authenticator) | Checking scanned TOTP QR codes (`parseOtpauthUri`) |
+| ISO/IEC 18004 (QR code) | `test/qr-encode.mjs`: a small encoder used only by the tests to draw QR codes |
 | Bitwarden Security Whitepaper / client API | `src/providers/bitwarden/`: independent, no code from the Bitwarden clients |
 | Passbolt API documentation | `src/providers/passbolt/`: independent, no code from the Passbolt extension |
