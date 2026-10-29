@@ -49,13 +49,16 @@ npm run test:emergency    # Bitwarden emergency access (trusted contact, view on
 npm run test:passbolt     # sets up a local Passbolt CE (PostgreSQL) and tests provider and sharing against it
 npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it
 npm run test:inline       # button in the login field, "Save login?", filling cards
+npm run test:frames       # filling in embedded frames (two origins): question per pair of sites, note in the page,
+                          # hidden frames, same-origin frames, list in the frame, "Save login?" from a frame, cards
 npm run test:i18n         # languages: browser language, language picker, every view in every language + pseudo-locale
 npm run test:passkeys     # passkeys: test page with server-side verification, OmniVault dialog, fallback to the browser,
                           # embedded frames (two origins, with and without Permissions Policy)
 npm run test:argon2       # Argon2 in a worker: unlocking with 512 MiB (ARGON2_MIB=1024) and KeePass with 256 MiB while
                           # other messages are answered; clearing the clipboard during and after
 npm run test:hibp         # data breach check: consent first, only 5-character prefixes (service simulated)
-npm run test:shortcuts    # keyboard shortcuts and context menu with real X11 input (visible browser under Xvfb)
+npm run test:shortcuts    # keyboard shortcuts and context menu with real X11 input (visible browser under Xvfb),
+                          # also in an embedded login frame of another site
 npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see below)
 ```
 
@@ -161,9 +164,9 @@ src/
     passbolt/        JWT login, MFA, v4/v5 resources, folders, decrypting secrets on demand
     vault/           HashiCorp Vault / OpenBao: KV v2, token/userpass, check-and-set, trash via undelete
     pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   thin providers via the host
-  content/inline.js  content script (opt-in): button in the login field, "Save login?"
+  content/inline.js  content script (opt-in, in all frames): button in the login field, "Save login?"
   inline/            list and save bar as extension pages in iframes
-  lib/               TOTP, URL matching, generator, duplicates, import (incl. KeePass databases), export, password check, PIN lock
+  lib/               TOTP, URL matching, choosing the frame to fill (frames.js), generator, duplicates, import (incl. KeePass databases), export, password check, PIN lock
   i18n/              language selection, t()/tn()/tx(), translations (locales/*.json)
 tools/i18n-extract.mjs  collects all strings for translation
 tools/store-screenshots.mjs  screenshots (1280 × 800) from the web demo: `npm run build:demo`, then
@@ -179,6 +182,41 @@ vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, Twe
 - The background page only answers messages from the extension's own pages; content scripts may only use
   a few calls, none of which returns secrets. Filling happens only on click, with a confirmation if the address does not match;
   the list in the login field only fills logins for the page.
+- Filling in embedded frames: login forms (and the card forms of payment providers) often live in a frame of another
+  origin. The background never takes a frame's origin from the page or the message sender: it injects a probe into
+  every frame it may access (`scripting.executeScript` with `allFrames: true` – no `webNavigation` permission needed;
+  frames without access are skipped by the browser) and reads `location.origin` in the extension's isolated world,
+  which the page cannot modify. Each result carries the `frameId`, in Chrome also the `documentId`, which is the
+  target when filling (a frame that navigated meanwhile is not filled); the fill function checks the origin once more.
+  Rules (`src/lib/frames.js`):
+  - a login goes only into a frame whose **own** origin matches it (registrable domain, as for pages) – never because
+    the top page matches; "fill anyway" only reaches the top page's own origin. Order: frames with a password field
+    before username-only ones, then the top frame, same origin, same site, other sites;
+  - hidden frames are never filled: smaller than 40 × 14 px; the field does not intersect the viewport
+    (IntersectionObserver: `display:none`, off-screen, clipped); in Chrome not visible according to IntersectionObserver
+    v2 (transparent, covered, rotated or skewed – the frame's document is observed, so the page's own labels over a
+    field do not count); no answer within 1 s (frames with `visibility:hidden` are not rendered). Firefox has no v2,
+    but `runtime.getFrameId` lets the parent frame report its frame elements: hidden, below the minimum size or less
+    than 80 % opaque. A frame partly covered by another element (e.g. a cookie banner) is not filled in Chrome; the
+    message says the form is covered;
+  - a frame of another site than the page (different registrable domain) needs a confirmation in the OmniVault window,
+    naming both, once per pair of origins (remembered in `storage.local`, can be forgotten in the settings). The
+    frame's origin proves that the form belongs to the login's site, but not that the user wants to sign in to that
+    site inside this page: a page that embeds a (possibly vulnerable) page of another site should not get it filled
+    with one key press. Keyboard shortcut and context menu skip such frames until confirmed and say so in the page.
+    Frames of the same site (`login.example.com` in `www.example.com`) need no confirmation, like Bitwarden, which
+    asks only for frames that do not match the item;
+  - every fill into a frame of another origin shows a note in the page (text only, closed shadow root, nothing to
+    click, so nothing to trick the user into);
+  - cards and identities have no site: they go into every shown frame with matching fields (payment providers split
+    card forms across frames, one per field), only on a click in the OmniVault window (shortcut, context menu and the
+    list in the login field fill logins only), with the same confirmation for frames of other sites and the note;
+  - the button and list in a login field run inside the frame and list the logins of the frame's own site, naming the
+    page around it; no confirmation, since the user picked the login inside that frame, but the background checks the
+    frame's origin and visibility before filling. "Save login?" from a frame stores the frame's origin and opens in the
+    top page;
+  - without site access, the browser's temporary access (`activeTab`) covers only the page's own origin; frames of
+    other sites stay out of reach, and the message says so.
 - Unlocking with a PIN: on locking, the sessions are sealed with a public key; the private key is
   opened only by the PIN (Argon2id). The seal is kept in memory only, and five failed attempts discard it. That is why
   4 to 12 digits are enough: without the seal the PIN is useless, and after a browser restart the

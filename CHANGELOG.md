@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Improvements
+- **Filling in embedded frames**: login forms embedded in a page (for example a bank's or a partner's sign-in in an
+  iframe) and card forms of payment providers can now be filled – with a click, the keyboard shortcut, the context
+  menu and the OmniVault button in the field. A login only goes into a frame whose own website matches it, never
+  because the page around it does; hidden, tiny or covered frames are never filled. For a form of another site than
+  the page, OmniVault asks once per pair of sites (Settings → On websites lets you forget these answers), and every
+  fill into an embedded form shows a short note in the page naming its site. "For this site" in the list now also
+  shows the logins of embedded login forms, marked as such, and "Save login?" works in embedded forms. No new
+  permissions; forms embedded from other sites need the existing access to websites.
+
 ## 0.5.5 – 2026-10-26
 
 ### Improvements

@@ -68,7 +68,7 @@ with a notice.
 - Logins for the current website shown first; search by name, username, address, folder or account
 - One-click copy of username, password and TOTP code; live TOTP codes in the detail view
 - Fill logins with a click or a keyboard shortcut; optional OmniVault button inside login fields and a
-  "Save login?" prompt
+  "Save login?" prompt – also in login and payment forms embedded from other sites (asks once per pair of sites)
 - Create and edit logins, notes, cards and identities, custom fields and folders (as far as each manager supports them)
 - Password generator with strength meter and a history of recently generated passwords
 - Sharing: Passbolt items and folders with people and groups (a shared folder passes the change on to the entries you own inside); Bitwarden / Vaultwarden items by moving them into an organization
@@ -223,7 +223,9 @@ What OmniVault stores and where it sends data is described in detail in the [pri
 - **No telemetry, no OmniVault servers.** OmniVault talks only to your password manager's server or to its official
   local tool. Password checks, imports and exports happen entirely in your browser.
 - **Filling only when you ask.** Websites never receive your entries on their own. OmniVault fills on a click and asks
-  first if the page address doesn't match the entry.
+  first if the page address doesn't match the entry. A login form embedded in a page (an iframe) only gets the logins
+  of its own site, never those of the page around it; hidden or covered frames are never filled, and for a form of
+  another site OmniVault asks once and shows where it filled.
 - **Passkeys are site-bound.** A website only gets its own passkey back; private keys never reach the popup UI and
   leave the background only encrypted, on their way to your server.
 - **Passbolt server pinning.** OmniVault remembers your Passbolt server's key on first sign-in and refuses to sign in

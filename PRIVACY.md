@@ -77,6 +77,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 - **Mirror rules** you create between accounts, the IDs of the entries they copied, a revision date or a hash of each
   copied entry, and the result of the last run (counts and error messages, which can include entry names).
 - **Websites where you chose "never save"** for the "Save login?" prompt (host names).
+- **Embedded forms you allowed:** pairs of website addresses (the page and a login or payment form of another site
+  embedded in it) for which you confirmed filling. Settings → On websites → "Forget" deletes them.
 
 ### Session storage (in memory only, cleared when the browser closes)
 
@@ -87,6 +89,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
   Five wrong attempts delete them.
 - The last ten passwords created with the password generator, so you can look them up again.
 - A login you just submitted on a website, for up to three minutes, while the "Save login?" prompt is offered.
+- For each tab, the frame in which you last opened the list of the OmniVault button (frame number and the address of
+  its website), so that filling goes into that frame.
 - While a Bitwarden-compatible sign-in waits in a tab (Duo or SSO), for up to ten minutes: the step reached, the tab's
   number and the address it should return to, and what the next step needs – after Duo the key derived from your master
   password, after SSO the sign-in tokens. Locking the account or finishing the sign-in deletes it.
@@ -98,15 +102,19 @@ unlocked. They are not written to disk by OmniVault.
 ## Websites
 
 - OmniVault does not read the websites you visit unless you allow it. Filling from the popup, the keyboard shortcut
-  or the context menu only works on the page you are on, and only after you act.
+  or the context menu only works on the page you are on, and only after you act. To find the form, OmniVault looks at
+  the page and the frames embedded in it that it may access (forms, the address of each frame, and whether a frame is
+  visible); this stays in the browser. Without access to websites it only reaches the page's own address, not forms
+  embedded from other sites.
 - If you turn on the OmniVault button in login fields, the "Save login?" prompt or passkeys, OmniVault asks for
-  access to websites. With that access it adds a small script to pages that looks for login forms, shows the
+  access to websites. With that access it adds a small script to pages and the frames embedded in them that looks for login forms, shows the
   OmniVault button, offers to save a login you submit (the user name and password stay in the browser and are only
   saved to the account you pick), and answers passkey requests of the page (and, in Chromium-based browsers, of
   frames embedded in it that the page allows to use passkeys; to check that permission, OmniVault looks at the
   frame's permissions policy and the addresses of the pages around it). The address of the page is used to find
   matching entries. Nothing from the page is sent anywhere unless you save it to one of your accounts.
-- OmniVault fills a login only into the website it belongs to and asks first if the address does not match.
+- OmniVault fills a login only into the website it belongs to and asks first if the address does not match. A login
+  form embedded in a page counts as part of its own website, not of the page around it.
 
 ## Clipboard
 
