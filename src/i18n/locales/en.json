@@ -1098,5 +1098,29 @@
  "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
   "one": "Filling allowed in {n} embedded form from another site.",
   "other": "Filling allowed in {n} embedded forms from other sites."
- }
+ },
+ "Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren": "Nothing is locked with your device – unlock with your master password",
+ "Das Gerät hat keinen gültigen Schlüssel geliefert": "The device did not return a valid key",
+ "Das Gerät hat nicht den passenden Schlüssel geliefert": "The device did not return the matching key",
+ "Firefox erlaubt Erweiterungen keine eigenen Passkeys. Entsperren mit dem Gerät gibt es deshalb nur in Chrome und anderen Chromium-Browsern.": "Firefox doesn't let extensions create passkeys for themselves, so device unlock is only available in Chrome and other Chromium browsers.",
+ "Dieser Browser unterstützt keine Passkeys.": "This browser doesn't support passkeys.",
+ "Dieser Browser unterstützt die nötige Passkey-Erweiterung (PRF) nicht.": "This browser doesn't support the required passkey extension (PRF).",
+ "Abgebrochen, abgelaufen oder vom Gerät abgelehnt.": "Cancelled, timed out or declined by the device.",
+ "Auf diesem Gerät ist OmniVault schon eingerichtet.": "OmniVault is already set up on this device.",
+ "Der Browser erlaubt OmniVault hier keine Passkeys.": "The browser doesn't allow OmniVault to use passkeys here.",
+ "Das Gerät hat keinen Schlüssel geliefert (PRF).": "The device did not return a key (PRF).",
+ "OmniVault entsperren": "Unlock OmniVault",
+ "Dieses Gerät unterstützt die nötige Passkey-Erweiterung (PRF) nicht und lässt sich nicht zum Entsperren verwenden.": "This device doesn't support the required passkey extension (PRF) and can't be used for unlocking.",
+ "Entsperren mit dem Gerät eingerichtet": "Device unlock set up",
+ "Entsperren mit dem Gerät ist eingerichtet. Nach dem automatischen Sperren genügt Windows Hello, Touch ID, das Smartphone oder der Sicherheitsschlüssel; nach einem Neustart des Browsers ist das Master-Passwort nötig.": "Device unlock is on. After an automatic lock, Windows Hello, Touch ID, your phone or your security key is enough; after the browser restarts, you'll need your master password.",
+ "Auch mit Windows Hello, Touch ID, dem Smartphone oder einem Sicherheitsschlüssel lassen sich die Konten nach dem automatischen Sperren wieder öffnen. OmniVault legt dafür einen Passkey für sich selbst an. Nach einem Neustart des Browsers ist das Master-Passwort nötig.": "You can also reopen your accounts after an automatic lock with Windows Hello, Touch ID, your phone or a security key. OmniVault creates a passkey for itself to do this. After the browser restarts, you'll need your master password.",
+ "Anderes Gerät einrichten …": "Set up another device …",
+ "Entsperren mit dem Gerät einrichten …": "Set up device unlock …",
+ "Entsperren mit dem Gerät entfernt": "Device unlock removed",
+ "Gerät entfernen": "Remove device",
+ "Mit Gerät entsperren": "Unlock with device",
+ "Entsperren mit dem Gerät einrichten": "Set up device unlock",
+ "Bitte am Gerät bestätigen: Windows Hello, Touch ID, Smartphone oder Sicherheitsschlüssel.": "Confirm on your device: Windows Hello, Touch ID, your phone or your security key.",
+ "Erneut versuchen": "Try again",
+ "Gesperrt – mit dem Gerät entsperren": "Locked – unlock with your device"
 }

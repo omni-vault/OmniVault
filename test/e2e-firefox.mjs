@@ -84,6 +84,19 @@ try {
   check(await popup.$eval(async () => (await browser.runtime.getBackgroundPage()).location.pathname) === '/_generated_background_page.html', 'event page running (background scripts as module)');
   check(await ff.chrome(`WebExtensionPolicy.getByID('${ADDON}').extension.warnings`).then((w) => w.length === 0), 'Firefox reports no manifest warnings');
 
+  // unlock with the device: Firefox lets extension pages use WebAuthn only for sites in their host permissions, not
+  // for their own origin – so the settings explain instead of offering it
+  await popup.click('#btn-settings');
+  await popup.waitFor('#device-setting p');
+  check((await popup.text('#device-setting')).includes('Firefox erlaubt Erweiterungen keine eigenen Passkeys') && !(await popup.$eval(() => document.querySelector('#device-setting button'))),
+    'settings: device unlock explained, not offered');
+  const ownRp = await popup.$eval(() => navigator.credentials.create({ publicKey: {
+    rp: { name: 'OmniVault' }, user: { id: new Uint8Array(16), name: 'x', displayName: 'x' }, challenge: new Uint8Array(32),
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }], extensions: { prf: {} } } }).then(() => 'created', (e) => e.name));
+  check(ownRp === 'SecurityError', `Firefox still refuses a passkey for the extension's own origin (${ownRp})`);
+  await popup.reload();
+  await popup.waitFor('#empty');
+
   // the real toolbar popup (opened like a click on the icon) and its fixed size
   const openToolbarPopup = () => ff.chrome(`(async () => {
     const ext = WebExtensionPolicy.getByID('${ADDON}').extension;

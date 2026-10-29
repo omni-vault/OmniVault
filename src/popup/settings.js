@@ -5,6 +5,8 @@
 import { ext } from '../lib/browser.js';
 import { PIN_MAX, PIN_MIN, validPin } from '../lib/pin-rules.js';
 import { accountStatus, openAccountForm, openUnlock } from './accounts.js';
+import { runDevice } from './device-flow.js';
+import { deviceUnsupported, forgetCredential } from './device-unlock.js';
 import { requestPermissions } from './resume.js';
 import { S, providerOf, refresh } from './state.js';
 import { languagePicker } from './language.js';
@@ -57,6 +59,7 @@ export async function openSettings() {
     el('label', { className: 'inline-check' }, sysLock, t('Sperren, wenn der Bildschirm gesperrt wird')),
     el('label', {}, t('Kopierte Werte aus der Zwischenablage entfernen nach'), clip),
     pinSection(),
+    deviceSection(),
     el('h3', {}, t('Auf Webseiten')),
     webCheck('inlineMenu', s.inlineMenu, t('OmniVault-Knopf in Anmeldefeldern (passende Logins auswählen)')),
     webCheck('offerSave', s.offerSave, t('Nach dem Anmelden anbieten, neue Logins zu speichern und geänderte Passwörter zu übernehmen')),
@@ -166,6 +169,42 @@ function pinSection() {
         } }, t('PIN entfernen')) : null));
   };
   draw();
+  return box;
+}
+
+/** Unlock with the device (Windows Hello, Touch ID, a phone, a security key): set up or remove. */
+function deviceSection() {
+  const box = el('div', { className: 'pin-setting', id: 'device-setting' });
+  const busy = (b) => { for (const x of box.querySelectorAll('button')) x.disabled = b; };
+  const draw = async () => {
+    const on = S.state.device?.configured;
+    const why = on ? null : await deviceUnsupported();
+    box.replaceChildren(
+      el('p', { className: 'hint' }, on
+        ? t('Entsperren mit dem Gerät ist eingerichtet. Nach dem automatischen Sperren genügt Windows Hello, Touch ID, das Smartphone oder der Sicherheitsschlüssel; nach einem Neustart des Browsers ist das Master-Passwort nötig.')
+        : why ?? t('Auch mit Windows Hello, Touch ID, dem Smartphone oder einem Sicherheitsschlüssel lassen sich die Konten nach dem automatischen Sperren wieder öffnen. OmniVault legt dafür einen Passkey für sich selbst an. Nach einem Neustart des Browsers ist das Master-Passwort nötig.')),
+      why ? null : el('p', { className: 'row', style: { justifyContent: 'flex-start', marginTop: '0' } },
+        el('button', { type: 'button', className: 'secondary', onclick: async () => {
+          busy(true);
+          try {
+            const r = await runDevice('setup');
+            if (r.deferred) return;
+            await refresh();
+            toast(t('Entsperren mit dem Gerät eingerichtet'));
+            await draw();
+          } catch (e) {
+            if (!e.cancelled) await ask(e.message, { ok: t('OK'), cancel: false }); else toast(e.message);
+          } finally { busy(false); }
+        } }, on ? t('Anderes Gerät einrichten …') : t('Entsperren mit dem Gerät einrichten …')),
+        on ? el('button', { type: 'button', className: 'secondary danger-text', onclick: async () => {
+          const { credentialId } = await call('removeDeviceUnlock');
+          forgetCredential(credentialId);
+          await refresh();
+          toast(t('Entsperren mit dem Gerät entfernt'));
+          await draw();
+        } }, t('Gerät entfernen')) : null));
+  };
+  draw().catch((e) => toast(e.message));
   return box;
 }
 

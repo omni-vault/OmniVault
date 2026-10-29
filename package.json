@@ -31,6 +31,7 @@
     "test:hibp": "node test/e2e-hibp.mjs",
     "test:shortcuts": "xvfb-run -a -s \"-screen 0 1400x900x24\" node test/e2e-shortcuts.mjs",
     "test:firefox": "test/firefox.sh test",
+    "test:device-unlock": "node test/e2e-device-unlock.mjs",
     "psl:build": "node tools/psl-build.mjs",
     "i18n:keys": "node tools/i18n-extract.mjs"
   },

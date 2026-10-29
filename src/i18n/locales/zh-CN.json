@@ -1059,5 +1059,29 @@
  "Vergessen": "清除",
  "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
   "other": "已允许在 {n} 个其他网站的嵌入表单中填充。"
- }
+ },
+ "Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren": "当前没有用设备锁定的内容，请使用主密码解锁",
+ "Das Gerät hat keinen gültigen Schlüssel geliefert": "设备未返回有效的密钥",
+ "Das Gerät hat nicht den passenden Schlüssel geliefert": "设备返回的密钥不匹配",
+ "Firefox erlaubt Erweiterungen keine eigenen Passkeys. Entsperren mit dem Gerät gibt es deshalb nur in Chrome und anderen Chromium-Browsern.": "Firefox 不允许扩展为自己创建通行密钥，因此设备解锁仅适用于 Chrome 和其他基于 Chromium 的浏览器。",
+ "Dieser Browser unterstützt keine Passkeys.": "此浏览器不支持通行密钥。",
+ "Dieser Browser unterstützt die nötige Passkey-Erweiterung (PRF) nicht.": "此浏览器不支持所需的通行密钥扩展（PRF）。",
+ "Abgebrochen, abgelaufen oder vom Gerät abgelehnt.": "已取消、已超时或被设备拒绝。",
+ "Auf diesem Gerät ist OmniVault schon eingerichtet.": "此设备上已设置 OmniVault。",
+ "Der Browser erlaubt OmniVault hier keine Passkeys.": "浏览器不允许 OmniVault 在此处使用通行密钥。",
+ "Das Gerät hat keinen Schlüssel geliefert (PRF).": "设备未返回密钥（PRF）。",
+ "OmniVault entsperren": "解锁 OmniVault",
+ "Dieses Gerät unterstützt die nötige Passkey-Erweiterung (PRF) nicht und lässt sich nicht zum Entsperren verwenden.": "此设备不支持所需的通行密钥扩展（PRF），无法用于解锁。",
+ "Entsperren mit dem Gerät eingerichtet": "已设置设备解锁",
+ "Entsperren mit dem Gerät ist eingerichtet. Nach dem automatischen Sperren genügt Windows Hello, Touch ID, das Smartphone oder der Sicherheitsschlüssel; nach einem Neustart des Browsers ist das Master-Passwort nötig.": "已开启设备解锁。自动锁定后只需使用 Windows Hello、Touch ID、手机或安全密钥；重启浏览器后需要主密码。",
+ "Auch mit Windows Hello, Touch ID, dem Smartphone oder einem Sicherheitsschlüssel lassen sich die Konten nach dem automatischen Sperren wieder öffnen. OmniVault legt dafür einen Passkey für sich selbst an. Nach einem Neustart des Browsers ist das Master-Passwort nötig.": "自动锁定后，也可以使用 Windows Hello、Touch ID、手机或安全密钥重新打开账户。为此，OmniVault 会为自己创建一个通行密钥。重启浏览器后需要主密码。",
+ "Anderes Gerät einrichten …": "设置其他设备…",
+ "Entsperren mit dem Gerät einrichten …": "设置设备解锁…",
+ "Entsperren mit dem Gerät entfernt": "已移除设备解锁",
+ "Gerät entfernen": "移除设备",
+ "Mit Gerät entsperren": "使用设备解锁",
+ "Entsperren mit dem Gerät einrichten": "设置设备解锁",
+ "Bitte am Gerät bestätigen: Windows Hello, Touch ID, Smartphone oder Sicherheitsschlüssel.": "请在设备上确认：Windows Hello、Touch ID、手机或安全密钥。",
+ "Erneut versuchen": "重试",
+ "Gesperrt – mit dem Gerät entsperren": "已锁定，请用设备解锁"
 }

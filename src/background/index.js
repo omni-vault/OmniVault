@@ -14,6 +14,7 @@ import { applyLocalFavorites, forgetLocalFavorites, writer } from './favorites.j
 import { clearClipboardNow, handleAlarm as clipboardAlarm, scheduleClipboardClear } from './clipboard.js';
 import { getSettings, setSettings } from './settings.js';
 import { findDuplicates } from '../lib/dupes.js';
+import { createDeviceLock, unsealWithDevice } from '../lib/devicelock.js';
 import { createPinLock, seal, unseal } from '../lib/pinlock.js';
 import { toBitwardenJson, toCsv } from '../lib/export.js';
 import { weakness } from '../lib/strength.js';
@@ -84,16 +85,24 @@ async function lock(id) {
   await store.clearSession(id);
 }
 
-/** Locks every account. With a PIN set up, the open sessions are sealed first so the PIN can reopen them. */
+/**
+ * Locks every account. With a PIN or the device set up, the open sessions are sealed first (once per method, each
+ * with its own key pair) so the PIN or the device can reopen them.
+ */
 async function lockAll() {
-  const { pinLock } = await ext.storage.local.get('pinLock');
-  if (pinLock) {
+  const { pinLock, deviceLock } = await ext.storage.local.get(['pinLock', 'deviceLock']);
+  if (pinLock || deviceLock) {
     const sessions = {};
     for (const a of await store.listAccounts()) {
       const s = await store.getSession(a.id);
       if (s) sessions[a.id] = s;
     }
-    if (Object.keys(sessions).length) await ext.storage.session.set({ pinSealed: await seal(pinLock, sessions), pinAttempts: 0 });
+    if (Object.keys(sessions).length) {
+      await ext.storage.session.set({
+        ...(pinLock ? { pinSealed: await seal(pinLock, sessions), pinAttempts: 0 } : {}),
+        ...(deviceLock ? { deviceSealed: await seal(deviceLock, sessions) } : {}),
+      });
+    }
   }
   for (const a of await store.listAccounts()) await lock(a.id);
 }
@@ -103,6 +112,23 @@ async function pinStatus() {
   const { pinLock } = await ext.storage.local.get('pinLock');
   const { pinSealed } = await ext.storage.session.get('pinSealed');
   return { configured: !!pinLock, sealed: !!(pinLock && pinSealed) };
+}
+async function deviceStatus() {
+  const { deviceLock } = await ext.storage.local.get('deviceLock');
+  const { deviceSealed } = await ext.storage.session.get('deviceSealed');
+  return { configured: !!deviceLock, sealed: !!(deviceLock && deviceSealed) };
+}
+/** Puts back the sessions opened with the PIN or the device; both seals go, whichever opened them. */
+async function restoreSealed(sessions) {
+  await ext.storage.session.remove(['pinSealed', 'pinAttempts', 'deviceSealed']);
+  let n = 0;
+  for (const a of await store.listAccounts()) {
+    if (!sessions[a.id]) continue;
+    await store.setSession(a.id, sessions[a.id]);
+    await ensureSynced(a, true);
+    n++;
+  }
+  return { unlocked: n };
 }
 
 /* ---------- auto-lock ---------- */
@@ -567,7 +593,7 @@ const handlers = {
         canMoveToOrganization: !!c?.organizations?.some((o) => o.collections.some((x) => !x.readOnly)),
       });
     }
-    return { providers: describeProviders(), accounts: out, settings: await getSettings(), pin: await pinStatus() };
+    return { providers: describeProviders(), accounts: out, settings: await getSettings(), pin: await pinStatus(), device: await deviceStatus() };
   },
 
   settings: () => getSettings(),
@@ -932,15 +958,66 @@ const handlers = {
       await ext.storage.session.set({ pinAttempts: pinAttempts + 1 });
       throw new Error(tn(left, '{error} – noch {n} Versuch', '{error} – noch {n} Versuche', { error: e.message }));
     }
-    await ext.storage.session.remove(['pinSealed', 'pinAttempts']);
-    let n = 0;
-    for (const a of await store.listAccounts()) {
-      if (!sessions[a.id]) continue;
-      await store.setSession(a.id, sessions[a.id]);
-      await ensureSynced(a, true);
-      n++;
+    return restoreSealed(sessions);
+  },
+
+  // unlock with the device: the passkey ceremony runs in the interface (it needs a window); only its PRF output comes here
+  /** → the credential ID of a passkey set up before (replaced now), so the interface can let it go. */
+  async setDeviceUnlock({ credentialId, prfSalt, prf, transports }) {
+    const { deviceLock: old } = await ext.storage.local.get('deviceLock');
+    await ext.storage.local.set({ deviceLock: await createDeviceLock({ credentialId, prfSalt, prf, transports }) });
+    await ext.storage.session.remove('deviceSealed');
+    return { replaced: old?.credentialId ?? null };
+  },
+  /** → the credential ID, so the interface can tell the authenticator that the passkey is no longer used. */
+  async removeDeviceUnlock() {
+    const { deviceLock } = await ext.storage.local.get('deviceLock');
+    await ext.storage.local.remove('deviceLock');
+    await ext.storage.session.remove('deviceSealed');
+    return { credentialId: deviceLock?.credentialId ?? null };
+  },
+  /** What the interface needs to ask the authenticator (nothing secret: credential ID, transports, PRF salt). */
+  async deviceUnlockParams() {
+    const { deviceLock } = await ext.storage.local.get('deviceLock');
+    const { deviceSealed } = await ext.storage.session.get('deviceSealed');
+    if (!deviceLock || !deviceSealed) throw new Error(t('Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren'));
+    return { credentialId: deviceLock.credentialId, prfSalt: deviceLock.prfSalt, transports: deviceLock.transports ?? [] };
+  },
+  /** No attempt counter here: the authenticator verifies the user and limits failed attempts itself. */
+  async unlockWithDevice({ prf }) {
+    const { deviceLock } = await ext.storage.local.get('deviceLock');
+    const { deviceSealed } = await ext.storage.session.get('deviceSealed');
+    if (!deviceLock || !deviceSealed) throw new Error(t('Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren'));
+    return restoreSealed(await unsealWithDevice(deviceLock, deviceSealed, prf));
+  },
+  /**
+   * The ceremony in a small window of its own: the operating system's dialog (Windows Hello and the like) takes the
+   * focus, which closes the toolbar popup. `returnTo` says where to continue afterwards (popup or sidebar).
+   */
+  async openDeviceWindow({ action, returnTo, windowId }) {
+    const { deviceWindow: old } = await ext.storage.session.get('deviceWindow');
+    if (old?.id != null) await ext.windows.remove(old.id).catch(() => {});
+    const w = await ext.windows.create({
+      url: ext.runtime.getURL(`device.html?do=${action === 'setup' ? 'setup' : 'unlock'}`),
+      type: 'popup', width: 420, height: 360, focused: true,
+    });
+    await ext.storage.session.set({ deviceWindow: { id: w.id, action, returnTo, windowId } });
+    return { id: w.id };
+  },
+  /** The device window is done (or cancelled): closes it and continues in the popup (reopened) or the sidebar. */
+  async deviceWindowDone({ ok = false, message }) {
+    const { deviceWindow: d } = await ext.storage.session.get('deviceWindow');
+    if (!d) return;
+    await ext.storage.session.remove('deviceWindow');
+    const device = { action: d.action, ok: !!ok, message: typeof message === 'string' ? message : undefined };
+    if (d.returnTo === 'popup') {
+      await ext.storage.session.set({ popupResume: { view: d.action === 'setup' ? 'settings' : 'main', device, at: Date.now() } });
+    } else ext.runtime.sendMessage({ type: 'ov-device-done', ...device }).catch(() => {});
+    await ext.windows.remove(d.id).catch(() => {});
+    if (d.returnTo === 'popup') {
+      if (d.windowId != null) await ext.windows.update(d.windowId, { focused: true }).catch(() => {});
+      await ext.action.openPopup(d.windowId != null ? { windowId: d.windowId } : undefined).catch(() => {});
     }
-    return { unlocked: n };
   },
 
   /** Unencrypted export of the given unlocked accounts → { fileName, content, count }. */

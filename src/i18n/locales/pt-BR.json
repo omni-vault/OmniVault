@@ -1098,5 +1098,29 @@
  "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
   "one": "Preenchimento permitido em {n} formulário incorporado de outro site.",
   "other": "Preenchimento permitido em {n} formulários incorporados de outros sites."
- }
+ },
+ "Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren": "Nada está bloqueado com o dispositivo. Desbloqueie com sua senha mestra",
+ "Das Gerät hat keinen gültigen Schlüssel geliefert": "O dispositivo não retornou uma chave válida",
+ "Das Gerät hat nicht den passenden Schlüssel geliefert": "O dispositivo não retornou a chave correta",
+ "Firefox erlaubt Erweiterungen keine eigenen Passkeys. Entsperren mit dem Gerät gibt es deshalb nur in Chrome und anderen Chromium-Browsern.": "O Firefox não permite que extensões criem chaves de acesso próprias; por isso, o desbloqueio com o dispositivo só está disponível no Chrome e em outros navegadores baseados no Chromium.",
+ "Dieser Browser unterstützt keine Passkeys.": "Este navegador não oferece suporte a chaves de acesso.",
+ "Dieser Browser unterstützt die nötige Passkey-Erweiterung (PRF) nicht.": "Este navegador não oferece suporte à extensão de chave de acesso necessária (PRF).",
+ "Abgebrochen, abgelaufen oder vom Gerät abgelehnt.": "Cancelado, expirado ou recusado pelo dispositivo.",
+ "Auf diesem Gerät ist OmniVault schon eingerichtet.": "O OmniVault já está configurado neste dispositivo.",
+ "Der Browser erlaubt OmniVault hier keine Passkeys.": "O navegador não permite que o OmniVault use chaves de acesso aqui.",
+ "Das Gerät hat keinen Schlüssel geliefert (PRF).": "O dispositivo não retornou nenhuma chave (PRF).",
+ "OmniVault entsperren": "Desbloquear o OmniVault",
+ "Dieses Gerät unterstützt die nötige Passkey-Erweiterung (PRF) nicht und lässt sich nicht zum Entsperren verwenden.": "Este dispositivo não oferece suporte à extensão de chave de acesso necessária (PRF) e não pode ser usado para desbloquear.",
+ "Entsperren mit dem Gerät eingerichtet": "Desbloqueio com o dispositivo configurado",
+ "Entsperren mit dem Gerät ist eingerichtet. Nach dem automatischen Sperren genügt Windows Hello, Touch ID, das Smartphone oder der Sicherheitsschlüssel; nach einem Neustart des Browsers ist das Master-Passwort nötig.": "O desbloqueio com o dispositivo está ativado. Depois de um bloqueio automático, Windows Hello, Touch ID, seu celular ou sua chave de segurança basta; depois de reiniciar o navegador, você vai precisar da senha mestra.",
+ "Auch mit Windows Hello, Touch ID, dem Smartphone oder einem Sicherheitsschlüssel lassen sich die Konten nach dem automatischen Sperren wieder öffnen. OmniVault legt dafür einen Passkey für sich selbst an. Nach einem Neustart des Browsers ist das Master-Passwort nötig.": "Depois de um bloqueio automático, você também pode reabrir suas contas com Windows Hello, Touch ID, seu celular ou uma chave de segurança. Para isso, o OmniVault cria uma chave de acesso própria. Depois de reiniciar o navegador, você vai precisar da senha mestra.",
+ "Anderes Gerät einrichten …": "Configurar outro dispositivo …",
+ "Entsperren mit dem Gerät einrichten …": "Configurar o desbloqueio com o dispositivo …",
+ "Entsperren mit dem Gerät entfernt": "Desbloqueio com o dispositivo removido",
+ "Gerät entfernen": "Remover dispositivo",
+ "Mit Gerät entsperren": "Desbloquear com o dispositivo",
+ "Entsperren mit dem Gerät einrichten": "Configurar o desbloqueio com o dispositivo",
+ "Bitte am Gerät bestätigen: Windows Hello, Touch ID, Smartphone oder Sicherheitsschlüssel.": "Confirme no seu dispositivo: Windows Hello, Touch ID, celular ou chave de segurança.",
+ "Erneut versuchen": "Tentar novamente",
+ "Gesperrt – mit dem Gerät entsperren": "Bloqueado – desbloqueie com seu dispositivo"
 }

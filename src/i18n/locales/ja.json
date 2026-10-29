@@ -1059,5 +1059,29 @@
  "Vergessen": "リセット",
  "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
   "other": "他のサイトの埋め込みフォーム {n} 件への入力を許可済みです。"
- }
+ },
+ "Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren": "デバイスでロックされているものはありません。マスターパスワードでロックを解除してください",
+ "Das Gerät hat keinen gültigen Schlüssel geliefert": "デバイスから有効なキーが返されませんでした",
+ "Das Gerät hat nicht den passenden Schlüssel geliefert": "デバイスから返されたキーが一致しません",
+ "Firefox erlaubt Erweiterungen keine eigenen Passkeys. Entsperren mit dem Gerät gibt es deshalb nur in Chrome und anderen Chromium-Browsern.": "Firefox では拡張機能が自分用のパスキーを作成できないため、デバイスでのロック解除は Chrome などの Chromium 系ブラウザーでのみ利用できます。",
+ "Dieser Browser unterstützt keine Passkeys.": "このブラウザーはパスキーに対応していません。",
+ "Dieser Browser unterstützt die nötige Passkey-Erweiterung (PRF) nicht.": "このブラウザーは必要なパスキー拡張機能（PRF）に対応していません。",
+ "Abgebrochen, abgelaufen oder vom Gerät abgelehnt.": "キャンセルされたか、タイムアウトしたか、デバイスに拒否されました。",
+ "Auf diesem Gerät ist OmniVault schon eingerichtet.": "このデバイスには OmniVault がすでに設定されています。",
+ "Der Browser erlaubt OmniVault hier keine Passkeys.": "ブラウザーがここで OmniVault のパスキー使用を許可していません。",
+ "Das Gerät hat keinen Schlüssel geliefert (PRF).": "デバイスからキーが返されませんでした（PRF）。",
+ "OmniVault entsperren": "OmniVault のロックを解除",
+ "Dieses Gerät unterstützt die nötige Passkey-Erweiterung (PRF) nicht und lässt sich nicht zum Entsperren verwenden.": "このデバイスは必要なパスキー拡張機能（PRF）に対応していないため、ロック解除には使えません。",
+ "Entsperren mit dem Gerät eingerichtet": "デバイスでのロック解除を設定しました",
+ "Entsperren mit dem Gerät ist eingerichtet. Nach dem automatischen Sperren genügt Windows Hello, Touch ID, das Smartphone oder der Sicherheitsschlüssel; nach einem Neustart des Browsers ist das Master-Passwort nötig.": "デバイスでのロック解除がオンです。自動ロックの後は Windows Hello、Touch ID、スマートフォン、またはセキュリティキーだけで解除できます。ブラウザーを再起動した後はマスターパスワードが必要です。",
+ "Auch mit Windows Hello, Touch ID, dem Smartphone oder einem Sicherheitsschlüssel lassen sich die Konten nach dem automatischen Sperren wieder öffnen. OmniVault legt dafür einen Passkey für sich selbst an. Nach einem Neustart des Browsers ist das Master-Passwort nötig.": "自動ロックの後、Windows Hello、Touch ID、スマートフォン、またはセキュリティキーでもアカウントを再び開けます。そのために OmniVault は自分用のパスキーを作成します。ブラウザーを再起動した後はマスターパスワードが必要です。",
+ "Anderes Gerät einrichten …": "別のデバイスを設定 …",
+ "Entsperren mit dem Gerät einrichten …": "デバイスでのロック解除を設定 …",
+ "Entsperren mit dem Gerät entfernt": "デバイスでのロック解除を削除しました",
+ "Gerät entfernen": "デバイスを削除",
+ "Mit Gerät entsperren": "デバイスでロックを解除",
+ "Entsperren mit dem Gerät einrichten": "デバイスでのロック解除を設定",
+ "Bitte am Gerät bestätigen: Windows Hello, Touch ID, Smartphone oder Sicherheitsschlüssel.": "デバイスで確認してください：Windows Hello、Touch ID、スマートフォン、またはセキュリティキー。",
+ "Erneut versuchen": "再試行",
+ "Gesperrt – mit dem Gerät entsperren": "ロック中 – デバイスでロックを解除"
 }

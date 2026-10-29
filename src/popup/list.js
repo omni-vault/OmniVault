@@ -4,6 +4,7 @@
 // Item list with search and type filter.
 import { ext } from '../lib/browser.js';
 import { openItem } from './detail.js';
+import { runDevice } from './device-flow.js';
 import { S, isToolbarPopup, refresh, windowed } from './state.js';
 import { $, TYPE_LABEL, ask, badge, call, copy, el, icon, t, tn, toast, typeIcon, uiLanguage } from './ui.js';
 
@@ -57,10 +58,20 @@ export function renderItems() {
     group(q || type ? t('Treffer') : t('Alle Einträge'), rest.slice(0, 300)),
   ].filter(Boolean));
 
-  // all accounts locked by the timer and a PIN set up: offer the PIN right here
+  // all accounts locked by the timer and a PIN or the device set up: offer them right here
+  const allLocked = !S.state.accounts.some((a) => a.unlocked);
   const pinForm = $('#pin-unlock');
-  const pinWanted = !!S.state.pin?.sealed && !S.state.accounts.some((a) => a.unlocked);
+  const pinWanted = !!S.state.pin?.sealed && allLocked;
+  const deviceWanted = !!S.state.device?.sealed && allLocked;
+  $('#quick-unlock').hidden = !pinWanted && !deviceWanted;
   if (pinForm.hidden === pinWanted) { pinForm.hidden = !pinWanted; if (pinWanted) $('#pin-input').focus(); }
+  const deviceBox = $('#device-unlock');
+  if (deviceBox.hidden === deviceWanted) {
+    deviceBox.hidden = !deviceWanted;
+    if (deviceWanted && !pinWanted) $('#device-unlock-btn').focus();
+  }
+  $('#device-label').hidden = pinWanted; // under the PIN form the button speaks for itself
+  $('#device-unlock-btn').classList.toggle('secondary', pinWanted);
 
   const empty = $('#empty');
   empty.hidden = filtered.length > 0;
@@ -119,6 +130,21 @@ export function initList() {
       err.textContent = x.message; err.hidden = false;
     } finally {
       $('#pin-submit').disabled = false;
+      await refresh();
+    }
+  });
+  $('#device-unlock-btn').addEventListener('click', async () => {
+    const err = $('#device-error');
+    err.hidden = true;
+    $('#device-unlock-btn').disabled = true;
+    try {
+      const r = await runDevice('unlock');
+      if (r.deferred) return;
+      toast(tn(r.unlocked, '{n} Konto entsperrt', '{n} Konten entsperrt'));
+    } catch (x) {
+      err.textContent = x.message; err.hidden = false;
+    } finally {
+      $('#device-unlock-btn').disabled = false;
       await refresh();
     }
   });

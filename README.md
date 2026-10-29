@@ -220,6 +220,13 @@ What OmniVault stores and where it sends data is described in detail in the [pri
 - **PIN unlock (optional).** After an automatic lock you can unlock with a 4–12 digit PIN. The PIN only opens a
   sealed copy of your session that exists in memory; five wrong attempts discard it, and after a browser restart your
   master password is required again.
+- **Unlock with your device (optional, Chrome and other Chromium browsers).** Instead of or next to the PIN, Windows
+  Hello, Touch ID, your phone or a security key can reopen OmniVault after an automatic lock. OmniVault creates a
+  passkey for itself (bound to the extension, no website can use it) and uses the authenticator's PRF extension: only
+  after you verify yourself on the device does it return the secret from which the key for the sealed session copy is
+  derived. Your device counts failed attempts. As with the PIN, this only works until the browser restarts, and it
+  does not protect against malicious software that already runs in your browser profile. Firefox does not let
+  extensions create passkeys for themselves, so the option is not offered there.
 - **No telemetry, no OmniVault servers.** OmniVault talks only to your password manager's server or to its official
   local tool. Password checks, imports and exports happen entirely in your browser.
 - **Filling only when you ask.** Websites never receive your entries on their own. OmniVault fills on a click and asks

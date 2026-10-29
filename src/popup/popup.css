@@ -359,6 +359,13 @@ details.history summary { cursor: pointer; color: var(--muted); font-size: 12px;
 .pin-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
 .pin-row input { margin: 0; letter-spacing: .2em; }
 .pin-unlock .error { margin: 6px 0 0; }
+.device-unlock { display: flex; flex-direction: column; gap: 6px; }
+#pin-unlock:not([hidden]) + .device-unlock { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.device-label { color: var(--text); font-weight: 600; margin: 0; }
+#device-unlock-btn { width: 100%; }
+.device-page #content { padding: 14px 16px; }
+.device-page h2 { margin: 0 0 8px; }
+.device-actions { justify-content: flex-start; gap: 8px; margin-top: 12px; }
 
 .sample-row { display: flex; gap: 8px; align-items: center; margin: 0 0 10px; }
 .sample-row .hint { margin: 0; }

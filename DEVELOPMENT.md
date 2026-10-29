@@ -59,6 +59,8 @@ npm run test:argon2       # Argon2 in a worker: unlocking with 512 MiB (ARGON2_M
 npm run test:hibp         # data breach check: consent first, only 5-character prefixes (service simulated)
 npm run test:shortcuts    # keyboard shortcuts and context menu with real X11 input (visible browser under Xvfb),
                           # also in an embedded login frame of another site
+npm run test:device-unlock  # unlock with the device: virtual authenticators with PRF over CDP, pop-out window and
+                            # real toolbar popup with the device window; visible with `xvfb-run -a`
 npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see below)
 ```
 
@@ -102,6 +104,37 @@ at most 0.25 s while the offscreen document opens). 3 s after a 1 GiB derivation
 1.1 GiB higher (the old WebAssembly instance was waiting for garbage collection); now it is 70 MiB higher. In
 Firefox (256 MiB), another message used to wait up to 2.1 s, now at most 30 ms. A KeePass database with
 256 MiB Argon2d used to freeze the popup for 2.8 s ("Decrypting …" stood still), now at most 25 ms.
+
+**Unlock with the device** (`src/lib/devicelock.js`, `src/popup/device-unlock.js`, `device-flow.js`,
+`device-window.js`): a second way to open the seal of the PIN lock (`src/lib/pinlock.js`). Setting it up creates,
+on an extension page, a passkey for OmniVault itself with `navigator.credentials.create` and the PRF extension
+(`prf.eval.first` = 32 random bytes, `userVerification: 'required'`, `residentKey: 'discouraged'`). The rpId is left
+out: for an extension page Chrome then uses the extension's ID and registers the passkey on the authenticator as
+`chrome-extension://<id>`, which no website and no other extension can claim (Chromium allows this since before M122;
+since M122 extensions may additionally claim sites in their host permissions). Authenticators that evaluate PRF only
+when signing in (many security keys) are asked a second time with `navigator.credentials.get`. Only the 32-byte PRF
+output goes to the background: HKDF-SHA-256 (info `OmniVault device unlock v1`) turns it into an AES-GCM key that
+encrypts the private key of a key pair of its own; on locking, the sessions are sealed with each configured lock
+(PIN and device side by side, separate key pairs), and unlocking with either removes both seals. Unlocking runs
+`navigator.credentials.get` with `allowCredentials` (and the transports reported at setup), the stored PRF salt and
+`userVerification: 'required'`. Without PRF (`getClientCapabilities()` or the authenticator's answer) the feature is
+explained instead of offered, and a passkey created without PRF is reported to the browser as unknown
+(`PublicKeyCredential.signalUnknownCredential`, also when the device is removed or replaced). The threat model is
+the PIN's: the seal lives in `storage.session` until the browser restarts; it does not protect against malicious code
+in the browser profile. OmniVault keeps no attempt counter here – the browser and the authenticator handle failed
+user verification (the virtual authenticator in the test blocks after repeated failures).
+Chrome requires the document to have the focus during the ceremony, and the operating system's dialog (Windows Hello)
+takes it, which closes a toolbar popup. So the toolbar popup and the sidebar open `device.html` in a small window of
+its own (`openDeviceWindow`), which starts the ceremony at once; when it is done or cancelled (`deviceWindowDone`) the
+background closes it and either reopens the popup (`action.openPopup`, with a note in `popupResume` for the toast and
+the settings view) or tells the sidebar. A tab and the pop-out window run the ceremony on the page itself.
+Firefox (checked with 158) only lets extension pages use rpIds of sites in their host permissions; without an rpId
+and with the extension's origin it throws `SecurityError` (also Mozilla's own test `test_ext_webauthn.html`), and its
+toolbar popup closes during the dialog (bug 2026687). The feature is therefore Chrome-only; `test/e2e-firefox.mjs`
+checks that Firefox still refuses and the setting explains it. In the Chromium test, virtual authenticators belong
+to one page: the device window gets its own through browser-wide auto-attach before its script starts, and since a
+passkey cannot be moved to another page with its PRF secret, a successful unlock inside the device window is not
+covered (it runs the same code as on the page).
 
 Cryptography comes from established open-source libraries – OpenPGP.js (LGPL), argon2id (MIT), the
 Argon2 reference implementation (CC0/Apache-2.0, for Argon2d in KeePass files) and, for XChaCha20-Poly1305, ChaCha20 and
@@ -166,7 +199,7 @@ src/
     pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   thin providers via the host
   content/inline.js  content script (opt-in, in all frames): button in the login field, "Save login?"
   inline/            list and save bar as extension pages in iframes
-  lib/               TOTP, URL matching, choosing the frame to fill (frames.js), generator, duplicates, import (incl. KeePass databases), export, password check, PIN lock
+  lib/               TOTP, URL matching, choosing the frame to fill (frames.js), generator, duplicates, import (incl. KeePass databases), export, password check, PIN and device lock
   i18n/              language selection, t()/tn()/tx(), translations (locales/*.json)
 tools/i18n-extract.mjs  collects all strings for translation
 tools/store-screenshots.mjs  screenshots (1280 × 800) from the web demo: `npm run build:demo`, then
@@ -221,6 +254,9 @@ vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, Twe
   opened only by the PIN (Argon2id). The seal is kept in memory only, and five failed attempts discard it. That is why
   4 to 12 digits are enough: without the seal the PIN is useless, and after a browser restart the
   master password is required again.
+- Unlocking with the device (Chromium only): the same seal, opened with a key derived (HKDF) from the PRF output of a
+  passkey that belongs to the extension's own origin; the authenticator gives it only after user verification and
+  counts failed attempts. Stored: credential ID, transports, PRF salt, public key, encrypted private key.
 - Passkeys: the website learns nothing about accounts; it only gets its own passkey back. OmniVault takes the origin and rpId
   from the tab's address (rpId check with the Public Suffix List); private keys leave the
   background only encrypted, to the server, and never reach the interface. For locked accounts only
@@ -236,7 +272,7 @@ vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, Twe
   top-level frame and names the frame and the page; `clientDataJSON` contains `crossOrigin: true` and `topOrigin`, so
   the website itself can check where it was embedded. Conditional requests from frames go to the browser.
   Firefox offers neither `featurePolicy` nor `ancestorOrigins`: there, frame requests still go to the browser.
-- OmniVault does not offer the passkey extensions PRF and largeBlob (on creation `prf.enabled: false`,
+- For websites, OmniVault does not offer the passkey extensions PRF and largeBlob (on creation `prf.enabled: false`,
   `largeBlob.supported: false`; `largeBlob.support: "required"` goes to the browser). The Bitwarden format
   `login.fido2Credentials` has no field for a PRF secret or a blob (checked against the source code of the
   Bitwarden server and clients, October 2026); a custom field would be lost when editing in the Bitwarden apps,

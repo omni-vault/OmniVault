@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### New
+- **Unlock with your device** (Settings → Security, Chrome and other Chromium browsers): after an automatic lock,
+  Windows Hello, Touch ID, your phone or a security key reopens your accounts, next to or instead of the PIN. OmniVault
+  creates a passkey for itself and derives the key for the sealed session copy from the device's PRF answer, which it
+  only gives after you verify yourself. From the toolbar popup the confirmation runs in a small window of its own
+  (the system dialog would close the popup), and the popup opens again afterwards. As with the PIN, only until the
+  browser restarts. Not available in Firefox, which does not let extensions create passkeys for themselves.
+
 ### Improvements
 - **Filling in embedded frames**: login forms embedded in a page (for example a bank's or a partner's sign-in in an
   iframe) and card forms of payment providers can now be filled – with a click, the keyboard shortcut, the context

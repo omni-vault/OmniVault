@@ -155,9 +155,11 @@ shows whether the real program provides it.
 | Unlock with PIN, 4–12 digits, checked while typing (after auto-lock, until the browser restarts) | ✅ S | ✅ (same path, not tested separately) | ✅ S | ✅ (same path, not tested separately) |
 | Organization SSO (OIDC with PKCE in a tab), then master password | ✅ R (Vaultwarden with local OIDC provider), ✅ S (Bitwarden) ²⁷ | ❌ (OIDC) | ❌ | – |
 | Accounts without master password (trusted devices, Key Connector) | ❌ – clear message (R + S) | – | – | – |
-| Biometrics | ⛔ (browser extensions have no access) | ⛔ | ⛔ | – |
+| Unlock with the device: Windows Hello, Touch ID, a phone or a security key via a passkey of OmniVault's own with the PRF extension (after auto-lock, until the browser restarts; next to or instead of the PIN) | ✅ S ³⁰ | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) |
+| Biometrics directly (fingerprint, face) | ⛔ (browser extensions have no access; Windows Hello and Touch ID work through device unlock, see above) | ⛔ | ⛔ | – |
 
 ¹¹ TOTP, email, YubiKey OTP, Duo (²⁷). WebAuthn is missing; in that case the API key helps.
+³⁰ Chrome and other Chromium browsers only. Chromium (virtual authenticators over CDP): setup, unlock, PIN and device side by side, cancelled or failed verification, an authenticator that does not know the passkey, a security key that evaluates PRF only when signing in (asked a second time during setup), replacing and removing, an authenticator without PRF (explained, not offered); from the real toolbar popup the ceremony runs in a window of its own and the popup is reopened afterwards. Real Windows Hello, Touch ID, phones (hybrid) and security keys were not tested automatically. Firefox only lets extensions use WebAuthn for sites in their host permissions, not for their own origin (checked: `SecurityError`), so the settings explain this instead.
 ¹² TOTP and YubiKey OTP. Duo is missing.
 ¹⁴ Not yet used by any production account and not supported by Vaultwarden (as of 2026-10-19). Checked against
 the vectors of the XAES specification, Bitwarden's published vectors (local only) and a V2 account generated independently in Python.
@@ -280,6 +282,7 @@ Settings → Appearance → Language switches immediately.
 | Locked account: the dialog offers unlocking if a passkey for the site may be stored there | ✅ S | ✅ S |
 | Passkeys in embedded frames of other origins, only with Permissions Policy (`allow="publickey-credentials-get"` / `-create`), dialog in the top-level frame with frame and page, `crossOrigin`/`topOrigin` in `clientDataJSON` | ✅ S (two origins: with policy OmniVault answers; without policy and with a policy manipulated in the page script the browser answers; the test page checks `crossOrigin`/`topOrigin`) | – (Firefox cannot confirm a frame's policy and ancestors: the browser takes over, checked) |
 | Passkey extensions: `credProps` answered; PRF and largeBlob declined (`prf.enabled: false`, `largeBlob.supported: false`) | ✅ S | ✅ (same code) |
+| Unlock with the device (WebAuthn PRF on the extension's own pages) | ✅ S ³⁰ | ⛔ (Firefox refuses a passkey for the extension's own origin; checked, setting explains it) |
 
 ## Still missing compared to the official apps
 
@@ -294,3 +297,4 @@ Settings → Appearance → Language switches immediately.
 | Bitwarden: WebAuthn as second factor; accounts that unlock without a master password (trusted devices, Key Connector) | WebAuthn only works through an internal page of the web vault (workaround: API key); the other two need undocumented key exchange. Duo and SSO are supported, see above |
 | Passbolt: Duo, account recovery | Duo does not work with OmniVault's JWT sign-in without a new permission: the prompt (`POST /mfa/verify/duo/prompt`) and the callback (`/mfa/verify/duo/callback`) require the access token in the `Authorization` header, which a tab does not send (checked against Passbolt CE 5.16: without the header 403, with the header the prompt reaches the Duo health check), and the background cannot read the redirect address to Duo (`redirect: 'manual'` returns an empty `opaqueredirect` response in Chrome and Firefox, `follow` fails due to CORS at Duo). It would be possible with `webRequest` or `declarativeNetRequestWithHostAccess`. Account recovery only exists in Passbolt Pro |
 | Unlocking after a browser restart without the master password | deliberately not: the sealed sessions are kept in memory only |
+| Unlock with the device in Firefox | Firefox lets extensions use WebAuthn only for sites in their host permissions; a passkey for a website domain would need a domain of OmniVault's and a new permission |

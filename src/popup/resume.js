@@ -3,7 +3,8 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // The browser closes the toolbar popup while it shows a permission prompt, and with it everything typed so far.
 // Before asking, the popup notes where it was (storage.session, memory only, never a password); the next time it
-// opens it continues there – and finishes the step when the permission was granted.
+// opens it continues there – and finishes the step when the permission was granted. The device window (unlock with
+// the device) leaves the same kind of note when it reopens the popup.
 import { ext } from '../lib/browser.js';
 
 const KEY = 'popupResume';
@@ -24,5 +25,6 @@ export async function takeResume() {
   if (!r) return null;
   await ext.storage.session.remove(KEY).catch(() => {});
   if (Date.now() - r.at > MAX_AGE) return null;
-  return { ...r, granted: await ext.permissions.contains(r.permissions).catch(() => false) };
+  // a note without a permission request comes from the device window (unlock with the device)
+  return { ...r, granted: r.permissions ? await ext.permissions.contains(r.permissions).catch(() => false) : false };
 }

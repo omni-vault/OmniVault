@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+     If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="de" class="windowed i18n-pending">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OmniVault</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body class="device-page">
+<div id="app">
+  <header>
+    <h1 translate="no"><svg class="logo" viewBox="0 0 20 20" aria-hidden="true"><rect width="20" height="20" rx="5"/><circle cx="10" cy="10" r="5.2"/><circle class="hub" cx="10" cy="10" r="1.6"/><path d="M11.99 5.2L12.53 3.9M14.8 8.01L16.1 7.47M14.8 11.99L16.1 12.53M11.99 14.8L12.53 16.1M8.01 14.8L7.47 16.1M5.2 11.99L3.9 12.53M5.2 8.01L3.9 7.47M8.01 5.2L7.47 3.9"/></svg><span class="name">OmniVault</span></h1>
+  </header>
+  <main id="content">
+    <h2 id="device-title" hidden>Mit Gerät entsperren</h2>
+    <h2 id="device-title-setup" hidden>Entsperren mit dem Gerät einrichten</h2>
+    <p id="device-status" class="hint" role="status">Bitte am Gerät bestätigen: Windows Hello, Touch ID, Smartphone oder Sicherheitsschlüssel.</p>
+    <p id="device-error" class="error" role="alert" hidden></p>
+    <p class="row device-actions">
+      <button type="button" id="device-retry" hidden>Erneut versuchen</button>
+      <button type="button" id="device-cancel" class="secondary">Abbrechen</button>
+    </p>
+  </main>
+</div>
+<script type="module" src="device.js"></script>
+</body>
+</html>

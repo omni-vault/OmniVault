@@ -236,6 +236,24 @@ try {
     await look('account-form');
     await page.selectOption('#acc-provider', 'passbolt');
     await look('account-form-passbolt');
+    // unlock with the device: the lock screen (a sealed state simulated in storage) and the device window
+    await page.evaluate(async (id) => {
+      await chrome.runtime.sendMessage({ type: 'lock', id });
+      await chrome.storage.local.set({ deviceLock: { kind: 'device', credentialId: 'AAAAAAAAAAAAAAAAAAAAAA==', prfSalt: btoa('x'.repeat(32)), transports: ['internal'] } });
+      await chrome.storage.session.set({ deviceSealed: {} });
+    }, acc.id);
+    await page.goto(POPUP);
+    await page.waitForSelector('#device-unlock-btn');
+    await look('lock-device');
+    await page.goto(`chrome-extension://${extId}/device.html?do=unlock`);
+    await page.waitForSelector('#device-title:not([hidden])');
+    await look('device-window');
+    const relogin = await page.evaluate(async ({ id, password }) => {
+      await chrome.storage.local.remove('deviceLock');
+      await chrome.storage.session.remove('deviceSealed');
+      return chrome.runtime.sendMessage({ type: 'login', id, credentials: { password } });
+    }, { id: acc.id, password: PASSWORD });
+    if (!relogin.ok) problems.push(`unlocking again: ${relogin.error}`);
     check(!problems.length, `${lang}: ${views.length} views without layout problems${lang === 'qps' ? ' or untranslated text' : ''}${problems.length ? `\n       ${problems.join('\n       ')}` : ''}`);
     sheet.push([lang, views]);
     await page.close();

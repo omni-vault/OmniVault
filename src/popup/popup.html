@@ -30,14 +30,21 @@
   <main id="content">
     <section id="view-main">
       <ul id="accounts" class="accounts" aria-label="Konten"></ul>
-      <form id="pin-unlock" class="pin-unlock" hidden>
-        <label for="pin-input">Gesperrt – mit PIN entsperren</label>
-        <div class="pin-row">
-          <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" required>
-          <button type="submit" id="pin-submit">Entsperren</button>
+      <div id="quick-unlock" class="pin-unlock" hidden>
+        <form id="pin-unlock" hidden>
+          <label for="pin-input">Gesperrt – mit PIN entsperren</label>
+          <div class="pin-row">
+            <input id="pin-input" type="password" inputmode="numeric" autocomplete="off" required>
+            <button type="submit" id="pin-submit">Entsperren</button>
+          </div>
+          <p id="pin-error" class="error" hidden></p>
+        </form>
+        <div id="device-unlock" class="device-unlock" hidden>
+          <p id="device-label" class="device-label">Gesperrt – mit dem Gerät entsperren</p>
+          <button type="button" id="device-unlock-btn">Mit Gerät entsperren</button>
+          <p id="device-error" class="error" role="alert" hidden></p>
         </div>
-        <p id="pin-error" class="error" hidden></p>
-      </form>
+      </div>
       <div id="site-access" class="banner" hidden>
         <span id="site-access-text">Zum Ausfüllen aus dem Fenster braucht OmniVault Zugriff auf Webseiten.</span>
         <button id="btn-site-access">Erlauben</button>

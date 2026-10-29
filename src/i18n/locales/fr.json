@@ -1098,5 +1098,29 @@
  "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
   "one": "Remplissage autorisé dans {n} formulaire intégré d’un autre site.",
   "other": "Remplissage autorisé dans {n} formulaires intégrés d’autres sites."
- }
+ },
+ "Kein mit dem Gerät gesperrter Zustand – bitte mit dem Master-Passwort entsperren": "Rien n’est verrouillé par l’appareil : déverrouillez avec votre mot de passe principal",
+ "Das Gerät hat keinen gültigen Schlüssel geliefert": "L’appareil n’a pas renvoyé de clé valide",
+ "Das Gerät hat nicht den passenden Schlüssel geliefert": "L’appareil n’a pas renvoyé la bonne clé",
+ "Firefox erlaubt Erweiterungen keine eigenen Passkeys. Entsperren mit dem Gerät gibt es deshalb nur in Chrome und anderen Chromium-Browsern.": "Firefox ne permet pas aux extensions de créer leurs propres clés d’accès ; le déverrouillage par l’appareil n’est donc disponible que dans Chrome et les autres navigateurs Chromium.",
+ "Dieser Browser unterstützt keine Passkeys.": "Ce navigateur ne prend pas en charge les clés d’accès.",
+ "Dieser Browser unterstützt die nötige Passkey-Erweiterung (PRF) nicht.": "Ce navigateur ne prend pas en charge l’extension de clé d’accès nécessaire (PRF).",
+ "Abgebrochen, abgelaufen oder vom Gerät abgelehnt.": "Annulé, expiré ou refusé par l’appareil.",
+ "Auf diesem Gerät ist OmniVault schon eingerichtet.": "OmniVault est déjà configuré sur cet appareil.",
+ "Der Browser erlaubt OmniVault hier keine Passkeys.": "Le navigateur n’autorise pas OmniVault à utiliser des clés d’accès ici.",
+ "Das Gerät hat keinen Schlüssel geliefert (PRF).": "L’appareil n’a renvoyé aucune clé (PRF).",
+ "OmniVault entsperren": "Déverrouiller OmniVault",
+ "Dieses Gerät unterstützt die nötige Passkey-Erweiterung (PRF) nicht und lässt sich nicht zum Entsperren verwenden.": "Cet appareil ne prend pas en charge l’extension de clé d’accès nécessaire (PRF) et ne peut pas servir au déverrouillage.",
+ "Entsperren mit dem Gerät eingerichtet": "Déverrouillage par l’appareil configuré",
+ "Entsperren mit dem Gerät ist eingerichtet. Nach dem automatischen Sperren genügt Windows Hello, Touch ID, das Smartphone oder der Sicherheitsschlüssel; nach einem Neustart des Browsers ist das Master-Passwort nötig.": "Le déverrouillage par l’appareil est activé. Après un verrouillage automatique, Windows Hello, Touch ID, votre téléphone ou votre clé de sécurité suffit ; après un redémarrage du navigateur, il faudra votre mot de passe principal.",
+ "Auch mit Windows Hello, Touch ID, dem Smartphone oder einem Sicherheitsschlüssel lassen sich die Konten nach dem automatischen Sperren wieder öffnen. OmniVault legt dafür einen Passkey für sich selbst an. Nach einem Neustart des Browsers ist das Master-Passwort nötig.": "Vous pouvez aussi rouvrir vos comptes après un verrouillage automatique avec Windows Hello, Touch ID, votre téléphone ou une clé de sécurité. Pour cela, OmniVault crée sa propre clé d’accès. Après un redémarrage du navigateur, il faudra votre mot de passe principal.",
+ "Anderes Gerät einrichten …": "Configurer un autre appareil …",
+ "Entsperren mit dem Gerät einrichten …": "Configurer le déverrouillage par l’appareil …",
+ "Entsperren mit dem Gerät entfernt": "Déverrouillage par l’appareil supprimé",
+ "Gerät entfernen": "Supprimer l’appareil",
+ "Mit Gerät entsperren": "Déverrouiller avec l’appareil",
+ "Entsperren mit dem Gerät einrichten": "Configurer le déverrouillage par l’appareil",
+ "Bitte am Gerät bestätigen: Windows Hello, Touch ID, Smartphone oder Sicherheitsschlüssel.": "Confirmez sur votre appareil : Windows Hello, Touch ID, votre téléphone ou votre clé de sécurité.",
+ "Erneut versuchen": "Réessayer",
+ "Gesperrt – mit dem Gerät entsperren": "Verrouillé – déverrouillez avec votre appareil"
 }

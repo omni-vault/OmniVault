@@ -212,6 +212,19 @@ document.addEventListener('mouseup', (e) => {
   if (e.button === 3) back(); else forward();
 });
 if (sidebar) call('sidebarOpened').catch(() => {}); // completes a hand-over from the pop-out window (Firefox)
+
+/** After the device window: the outcome as a message, and the settings again after a setup. */
+async function resumeDevice({ action, message }, reopened = false) {
+  await refresh();
+  if (action === 'setup' && (reopened || currentView() === 'settings')) await openSettings();
+  if (message) toast(message);
+}
+// the sidebar stays open while the device window does the ceremony; the background reports back
+if (sidebar) {
+  ext.runtime.onMessage.addListener((m) => {
+    if (m?.type === 'ov-device-done') resumeDevice(m).catch((e) => toast(e.message));
+  });
+}
 if (windowed) {
   document.title = 'OmniVault';
   if (sidebar) document.addEventListener('visibilitychange', () => { if (!document.hidden) retarget(); });
@@ -227,7 +240,8 @@ if (windowed) {
   await refresh();
   $('#search').focus();
   const r = await takeResume();
-  if (r?.view === 'settings') await resumeSetting(r);
+  if (r?.device) await resumeDevice(r.device, true); // reopened by the device window
+  else if (r?.view === 'settings') await resumeSetting(r);
   else if (r?.view === 'item') { // asked for the cloud file storage while adding an attachment
     await openItem(r.accountId, r.itemId);
     toast(r.granted ? t('Zugriff erteilt – jetzt die Datei wählen.') : t('Ohne Zugriff auf Bitwardens Dateispeicher lassen sich keine Anhänge hochladen.'));

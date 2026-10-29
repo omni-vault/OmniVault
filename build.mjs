@@ -82,6 +82,7 @@ const entryPointsFor = (name) => ({
   'inline-menu': 'src/inline/inline-menu.js',
   'save-bar': 'src/inline/save-bar.js',
   passkey: 'src/inline/passkey.js',
+  device: 'src/popup/device-window.js',
   'argon2-worker': 'src/workers/argon2-worker.js',
   ...(name === 'chrome' ? { offscreen: 'src/offscreen/offscreen.js' } : {}),
 });
@@ -96,6 +97,7 @@ for (const [name, manifest] of Object.entries(targets)) {
   await cp('src/popup/popup.html', `${out}/popup.html`);
   await cp('src/popup/popup.html', `${out}/sidebar.html`); // same UI, detected by file name
   await cp('src/popup/popup.css', `${out}/popup.css`);
+  await cp('src/popup/device.html', `${out}/device.html`); // unlock with the device: the ceremony in a window of its own
   for (const f of ['inline-menu.html', 'save-bar.html', 'passkey.html', 'inline.css']) await cp(`src/inline/${f}`, `${out}/${f}`);
   if (name === 'chrome') await cp('src/offscreen/offscreen.html', `${out}/offscreen.html`);
   await cp('src/icons', `${out}/icons`, { recursive: true });

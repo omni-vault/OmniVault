@@ -70,6 +70,12 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
   which website features you turned on.
 - **PIN unlock (if you turn it on):** a key pair whose private part is encrypted with a key derived from your PIN
   (Argon2id). The PIN itself is not stored.
+- **Device unlock (if you turn it on, Chromium browsers):** the ID of the passkey OmniVault created for itself on your
+  device, the transports your device reported (such as "internal" or "usb"), a random salt, and a key pair whose
+  private part is encrypted with a key derived from your device's answer for that salt. Your device's answer, your
+  fingerprint or face and the passkey's private key never reach OmniVault; the passkey stays on your device (or in the
+  password manager of your operating system, which may sync it). Removing device unlock deletes these values and asks
+  the browser to tell your device's password manager that the passkey is no longer used.
 - **Passkey site index:** salted SHA-256 hashes of the websites for which your accounts hold passkeys, so OmniVault
   can tell that a locked account may have a passkey for the current site. The website addresses themselves are not
   stored.
@@ -87,6 +93,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
   the inactivity time you set, when your computer's screen locks (if enabled) and when the browser closes.
 - If PIN unlock is on: the locked sessions, sealed with the PIN key pair, and the count of wrong PIN attempts.
   Five wrong attempts delete them.
+- If device unlock is on: the locked sessions, sealed with the device key pair; and, while the device window is open,
+  its window number and where to continue afterwards.
 - The last ten passwords created with the password generator, so you can look them up again.
 - A login you just submitted on a website, for up to three minutes, while the "Save login?" prompt is offered.
 - For each tab, the frame in which you last opened the list of the OmniVault button (frame number and the address of
