@@ -23,6 +23,7 @@
     "vendor:fetch": "vendor/fetch-sources.sh",
     "vendor:build": "node vendor/build.mjs",
     "test:passbolt": "test/passbolt-server.sh start && PASSBOLT_URL=http://127.0.0.1:8900 node --test test/passbolt-real.test.js && test/passbolt-server.sh start && PASSBOLT_URL=http://127.0.0.1:8900 node test/e2e-passbolt.mjs; s=$?; test/passbolt-server.sh stop; exit $s",
+    "test:passbolt-mfa": "export PB_PORT=${PB_MFA_PORT:-8930} PB_PG_PORT=${PB_MFA_PG_PORT:-5463} PB_DIR=${PB_MFA_DIR:-${TMPDIR:-/tmp}/omnivault-passbolt-mfa} PB_BASE_URL=https://localhost:${PB_MFA_TLS_PORT:-8932} PASSBOLT_AUTH_JWT_ACCESS_TOKEN='30 seconds' && test/passbolt-server.sh start && FIREFOX_BIN=${FIREFOX_BIN:-$(test/firefox.sh fetch)} PASSBOLT_URL=http://127.0.0.1:$PB_PORT PASSBOLT_HTTPS=$PB_BASE_URL node test/e2e-passbolt-mfa.mjs both; s=$?; test/passbolt-server.sh stop; exit $s",
     "test:openbao": "test/openbao-server.sh start && OPENBAO_URL=http://127.0.0.1:8820 node --test test/openbao-real.test.js && OPENBAO_URL=http://127.0.0.1:8820 node test/e2e-openbao.mjs; s=$?; test/openbao-server.sh stop; exit $s",
     "test:inline": "node test/e2e-inline.mjs",
     "test:i18n": "node test/e2e-i18n.mjs",

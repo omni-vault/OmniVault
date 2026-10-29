@@ -8,6 +8,8 @@
 #   test/passbolt-server.sh register E F L R prints the setup URL of a new user (R = user | admin)
 #   test/passbolt-server.sh cake ARGS…       runs bin/cake as the service user
 #   test/passbolt-server.sh stop
+# PB_BASE_URL sets the address Passbolt believes it runs on (default http://127.0.0.1:$PB_PORT, e.g. an https front),
+# PASSBOLT_AUTH_JWT_ACCESS_TOKEN the lifetime of access tokens (default 5 minutes, e.g. '30 seconds').
 #
 # Needs: PHP ≥ 8.2 (with its phpize/php-config), composer, git, a C compiler, gpg, libgpgme and the PostgreSQL
 # server binaries (PG_BIN, default from pg_config). Everything else comes from GitHub, pinned to commit hashes:
@@ -27,9 +29,10 @@ PB_USER=${PB_USER:-omnivault-pb}
 PG_BIN=${PG_BIN:-$(pg_config --bindir 2>/dev/null || echo /usr/lib/postgresql/16/bin)}
 APP=$DIR/passbolt_api
 HOME_DIR=$DIR/home
+BASE_URL=${PB_BASE_URL:-http://127.0.0.1:$PORT}
 
 as_user() { # run a shell snippet as the service user with Passbolt's environment
-  env_line="export HOME=$HOME_DIR GNUPGHOME=$HOME_DIR/.gnupg PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR:-$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')}:$DIR/php OMNIVAULT_TEST_NO_LDAP=1;"
+  env_line="export HOME=$HOME_DIR GNUPGHOME=$HOME_DIR/.gnupg PHP_INI_SCAN_DIR=${PHP_INI_SCAN_DIR:-$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')}:$DIR/php OMNIVAULT_TEST_NO_LDAP=1 PASSBOLT_AUTH_JWT_ACCESS_TOKEN='${PASSBOLT_AUTH_JWT_ACCESS_TOKEN:-5 minutes}';"
   if [ "$(id -u)" = 0 ]; then su "$PB_USER" -s /bin/sh -c "$env_line $1"; else sh -c "$env_line $1"; fi
 }
 cake() { as_user "cd $APP && ./bin/cake $*"; }
@@ -106,7 +109,7 @@ case "${1:-start}" in
 <?php
 // Local test instance for OmniVault (127.0.0.1 only, throw-away data).
 return [
-    'App' => ['fullBaseUrl' => 'http://127.0.0.1:$PORT'],
+    'App' => ['fullBaseUrl' => '$BASE_URL'],
     'Security' => ['salt' => '$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')'],
     'Datasources' => ['default' => [
         'className' => \Cake\Database\Connection::class, 'driver' => \Cake\Database\Driver\Postgres::class,
@@ -140,7 +143,7 @@ EOF
     done
     echo "Passbolt does not start, see $DIR/web.log" >&2; exit 1 ;;
   register)
-    cake passbolt register_user -u "$2" -f "$3" -l "$4" -r "${5:-user}" 2>/dev/null | grep -o "http://[^ ]*/setup/start/[^ ]*" ;;
+    cake passbolt register_user -u "$2" -f "$3" -l "$4" -r "${5:-user}" 2>/dev/null | grep -o "https\?://[^ ]*/setup/start/[^ ]*" ;;
   cake)
     shift; cake "$@" ;;
   stop)

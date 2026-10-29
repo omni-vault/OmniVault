@@ -61,8 +61,12 @@ try {
     const acc = accounts.find((a) => a.provider === 'passbolt');
     const key = `session:${acc.id}`;
     const s = (await chrome.storage.session.get(key))[key];
-    await chrome.storage.session.set({ [key]: { ...s, expiresAt: 0 } });
+    // a newer copy than the one in memory (like after a worker restart), already expired
+    await chrome.storage.session.set({ [key]: { ...s, expiresAt: 0, gen: (s.gen ?? 0) + 1 } });
     const r = await chrome.runtime.sendMessage({ type: 'sync', id: acc.id });
+    const after = (await chrome.storage.session.get(key))[key];
+    // renewed from the copy written above (two sign-ins within one second may even yield the same token)
+    if (after.gen !== (s.gen ?? 0) + 2 || !(after.expiresAt > Date.now())) return 'not renewed';
     return !r.ok ? r.error : (r.result.error ?? 'ok');
   });
   const first = await forceRefreshAndSync();

@@ -179,14 +179,14 @@ export async function extensionCopy({ permissions = [], hosts = [] } = {}) {
 }
 
 /** Chromium with the extension. `lang` is the browser language (the tests expect the German interface by default). */
-export async function launch(chromium, ext, { headless = true, debugPort, env, lang = 'de-DE' } = {}) {
+export async function launch(chromium, ext, { headless = true, debugPort, env, lang = 'de-DE', args = [] } = {}) {
   const profile = await mkdtemp(join(tmpdir(), 'omnivault-profile-'));
   const ctx = await chromium.launchPersistentContext(profile, {
     channel: 'chromium',
     headless,
     locale: lang,
     env: { ...process.env, LANGUAGE: lang.replace('-', '_'), ...(env ?? {}) },
-    args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`, `--lang=${lang}`, ...(debugPort ? [`--remote-debugging-port=${debugPort}`] : [])],
+    args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`, `--lang=${lang}`, ...(debugPort ? [`--remote-debugging-port=${debugPort}`] : []), ...args],
   });
   let [sw] = ctx.serviceWorkers();
   if (!sw) sw = await ctx.waitForEvent('serviceworker');
