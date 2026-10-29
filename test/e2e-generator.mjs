@@ -2,7 +2,8 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Browser test (Chromium): generator view (password, passphrase, PIN, username; copying), the username dice in the
-// editor, copying the TOTP code after filling (read back from the clipboard, cleared after the delay) and reading a
+// editor, copying the TOTP code after filling (read back from the clipboard, cleared after the delay; also with the
+// button in the login field, in the top document and in an embedded frame of the same site) and reading a
 // TOTP QR code from a page (test/qr-encode.mjs draws it; captureVisibleTab needs <all_urls> or activeTab – this
 // test copy of the extension gets <all_urls>, the toolbar popup gets activeTab).
 // Usage: node test/e2e-generator.mjs [path-to-playwright] [screenshot-dir]
@@ -24,6 +25,13 @@ const embedServer = http.createServer((req, res) => {
   res.end(`<!doctype html><title>Portal</title><h1>Portal</h1><iframe id="f" src="${ORIGIN}/login.html" style="width:380px;height:260px"></iframe>`);
 });
 await new Promise((r) => { embedServer.listen(8853, '127.0.0.1', r); });
+// a page of the same site (localhost, another port) that embeds the login form: no confirmation needed
+const SAME_SITE = 'http://localhost:8854';
+const sameSiteServer = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(`<!doctype html><title>Konto</title><h1>Konto</h1><iframe id="f" src="${ORIGIN}/login.html" style="width:380px;height:260px"></iframe>`);
+});
+await new Promise((r) => { sameSiteServer.listen(8854, 'localhost', r); });
 const ext = await extensionCopy({ hosts: ['<all_urls>'] });
 const { ctx, extId } = await launch(chromium, ext);
 await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ORIGIN });
@@ -174,6 +182,51 @@ try {
   await portal.screenshot({ path: join(shots, 'totp-copied-embedded.png') });
   await portal.close();
 
+  // the OmniVault button in the login field (inline list): in the top document and in an embedded frame of the
+  // same site; the code is copied, read back, cleared after the delay, and the note appears in the frame filled
+  await msg('setSettings', { patch: { inlineMenu: true } });
+  const frameOf = (page, file) => page.frames().find((f) => f.url().endsWith(`/${file}`));
+  const viaButton = async (page, frame) => {
+    await frame.click('#u');
+    await frame.waitForFunction(() => !!document.querySelector('omnivault-inline'));
+    const box = await frame.locator('#u').boundingBox(); // relative to the top page, also inside a frame
+    await page.mouse.click(box.x + box.width - 15, box.y + box.height / 2);
+    let menu;
+    for (let i = 0; i < 100 && !(menu = frameOf(page, 'inline-menu.html')); i++) await page.waitForTimeout(100);
+    await menu.waitForSelector('.row:has-text("GitHub")');
+    const first = await code();
+    await menu.click('.row:has-text("GitHub")');
+    await frame.waitForFunction(() => document.querySelector('#p').value !== '');
+    await frame.waitForFunction(() => !!document.querySelector('omnivault-notice'), null, { timeout: 5000 }).catch(() => {});
+    return [first, await code()];
+  };
+  const notices = (frame) => frame.evaluate(() => document.querySelectorAll('omnivault-notice').length);
+
+  await site.reload();
+  await site.fill('#u', ''); await site.fill('#p', '');
+  await setClipboard('sentinel');
+  let codes = await viaButton(site, site.mainFrame());
+  let got = await clipboard();
+  check(await site.inputValue('#p') === 'gh-pass' && /^\d{6}$/.test(got) && codes.includes(got), `button in the field (top document): filled, TOTP code copied (${got})`);
+  check(await notices(site.mainFrame()) === 1, 'button in the field (top document): note in the page');
+  await sleep(11_000);
+  check((await clipboard()).trim() === '', 'button in the field (top document): clipboard cleared after the delay (10 s)');
+
+  const same = await ctx.newPage();
+  await same.goto(`${SAME_SITE}/`);
+  const login = await (await same.waitForSelector('#f')).contentFrame();
+  await login.waitForSelector('#p');
+  await setClipboard('sentinel');
+  codes = await viaButton(same, login);
+  got = await clipboard();
+  check(await login.inputValue('#p') === 'gh-pass' && /^\d{6}$/.test(got) && codes.includes(got), `button in an embedded frame of the same site: filled without asking, TOTP code copied (${got})`);
+  check(await notices(login) === 1 && await notices(same.mainFrame()) === 0, 'note in the embedded frame that was filled, not in the top page');
+  await same.screenshot({ path: join(shots, 'totp-copied-inline-frame.png') });
+  await sleep(11_000);
+  check((await clipboard()).trim() === '', 'embedded frame: clipboard cleared after the delay (10 s)');
+  await same.close();
+  await msg('setSettings', { patch: { inlineMenu: false } });
+
   // a login without TOTP leaves the clipboard alone
   const shop = items.find((i) => i.type === 'login' && i.name === 'Shop');
   if (shop) {
@@ -247,6 +300,7 @@ try {
   await ctx.close();
   closeServers();
   embedServer.close();
+  sameSiteServer.close();
 }
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);
