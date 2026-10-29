@@ -74,6 +74,31 @@ function jwtExpiry(token) {
 
 const fpr = (key) => key.getFingerprint().toUpperCase();
 
+// SPIKE: refresh through /auth/jwt/refresh with the optional `cookies` permission. Passbolt moves the MFA proof
+// (passbolt_mfa cookie, bound to the access token) to the new access token only on this endpoint, and hands the
+// rotated refresh token out only as an HttpOnly cookie. The token is taken out of the cookie jar right away and kept
+// in storage.session with the rest of the session.
+const ext = globalThis.browser ?? globalThis.chrome;
+const refreshing = new Map(); // account id -> pending refresh (single flight: a token must never be used twice)
+const newest = new Map(); // account id -> newest session; an older access token sent with passbolt_mfa kills the proof
+
+async function cookieRefresh(base, config, s) {
+  if (!s.refreshToken || !ext?.cookies) return null;
+  if (!(await ext.permissions.contains({ permissions: ['cookies'] }).catch(() => false))) return null;
+  const url = `${base}/`;
+  // A refresh_token cookie left over from an interrupted refresh (worker stopped after the server rotated the token)
+  // is newer than ours. A cookie in the jar would also make Passbolt demand a CSRF token, so it goes in any case.
+  const left = await ext.cookies.get({ url, name: 'refresh_token' });
+  if (left) await ext.cookies.remove({ url, name: 'refresh_token', storeId: left.storeId });
+  const body = await api(base, '/auth/jwt/refresh.json', {
+    method: 'POST', body: { user_id: config.userId.trim(), refresh_token: left?.value || s.refreshToken },
+  });
+  const c = await ext.cookies.get({ url, name: 'refresh_token' });
+  if (c) await ext.cookies.remove({ url, name: 'refresh_token', storeId: c.storeId });
+  if (!body?.access_token) return null;
+  return { ...s, accessToken: body.access_token, expiresAt: jwtExpiry(body.access_token), refreshToken: c?.value ?? null };
+}
+
 async function unlockPrivateKey(armoredKey, passphrase) {
   const key = await openpgp.readPrivateKey({ armoredKey });
   if (key.isDecrypted()) return key;
@@ -206,6 +231,7 @@ class PassboltProvider extends Provider {
       session: {
         accessToken: answer.access_token,
         expiresAt: jwtExpiry(answer.access_token),
+        refreshToken: answer.refresh_token, // SPIKE: used by cookieRefresh (RAM only)
         // Decrypted key, ASCII-armored – lives only in storage.session (RAM), like Bitwarden's user key.
         unlockedKey: key.armor(),
       },
@@ -219,14 +245,29 @@ class PassboltProvider extends Provider {
    * with the GPG challenge, using the key that is already unlocked in this session.
    */
   static async #refresh(base, config, s) {
+    const key = config.id ?? config.userId;
+    const cur = newest.get(key);
+    if (cur && cur.expiresAt > s.expiresAt && Date.now() < cur.expiresAt - 30_000) return cur; // refreshed meanwhile
+    if (!refreshing.has(key)) {
+      refreshing.set(key, (async () => {
+        try {
+          const viaCookie = await cookieRefresh(base, config, s).catch(() => null);
+          if (viaCookie) return viaCookie;
+          return await this.#challengeRefresh(base, config, s);
+        } finally { refreshing.delete(key); }
+      })().then((r) => { newest.set(key, r); return r; }));
+    }
+    return refreshing.get(key);
+  }
+
+  static async #challengeRefresh(base, config, s) {
     if (!s.unlockedKey) throw new ProviderError(t('Sitzung abgelaufen – bitte neu anmelden'), 'session_expired');
     const key = await openpgp.readPrivateKey({ armoredKey: s.unlockedKey });
     const { answer } = await this.#challengeLogin(base, { ...config, serverFingerprint: config.serverFingerprint }, key);
     if ((answer.providers ?? answer.mfa_providers ?? []).length) {
       throw new ProviderError(t('Zweiter Faktor erforderlich – bitte neu entsperren'), 'session_expired');
     }
-    const { refreshToken, ...rest } = s; // sessions from older versions
-    return { ...rest, accessToken: answer.access_token, expiresAt: jwtExpiry(answer.access_token) };
+    return { ...s, accessToken: answer.access_token, expiresAt: jwtExpiry(answer.access_token), refreshToken: answer.refresh_token };
   }
 
   static async sync(config, session) {
