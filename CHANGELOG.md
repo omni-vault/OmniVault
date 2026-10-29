@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### New
+- **Passphrases** in the generator: 3–20 words from the EFF Large Wordlist (7,776 words), your choice of separator,
+  optional capital letters and a digit. The strength meter shows the real entropy (log2(7776) ≈ 12.9 bits per word).
+- **Usernames** in the generator: a random word (optionally with a number), a plus address
+  (`name+random@your-domain`, from your email address) or a catch-all address (`random@your-domain`). Everything is
+  generated locally; no alias services are used. A new die next to the username in the editor uses these settings;
+  right-click it to open the username generator. The password die now creates a passphrase if that is the kind you
+  chose in the generator.
+- **Copy the TOTP code after filling** (Settings → Security, off by default): after a login with a one-time code is
+  filled in, its current code goes to the clipboard and is cleared after the usual delay; a short notice on the page
+  says so. Works for the popup, the keyboard shortcut, the context menu and the button in login fields.
+- **Scan a TOTP QR code on the page** (button next to the one-time code in the editor): OmniVault takes one screenshot
+  of the visible part of the tab, finds the QR code, checks that it is a valid `otpauth://totp/…` code and takes it
+  over, filling in an empty name and username from it. The screenshot is processed in the popup's memory only and is
+  never stored or sent. It needs OmniVault to be opened from its toolbar button, keyboard shortcut or context menu
+  (activeTab); no new permission.
+
 ### Improvements
 - **Filling in embedded frames**: login forms embedded in a page (for example a bank's or a partner's sign-in in an
   iframe) and card forms of payment providers can now be filled – with a click, the keyboard shortcut, the context

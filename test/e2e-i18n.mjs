@@ -203,6 +203,13 @@ try {
     await page.click('#btn-generator');
     await page.waitForSelector('#view-generator:not([hidden])');
     await look('generator');
+    await page.selectOption('#gen-mode', 'passphrase');
+    await look('generator-passphrase');
+    await page.selectOption('#gen-mode', 'username');
+    await page.selectOption('[data-gen=usernameType]', 'plus');
+    await look('generator-username');
+    await page.selectOption('[data-gen=usernameType]', 'word');
+    await page.selectOption('#gen-mode', 'password');
     await back();
     await page.click('#btn-tools');
     await page.waitForSelector('#view-tools:not([hidden])');

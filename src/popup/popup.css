@@ -268,6 +268,7 @@ details.history summary { cursor: pointer; color: var(--muted); font-size: 12px;
 .uris .uri-row { display: grid; grid-template-columns: 1fr auto; gap: 4px; margin-bottom: 4px; align-items: center; }
 .uris .uri-row input { margin: 0; }
 .pw-row { display: grid; grid-template-columns: 1fr auto auto; gap: 4px; align-items: center; }
+.pw-row.single { grid-template-columns: 1fr auto; }
 .pw-row input { margin: 0; font-family: ui-monospace, monospace; }
 .pw-row button.icon, .uri-row button.icon { color: var(--muted); border-color: var(--border); height: 31px; }
 .pw-row button.icon:hover, .uri-row button.icon:hover { color: var(--text); }

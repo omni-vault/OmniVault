@@ -280,6 +280,43 @@ try {
   await msg('clearClipboard');
   check((await readClipboard()).trim() === '', 'clipboard cleared by the event page');
 
+  // TOTP code after filling (setting): the event page writes it to the clipboard, a notice appears on the page
+  await msg('setSettings', { patch: { copyTotpAfterFill: true } });
+  await site.goto(`${ORIGIN}/login.html`);
+  const ghItem = (await msg('items')).find((i) => i.name === 'GitHub');
+  const totpBefore = (await msg('secret', { accountId, itemId: ghItem.id, field: 'totp' })).code;
+  await msg('fill', { accountId, itemId: ghItem.id, tabId: await tabIdOf(`${ORIGIN}/login.html`) });
+  const totpAfter = (await msg('secret', { accountId, itemId: ghItem.id, field: 'totp' })).code;
+  const totpCopied = await readClipboard();
+  check(/^\d{6}$/.test(totpCopied) && [totpBefore, totpAfter].includes(totpCopied), `TOTP code copied after filling (${totpCopied})`);
+  check(await site.$eval(() => !!document.querySelector('omnivault-notice')), 'notice on the page after copying the TOTP code');
+  await msg('setSettings', { patch: { copyTotpAfterFill: false } });
+  await msg('clearClipboard');
+
+  // TOTP QR code on the page → editor: tabs.captureVisibleTab from an extension page, decoded with jsQR
+  const qrUri = 'otpauth://totp/Firefox%20Shop:ada?secret=JBSWY3DPEHPK3PXP&issuer=Firefox%20Shop&digits=6';
+  await site.goto(`${ORIGIN}/qr.html?text=${encodeURIComponent(qrUri)}`);
+  await site.activate();
+  await popup.reload(); // its target is now the active tab of this window: the page with the QR code
+  await popup.waitFor('#view-main .item');
+  await popup.$eval(() => document.querySelector('#btn-new').click());
+  await popup.$eval(() => [...document.querySelectorAll('#menu [role=menuitem]')].find((m) => m.textContent.includes('Neuer Login')).click());
+  await popup.waitFor('#view-edit [data-action=scan-qr]');
+  const scan = async () => {
+    await popup.$eval(() => { document.querySelector('#view-edit [data-hint=totp-scan]').hidden = true; document.querySelector('#view-edit [data-action=scan-qr]').click(); });
+    await popup.wait(() => !document.querySelector('#view-edit [data-hint=totp-scan]').hidden, { timeout: 15000, what: 'scan result' });
+    return popup.text('#view-edit [data-hint=totp-scan]');
+  };
+  // only host permission for the page: Firefox wants <all_urls> or activeTab, so the user is told how to get it
+  const noAccess = await scan();
+  check(/Symbolleiste/.test(noAccess) && await popup.value('#view-edit input[name=totp]') === '', `without activeTab the scan explains what to do: "${noAccess}"`);
+  // opening OmniVault from its toolbar button grants activeTab for the page
+  await openToolbarPopup();
+  await closeToolbarPopup();
+  const qrHint = await scan();
+  check(await popup.value('#view-edit input[name=totp]') === qrUri && await popup.value('#view-edit input[name=username]') === 'ada', `QR code read from the page in Firefox after the toolbar button (activeTab): "${qrHint}"`);
+  await popup.$eval(() => [...document.querySelectorAll('#view-edit button')].find((b) => b.textContent === 'Abbrechen').click());
+
   // content scripts: OmniVault button in the login field, fill from the list, "save login?"
   await msg('setSettings', { patch: { inlineMenu: true, offerSave: true } });
   await site.goto(`${ORIGIN}/login.html`);

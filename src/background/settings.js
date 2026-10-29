@@ -4,6 +4,7 @@
 // User settings (storage.local) with defaults.
 import { LANGUAGES, PSEUDO } from '../i18n/index.js';
 import { ext } from '../lib/browser.js';
+import { GENERATOR_DEFAULTS, normalizeGenerator } from '../lib/generator.js';
 
 export const DEFAULT_SETTINGS = {
   autoLockMinutes: 15, // 0 = never (still locked when the browser closes)
@@ -15,12 +16,14 @@ export const DEFAULT_SETTINGS = {
   offerSave: false, // offer to save / update logins after a form is sent (needs access to websites)
   passkeys: false, // answer passkey requests of websites with passkeys from the vault (needs access to websites)
   language: 'auto', // 'auto' = browser language, otherwise a code from LANGUAGES
-  generator: { length: 20, lower: true, upper: true, digits: true, symbols: true, avoidAmbiguous: false },
+  copyTotpAfterFill: false, // after filling a login with TOTP, copy the current code (cleared like other copies)
+  // kind and options of the generator (password, passphrase, PIN, username), see lib/generator.js
+  generator: GENERATOR_DEFAULTS,
 };
 
 export async function getSettings() {
   const { settings = {} } = await ext.storage.local.get('settings');
-  return { ...DEFAULT_SETTINGS, ...settings, generator: { ...DEFAULT_SETTINGS.generator, ...(settings.generator ?? {}) } };
+  return { ...DEFAULT_SETTINGS, ...settings, generator: normalizeGenerator(settings.generator) };
 }
 
 // one change at a time: two quick changes (e.g. after a permission prompt) must not overwrite each other
@@ -40,6 +43,8 @@ async function applySettings(patch) {
   next.inlineMenu = !!next.inlineMenu;
   next.offerSave = !!next.offerSave;
   next.passkeys = !!next.passkeys;
+  next.copyTotpAfterFill = !!next.copyTotpAfterFill;
+  next.generator = normalizeGenerator(next.generator);
   if (next.language !== 'auto' && next.language !== PSEUDO && !LANGUAGES.some((l) => l.code === next.language)) next.language = 'auto';
   await ext.storage.local.set({ settings: next });
   return next;

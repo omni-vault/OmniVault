@@ -58,7 +58,10 @@ npm run test:argon2       # Argon2 in a worker: unlocking with 512 MiB (ARGON2_M
                           # other messages are answered; clearing the clipboard during and after
 npm run test:hibp         # data breach check: consent first, only 5-character prefixes (service simulated)
 npm run test:shortcuts    # keyboard shortcuts and context menu with real X11 input (visible browser under Xvfb),
-                          # also in an embedded login frame of another site
+                          # also in an embedded login frame of another site; scans a TOTP QR code from the toolbar
+                          # popup opened by the shortcut (activeTab)
+npm run test:generator    # generator (password, passphrase, PIN, username; copying), username die in the editor,
+                          # TOTP code copied after filling (clipboard read back, cleared), TOTP QR code read from a page
 npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see below)
 ```
 
@@ -106,11 +109,14 @@ Firefox (256 MiB), another message used to wait up to 2.1 s, now at most 30 ms. 
 Cryptography comes from established open-source libraries – OpenPGP.js (LGPL), argon2id (MIT), the
 Argon2 reference implementation (CC0/Apache-2.0, for Argon2d in KeePass files) and, for XChaCha20-Poly1305, ChaCha20 and
 Salsa20, @noble/ciphers (MIT), all as separate files in `vendor/` – and from WebCrypto. There are no other runtime dependencies. Rebuilding the libraries
-(normally not necessary, the results are in the repository):
+(normally not necessary, the results are in the repository). QR codes for one-time codes are read with jsQR
+(Apache-2.0, `vendor/jsqr.mjs`, loaded only when you scan); the tests draw their QR codes with a small encoder of their
+own (`test/qr-encode.mjs`):
 
 ```bash
 npm run vendor:fetch   # clones the sources at the commits from vendor/sources.json and verifies the hashes
 npm run vendor:build   # builds all files in vendor/ (needs clang with the wasm32 target)
+npm run wordlist:build # src/lib/eff-wordlist.js from vendor/eff_large_wordlist.txt (checks the SHA-256)
 ```
 
 ## Languages
@@ -166,13 +172,14 @@ src/
     pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   thin providers via the host
   content/inline.js  content script (opt-in, in all frames): button in the login field, "Save login?"
   inline/            list and save bar as extension pages in iframes
-  lib/               TOTP, URL matching, choosing the frame to fill (frames.js), generator, duplicates, import (incl. KeePass databases), export, password check, PIN lock
+  lib/               TOTP (incl. otpauth:// check), URL matching, choosing the frame to fill (frames.js), generator (EFF wordlist in eff-wordlist.js), duplicates, import (incl. KeePass databases), export, password check, PIN lock
   i18n/              language selection, t()/tn()/tx(), translations (locales/*.json)
 tools/i18n-extract.mjs  collects all strings for translation
 tools/store-screenshots.mjs  screenshots (1280 × 800) from the web demo: `npm run build:demo`, then
                      `node tools/store-screenshots.mjs <output folder> [Playwright path] [en,de]`
 native/              one host for all CLI providers (Python 3, standard library only), installer, self-test
-vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, TweetNaCl (separate files), source manifest, build scripts
+vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, TweetNaCl, jsQR (separate files), EFF wordlist,
+                     source manifest, build scripts
 ```
 
 ## Security in brief

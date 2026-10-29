@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { fakeBitwarden } from './fake-bitwarden.js';
 import { fakePassbolt } from './fake-passbolt.js';
 import { parseAuthData, decodeCbor, verifyAuthentication, verifyRegistration } from './webauthn-rp.js';
+import { encodeQr, qrSvg } from './qr-encode.mjs';
 
 export const LOGIN_PAGE = `<!doctype html><title>Login</title><form method="post">
   <input id="u" name="username" type="text" placeholder="Username">
@@ -137,6 +138,11 @@ export function listen(handler, port) {
       if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
       if (req.url.split('?')[0] === '/login.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(LOGIN_PAGE); }
       if (req.url.split('?')[0] === '/checkout.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(CHECKOUT_PAGE); }
+      if (req.url.split('?')[0] === '/qr.html') { // a "set up two-factor authentication" page with a QR code (?text=…)
+        const text = new URL(req.url, 'http://localhost').searchParams.get('text') ?? '';
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(`<!doctype html><title>2FA</title><body style="margin:20px;background:#f4f4f4"><h1>Scan this code</h1>${qrSvg(encodeQr(text), 5)}</body>`);
+      }
       if (req.url.split('?')[0] === '/webauthn.html') { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(WEBAUTHN_PAGE); }
       const rp = handler.rp?.handle(req.url.split('?')[0], body);
       if (rp) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(rp)); }

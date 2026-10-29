@@ -4,14 +4,14 @@
 // Background router: the only place that holds keys and decrypted items.
 import { browserLanguages, language, resolveLanguage, setLanguage, t, tn } from '../i18n/index.js';
 import { ext } from '../lib/browser.js';
-import { generatePassword } from '../lib/generator.js';
+import { generateSecret } from '../lib/generator.js';
 import { matchesUrl } from '../lib/match.js';
 import { totp } from '../lib/totp.js';
 import { describeProviders, getProvider, registry } from '../providers/registry.js';
 import * as store from './accounts.js';
-import { fillBestInTab, fillFrame, fillTab, forgetPairs, insertIntoFocused, loginFrames, rememberGenerated, trustedPairs } from './autofill.js';
+import { fillBestInTab, fillFrame, fillTab, forgetPairs, hostLabel, insertIntoFocused, loginFrames, rememberGenerated, showNotice, trustedPairs } from './autofill.js';
 import { applyLocalFavorites, forgetLocalFavorites, writer } from './favorites.js';
-import { clearClipboardNow, handleAlarm as clipboardAlarm, scheduleClipboardClear } from './clipboard.js';
+import { clearClipboardNow, handleAlarm as clipboardAlarm, scheduleClipboardClear, writeClipboard } from './clipboard.js';
 import { getSettings, setSettings } from './settings.js';
 import { findDuplicates } from '../lib/dupes.js';
 import { createPinLock, seal, unseal } from '../lib/pinlock.js';
@@ -272,6 +272,37 @@ async function allItems(tabUrl, frameOrigins) {
     for (const i of entry?.items ?? []) out.push({ ...publicItem(i, tabUrl, frameOrigins), accountLabel: a.label, accountShort: a.short, accountHue: a.hue });
   }
   return out;
+}
+
+/** Current TOTP code of a login (secret in the item, or from providers that only hand out the code), or null. */
+async function currentTotp(item, account) {
+  if (item.totp) return totp(item.totp);
+  const provider = getProvider(account.provider);
+  if (item.hasTotp && provider.currentTotp) return provider.currentTotp(cfg(account), await store.getSession(account.id), item);
+  return null;
+}
+
+/**
+ * After a login was really filled (`filled` > 0; not when the result only asks for a confirmation, or the form was
+ * hidden or out of reach): with the setting "copy TOTP after filling", its current code goes to the clipboard
+ * (cleared after the usual delay) and a short note says so – in the top page, together with the note naming an
+ * embedded form that was filled, or in the frame whose list in the login field was used (`frameId`).
+ */
+async function afterFill(tabId, item, filled, { embedded = [], frameId = 0 } = {}) {
+  if (!filled || item?.type !== 'login') return;
+  const settings = await getSettings();
+  if (!settings.copyTotpAfterFill) return;
+  try {
+    const code = (await currentTotp(item, await store.getAccount(item.accountId)))?.code;
+    if (!code || !await writeClipboard(code)) return;
+    await scheduleClipboardClear(settings.clipboardSeconds);
+    const copied = settings.clipboardSeconds > 0
+      ? t('Einmalcode kopiert – wird nach {s} s geleert', { s: settings.clipboardSeconds }) : t('Einmalcode kopiert');
+    const where = embedded.length ? `${t('OmniVault hat das eingebettete Formular von {origin} ausgefüllt.', { origin: embedded.map(hostLabel).join(', ') })} ` : '';
+    await showNotice(tabId, where + copied, frameId);
+  } catch (e) {
+    console.warn('OmniVault: TOTP not copied after filling', e);
+  }
 }
 
 /** The first login of the unlocked accounts that belongs to `tabUrl` (ids only; findItem loads its secrets). */
@@ -601,7 +632,8 @@ const handlers = {
     const { item } = await findItem(accountId, itemId);
     const frame = await inlineFrame(sender.tab);
     if (!sender.tab || !matchesUrl(item, frame.origin)) throw new Error(t('Dieser Login gehört nicht zu dieser Seite'));
-    await fillFrame(sender.tab.id, frame, item);
+    const filled = await fillFrame(sender.tab.id, frame, item);
+    await afterFill(sender.tab.id, item, filled, { frameId: frame.frameId });
     ext.tabs.sendMessage(sender.tab.id, { type: 'ov-inline-close' }).catch(() => {});
   },
 
@@ -795,13 +827,8 @@ const handlers = {
 
   async secret({ accountId, itemId, field }) {
     const { item, account } = await findItem(accountId, itemId);
-    if (field === 'totp') {
-      if (item.totp) return totp(item.totp);
-      // providers that hand out the current code but never the secret (KeePassXC)
-      const provider = getProvider(account.provider);
-      if (item.hasTotp && provider.currentTotp) return provider.currentTotp(cfg(account), await store.getSession(accountId), item);
-      return null;
-    }
+    // TOTP: also for providers that hand out the current code but never the secret (KeePassXC)
+    if (field === 'totp') return currentTotp(item, account);
     if (!['password', 'username', 'notes'].includes(field)) throw new Error(t('Unbekanntes Feld'));
     return item[field] ?? '';
   },
@@ -811,7 +838,9 @@ const handlers = {
   /** Fills an item into the tab; see fillTab for `force` and `allow` (answers to the questions the result asks). */
   async fill({ accountId, itemId, tabId, force = false, allow = null }) {
     const { item } = await findItem(accountId, itemId);
-    return fillTab(tabId, item, { interactive: true, force: !!force, allow });
+    const r = await fillTab(tabId, item, { interactive: true, force: !!force, allow });
+    await afterFill(tabId, item, r.filled, { embedded: r.embedded });
+    return r;
   },
 
   async saveItem({ accountId, itemId, data }) {
@@ -1163,8 +1192,10 @@ ext.windows?.onRemoved?.addListener(async (id) => {
 async function fillBestMatch(tab) {
   if (!tab?.id || !/^https?:/.test(tab.url ?? '')) return;
   await touch();
-  await fillBestInTab(tab.id, bestMatch, async (ref) => (await findItem(ref.accountId, ref.itemId)).item)
-    .catch((e) => console.warn('OmniVault: filling failed', e));
+  let picked = null; // the login fillBestInTab chose (loaded with its secrets)
+  const r = await fillBestInTab(tab.id, bestMatch, async (ref) => { picked = (await findItem(ref.accountId, ref.itemId)).item; return picked; })
+    .catch((e) => { console.warn('OmniVault: filling failed', e); return null; });
+  if (r) await afterFill(tab.id, picked, r.filled, { embedded: r.embedded });
 }
 
 ext.commands?.onCommand.addListener(async (command, tab) => {
@@ -1184,7 +1215,7 @@ ext.runtime.onStartup?.addListener(setupContextMenu);
 ext.contextMenus?.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'ov-fill') fillBestMatch(tab);
   if (info.menuItemId === 'ov-generate' && tab?.id) {
-    const pw = generatePassword((await getSettings()).generator);
+    const pw = generateSecret((await getSettings()).generator);
     await insertIntoFocused(tab.id, info.frameId ?? 0, pw);
   }
 });

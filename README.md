@@ -70,7 +70,9 @@ with a notice.
 - Fill logins with a click or a keyboard shortcut; optional OmniVault button inside login fields and a
   "Save login?" prompt – also in login and payment forms embedded from other sites (asks once per pair of sites)
 - Create and edit logins, notes, cards and identities, custom fields and folders (as far as each manager supports them)
-- Password generator with strength meter and a history of recently generated passwords
+- Generator for passwords, passphrases (EFF wordlist), PINs and usernames (random word, plus address, catch-all
+  address), with strength meter and a history of recently generated passwords
+- Optionally copy the TOTP code right after filling a login; read a TOTP QR code from the current page into a login
 - Sharing: Passbolt items and folders with people and groups (a shared folder passes the change on to the entries you own inside); Bitwarden / Vaultwarden items by moving them into an organization
   and its collections, and by changing the collections of organization items
 

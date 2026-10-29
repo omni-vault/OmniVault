@@ -1,6 +1,6 @@
 # OmniVault Privacy Policy
 
-*Last updated: October 25, 2026*
+*Last updated: October 28, 2026*
 
 OmniVault is a browser extension that shows the entries of the password managers you connect in one interface. This
 policy explains what data OmniVault handles, where it is kept and where it is sent. It applies to the OmniVault
@@ -66,8 +66,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
   assigns to OmniVault.
 - **Passbolt private key:** the private key you load from your Passbolt recovery kit, in the passphrase-protected
   form it comes in. The passphrase is never stored.
-- **Your settings,** such as the auto-lock time, clipboard clearing time, language, password generator options and
-  which website features you turned on.
+- **Your settings,** such as the auto-lock time, clipboard clearing time, language, generator options (including the
+  email address or domain you enter for generated usernames) and which website features you turned on.
 - **PIN unlock (if you turn it on):** a key pair whose private part is encrypted with a key derived from your PIN
   (Argon2id). The PIN itself is not stored.
 - **Passkey site index:** salted SHA-256 hashes of the websites for which your accounts hold passkeys, so OmniVault
@@ -87,7 +87,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
   the inactivity time you set, when your computer's screen locks (if enabled) and when the browser closes.
 - If PIN unlock is on: the locked sessions, sealed with the PIN key pair, and the count of wrong PIN attempts.
   Five wrong attempts delete them.
-- The last ten passwords created with the password generator, so you can look them up again.
+- The last ten passwords, passphrases or PINs created with the generator, so you can look them up again (generated
+  usernames are not kept).
 - A login you just submitted on a website, for up to three minutes, while the "Save login?" prompt is offered.
 - For each tab, the frame in which you last opened the list of the OmniVault button (frame number and the address of
   its website), so that filling goes into that frame.
@@ -119,7 +120,17 @@ unlocked. They are not written to disk by OmniVault.
 ## Clipboard
 
 When you copy a user name, password or code, OmniVault puts it on your system clipboard and clears the clipboard
-again after the time you set (30 seconds by default; you can turn this off). OmniVault never reads your clipboard.
+again after the time you set (30 seconds by default; you can turn this off). If you turn on "Copy the verification
+code (TOTP) after filling in a login", OmniVault also puts the current one-time code of a login on the clipboard right
+after filling it in, and clears it in the same way. OmniVault never reads your clipboard.
+
+## Screenshots of the current page
+
+When you click "Scan QR code on the page" in the editor, OmniVault takes one screenshot of the visible part of the
+current tab to find a QR code for one-time codes. This happens only on that click. The screenshot is analyzed inside
+OmniVault's window, in memory, and discarded right away; it is never stored, never sent anywhere, and nothing but
+the `otpauth://` code it contains is used. The browser allows this only for the tab you opened OmniVault on (or,
+if you granted it, with access to all websites).
 
 ## Files
 
