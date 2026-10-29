@@ -13,6 +13,10 @@ PY
   if [ ! -d "$dir/.git" ]; then
     GIT_LFS_SKIP_SMUDGE=1 git -c advice.detachedHead=false clone -q --depth 1 --branch "$ref" "$repo" "$dir"
   fi
+  if [ "$(git -C "$dir" rev-parse HEAD)" != "$commit" ]; then
+    # the branch has moved on since the commit was pinned: fetch exactly that commit
+    git -C "$dir" fetch -q --depth 1 origin "$commit" && git -C "$dir" -c advice.detachedHead=false checkout -q "$commit"
+  fi
   actual=$(git -C "$dir" rev-parse HEAD)
   if [ "$actual" != "$commit" ]; then
     echo "ERROR: $name is $actual, expected $commit" >&2; exit 1
