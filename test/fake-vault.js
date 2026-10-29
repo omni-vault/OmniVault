@@ -102,7 +102,7 @@ export function fakeVault({ mount = 'secret', namespace = null, users = { ada: '
   }
 
   return {
-    kv, log, tokens, put,
+    kv, log, tokens, put, handle,
     install() {
       globalThis.fetch = async (url, init = {}) => {
         const r = handle(init.method ?? 'GET', url, init.headers ?? {}, init.body ? JSON.parse(init.body) : null);

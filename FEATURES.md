@@ -191,6 +191,7 @@ the simulated server, which builds addresses like the real servers. Not verified
 | Bitwarden Send (Tools → Send, Bitwarden/Vaultwarden only): list own Sends (name, type, expiration or deletion, access count), create text and file Sends (up to 30 MB) with deletion date (at most 31 days), expiration date, maximum access count, password, hide text, hide email, disabled; edit (the link stays the same, the file itself cannot be changed), copy link, remove password, delete | ✅ R + S + U: against Vaultwarden (text and file, direct upload); every link is opened as a recipient would via the public interface (`send_access` token, `/sends/access`, file download) and decrypted by an independent Python checker; password protection, expiration, access limit, disabling and deletion against the real server; Azure upload and the premium message of the Bitwarden cloud only simulated ²⁸ |
 | Bitwarden emergency access as a trusted contact, view only (Tools → Emergency access): accounts that grant you access, with type, status and wait time; request access (with confirmation); after approval, the person's own entries (without trash and organization entries) as a separate read-only list with detail view, reveal and copy – no filling, no search, no export, no mirroring; discarded on locking. Inviting, accepting, confirming, approving and takeover: in the Bitwarden apps | ✅ R + S + U: fully against Vaultwarden (two accounts; inviting, confirming and approving via the API, requesting and viewing in OmniVault); takeover approvals only simulated ²⁹ |
 | Export: Bitwarden JSON (complete, with passkeys including keys as in Bitwarden) and CSV, per account or all | ✅ R + U |
+| Export password-protected: Bitwarden JSON in the format of Bitwarden's password-protected export (Argon2id 64 MiB / 3 passes / 4 lanes, or PBKDF2-SHA256 600,000 iterations); export password entered twice, strength estimate, at least 12 characters and not weak; encrypted in the popup, the password is not stored | ✅ R + U: imported by the official Bitwarden CLI into Vaultwarden (both KDFs), checked by an independent Python decryptor ³¹ |
 
 ²⁸ Send format from the public sources of the Bitwarden server, the Bitwarden SDK and Vaultwarden (no code copied): 16 random bytes per Send, encrypted with the user key; contents with the 64-byte key derived from it via HKDF-SHA256 (salt "bitwarden-send", info "send"); password as PBKDF2-SHA256 (100,000 iterations, salt = Send key). Links: `https://send.bitwarden.com/#…` (bitwarden.com), otherwise `{web vault}/#/send/…`. In the Bitwarden cloud, file Sends require premium and a verified email address; OmniVault shows the server's message in an understandable way. A password is sent without `authType` so that both servers set it exactly when one is given. OmniVault does not create Sends with email verification (new at Bitwarden, premium) or item Sends.
 
@@ -205,18 +206,42 @@ they are written into the notes. Unmapped CSV columns end up in the notes.
 | Format | Status |
 |---|---|
 | CSV with header row (Bitwarden, LastPass, Chrome, Firefox, NordPass, Dashlane, 1Password, KeePass, Safari …) | ✅ R + U |
-| Bitwarden / Vaultwarden JSON (unencrypted), also OmniVault's own export; passkeys are carried over into Bitwarden accounts | ✅ R + U |
-| Proton Pass JSON (`data.json` from the export) | ✅ U |
+| Bitwarden / Vaultwarden JSON (unencrypted or password-protected), also OmniVault's own export; passkeys are carried over into Bitwarden accounts; SSH keys arrive as notes with the key in hidden fields | ✅ R + U ³¹ |
+| Bitwarden encrypted export "account restricted" (encrypted with the account's key, personal or organization): only into the unlocked Bitwarden account it came from – it decrypts the file in the background; other targets get a clear message | ✅ R + U ³¹ |
+| 1Password `.1pux`: logins, passwords, secure notes, cards, identities, other categories as notes with fields; custom fields (hidden ones stay hidden), TOTP, tags, favorites, vault as folder; attachments and documents are uploaded when the target can store attachments (Bitwarden, up to 30 MB each), otherwise skipped and counted; archived items are not imported (listed in the report) | ✅ R + U ³² |
+| Proton Pass: ZIP export (`Proton Pass/data.json`), PGP-encrypted export (`.pgp`, passphrase, opened with OpenPGP.js) and `data.json` | ✅ R + U ³² |
+| Bitwarden ZIP export (`data.json`; its attachments are reported as not imported) | ✅ R ³² |
 | KeePass 2 XML (KeePass, KeePassXC); custom fields stay fields, groups become folders | ✅ R |
 | Detect format automatically | ✅ U |
 | Target: account and folder selectable | ✅ R |
-| Encrypted exports, ZIP archives (1PUX, Proton ZIP) | ⛔ (export unencrypted or unpacked first) |
+| ZIP64, password-protected ZIP archives (ZIP password), multi-part archives, compression other than stored/deflate | ⛔ refused with a message |
 | Open a KeePass database `.kdbx` directly (KDBX 3.1, 4.0, 4.1; AES-KDF, Argon2d, Argon2id; AES-256, ChaCha20; master password and/or key file – XML v1/v2, 32/64 bytes, any file); trash and attachments are not imported and are listed in the report | ✅ R + U ²³ |
 | `.kdbx` with Twofish, KeePass 1 (`.kdb`), writing back to the file | ⛔ or ❌ (Twofish and `.kdb` rejected with a notice) |
 
 ²³ `.kdbx`: checked against files written by real KeePassXC (keepassxc-cli 2.7), against an independent
 Python writer (`test/fixtures/kdbx/generate.py`) and against the sample files from kdbxweb (MIT); imported into
 real Vaultwarden in the browser (`test/e2e-tools.mjs`).
+
+³¹ Format from Bitwarden's documentation and the files themselves (no code taken from Bitwarden's clients): key =
+PBKDF2-SHA256(password, salt string) or Argon2id(password, SHA-256(salt string)), stretched with HKDF-Expand ("enc",
+"mac"); `encKeyValidation_DO_NOT_EDIT` and `data` are EncStrings of type 2 (AES-256-CBC + HMAC-SHA256). Tested with the
+official Bitwarden CLI 2026.9.0 against Vaultwarden over HTTPS (`npm run test:exports`): the CLI imports OmniVault's
+files (PBKDF2 and Argon2id, wrong password refused), and OmniVault opens the CLI's password-protected exports
+(account KDF PBKDF2 and Argon2id) and its account-restricted exports of a personal vault and of an organization
+(another account is refused). Unit tests: decryption with node:crypto, an independent Python decryptor
+(`test/bw-export-check.py`, `cryptography` incl. Argon2id), files written by the CLI (`test/fixtures/bitwarden-cli/`),
+KDF bounds (Argon2id up to 1 GiB / 10 passes / 16 lanes, PBKDF2 up to 2,000,000 iterations), damaged files. Browser
+test (`test/e2e-exports.mjs`): export with password, import into a second Vaultwarden account, wrong password.
+
+³² ZIP archives are read in memory by OmniVault's own reader (central directory; stored and deflate via
+`DecompressionStream`; CRC-32 checked). Limits against ZIP bombs: 256 MiB per file, 20,000 entries, 128 MiB per
+unpacked entry and 512 MiB in total – counted while inflating, so an entry that unpacks to more than it declares is
+stopped. `.1pux` layout from 1Password's description of the format; tested with archives written by the tests and by
+Python's `zipfile` (incl. ZIP64, encrypted and bomb archives) and in the browser against Vaultwarden (attachment
+uploaded and read back) and a simulated HashiCorp Vault (attachment skipped and counted). Not checked against a
+`.1pux` file written by 1Password itself. Proton Pass PGP files: passphrase-encrypted OpenPGP messages around the ZIP
+or the JSON; the plaintext is streamed and stopped at 256 MiB (compressed bombs); tested with files written by
+OpenPGP.js, not with a file written by Proton Pass itself.
 
 ## Interface
 

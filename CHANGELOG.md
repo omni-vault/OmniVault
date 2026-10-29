@@ -24,6 +24,16 @@
   over, filling in an empty name and username from it. The screenshot is processed in the popup's memory only and is
   never stored or sent. It needs OmniVault to be opened from its toolbar button, keyboard shortcut or context menu
   (activeTab); no new permission.
+- **Password-protected export** (Tools → Import/Export, now the default): a Bitwarden JSON file encrypted with an
+  export password of your choice, in the format of Bitwarden's own password-protected export, so Bitwarden,
+  Vaultwarden and OmniVault can import it. You enter the password twice and see its strength; Argon2id (64 MiB) or
+  PBKDF2-SHA256 (600,000 iterations). The unencrypted JSON and CSV exports are still there.
+- **Import of encrypted exports and archives**: password-protected Bitwarden exports (asking for the password and
+  saying clearly when it is wrong), Bitwarden exports encrypted with the account key (only into the unlocked Bitwarden
+  account they came from), 1Password `.1pux` archives (logins, notes, cards, identities, custom fields, one-time codes,
+  tags; attachments are uploaded when the target account can store them, otherwise counted in the report), Proton Pass
+  ZIP exports and PGP-encrypted Proton Pass exports (passphrase), and Bitwarden ZIP exports. Archives are unpacked in
+  memory only, with limits against ZIP bombs; ZIP64 and password-protected ZIP files are refused with a message.
 
 - **Password history for HashiCorp Vault / OpenBao**: entries with older versions show "Password history" in the
   detail view, as for Bitwarden. Only when you open it does OmniVault read the version list and the earlier
@@ -35,6 +45,8 @@
   has no command for them.
 
 ### Improvements
+- **Export of SSH keys**: SSH key items are now part of the Bitwarden JSON export (type 5), and importing them keeps
+  the keys in hidden fields of a note.
 - **Filling in embedded frames**: login forms embedded in a page (for example a bank's or a partner's sign-in in an
   iframe) and card forms of payment providers can now be filled – with a click, the keyboard shortcut, the context
   menu and the OmniVault button in the field. A login only goes into a frame whose own website matches it, never

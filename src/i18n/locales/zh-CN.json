@@ -88,7 +88,6 @@
  "CSV ohne Datenzeilen": "CSV 文件中没有数据行",
  "CSV-Spalten nicht erkannt (keine Spalte für Name, Benutzer, Passwort oder URL gefunden)": "无法识别 CSV 列：缺少名称、用户名、密码或网址列",
  "Kein Bitwarden-JSON (items fehlt)": "这不是 Bitwarden 的 JSON 导出文件",
- "Verschlüsselter Bitwarden-Export wird nicht unterstützt – bitte unverschlüsselt exportieren": "无法导入加密的 Bitwarden 导出文件，请以不加密的方式重新导出",
  "Kein Proton-Pass-JSON (keine Einträge gefunden)": "这不是 Proton Pass 的 JSON 导出文件",
  "Kein KeePass-XML": "这不是 KeePass 的 XML 导出文件",
  "Automatisch": "自动",
@@ -96,9 +95,6 @@
  "CSV": "CSV",
  "CSV (Bitwarden, LastPass, Chrome, NordPass, Dashlane, 1Password, KeePass, Safari …)": "CSV（Bitwarden、LastPass、Chrome、NordPass、Dashlane、1Password、KeePass、Safari 等）",
  "Bitwarden-JSON": "Bitwarden JSON",
- "Bitwarden / Vaultwarden (.json, unverschlüsselt)": "Bitwarden / Vaultwarden（.json，未加密）",
- "Proton-Pass-JSON": "Proton Pass JSON",
- "Proton Pass (data.json aus dem Export)": "Proton Pass（导出中的 data.json）",
  "KeePass-XML": "KeePass XML",
  "KeePass 2 (.xml)": "KeePass 2（.xml）",
  "Die PIN muss aus {min} bis {max} Ziffern bestehen": "PIN 必须为 {min} 到 {max} 位数字",
@@ -443,18 +439,14 @@
  "… und {n} weitere": "… 另有 {n} 个",
  "Importiere …": "正在导入…",
  "Datei": "文件",
- "Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Exporte bitte vorher entschlüsselt exportieren.": "如果目标账户支持，自定义字段、支付卡和身份会被保留；否则会写入备注。没有对应字段的 CSV 列也会写入备注。加密的导出文件请先解密。",
  "Konto für den Export": "要导出的账户",
  "Alle entsperrten Konten": "所有已解锁账户",
  "Exportformat": "导出格式",
- "Bitwarden-JSON (vollständig)": "Bitwarden JSON（完整）",
- "CSV (Logins und Notizen)": "CSV（登录信息和笔记）",
  "Alle Einträge aus „{account}“ unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.": "要以不加密的方式导出“{account}”中的所有项目吗？该文件会以明文包含所有密码，用完后请删除。",
  "Alle Einträge aus allen entsperrten Konten unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.": "要以不加密的方式导出所有已解锁账户中的所有项目吗？该文件会以明文包含所有密码，用完后请删除。",
  "Exportieren": "导出",
  "Exportiere …": "正在导出…",
  "Exportieren …": "导出…",
- "Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert beide Formate.": "不加密，用于迁移到其他密码管理器或作为备份。OmniVault 可以导入这两种格式。",
  "{n} Einträge kopiert": {
   "other": "已复制 {n} 个项目"
  },
@@ -1131,5 +1123,86 @@
  "Ausstellungsort": "签发地",
  "Ausweisnummer": "证件号码",
  "Nummer für die Online-Steuererklärung": "网上报税编号",
- "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli 从 6.2642.0 版起才能读取证件和身份。"
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli 从 6.2642.0 版起才能读取证件和身份。",
+ "Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Wähle als Ziel das entsperrte Bitwarden-Konto, aus dem er stammt.": "此 Bitwarden 导出文件使用账户密钥加密。请选择导出它的、已解锁的 Bitwarden 账户作为目标。",
+ "Passwortgeschützter Bitwarden-Export: bitte das Passwort der Datei eingeben.": "受密码保护的 Bitwarden 导出文件：请输入文件密码。",
+ "Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Er lässt sich nur in das entsperrte Bitwarden-Konto importieren, aus dem er stammt.": "此 Bitwarden 导出文件使用账户密钥加密，只能导入到导出它的、已解锁的 Bitwarden 账户中。",
+ "Kein 1Password-Export (export.data fehlt)": "不是 1Password 导出文件（缺少 export.data）",
+ "Kein 1Password-Export (export.data ist kein JSON)": "不是 1Password 导出文件（export.data 不是 JSON）",
+ "Tags": "标签",
+ "Keine Einträge im 1Password-Export gefunden": "1Password 导出文件中未找到项目",
+ "Bitwarden / Vaultwarden (.json, auch verschlüsselt)": "Bitwarden / Vaultwarden（.json，也支持加密）",
+ "1Password-Export": "1Password 导出",
+ "1Password (.1pux)": "1Password（.1pux）",
+ "Proton-Pass-Export": "Proton Pass 导出",
+ "Proton Pass (.zip, .pgp oder data.json)": "Proton Pass（.zip、.pgp 或 data.json）",
+ "Keine gültige PGP-Datei.": "不是有效的 PGP 文件。",
+ "Diese PGP-Datei ist für einen Schlüssel verschlüsselt, nicht mit einer Passphrase.": "此 PGP 文件是针对密钥加密的，而不是使用密码短语。",
+ "Falsches Passwort für diese Datei.": "此文件的密码错误。",
+ "Im ZIP-Archiv steckt kein bekannter Export (export.data oder data.json).": "ZIP 压缩包中没有已知的导出文件（export.data 或 data.json）。",
+ "Die Schlüsselableitung der Datei wird nicht unterstützt oder liegt außerhalb der üblichen Grenzen.": "此文件的密钥派生方式不受支持，或超出常规范围。",
+ "Die verschlüsselte Datei ist beschädigt.": "加密文件已损坏。",
+ "Kein 1Password-Export (keine ZIP-Datei)": "不是 1Password 导出文件（不是 ZIP 文件）",
+ "Archiv: {n} Einträge werden nicht übernommen.": {
+  "other": "{n} 个已归档的项目不会被导入。"
+ },
+ "{n} Anhänge fehlen im Archiv.": {
+  "other": "压缩包中缺少 {n} 个附件。"
+ },
+ "Weitere Dateien im Archiv werden nicht übernommen ({n}).": {
+  "other": "压缩包中的其他文件（{n} 个）不会被导入。"
+ },
+ "Ungültiges ZIP-Archiv.": "无效的 ZIP 压缩包。",
+ "ZIP64-Archive werden nicht unterstützt. Bitte die Exportdatei kleiner erstellen oder entpacken.": "不支持 ZIP64 压缩包。请创建较小的导出文件，或先解压。",
+ "Verschlüsselte ZIP-Archive werden nicht unterstützt. Bitte ohne ZIP-Passwort exportieren.": "不支持加密的 ZIP 压缩包。请在不设置 ZIP 密码的情况下导出。",
+ "Das ZIP-Archiv ist zu groß oder entpackt sich zu sehr (Schutz vor ZIP-Bomben).": "ZIP 压缩包过大或解压后过大（防范 ZIP 炸弹）。",
+ "Mehrteilige ZIP-Archive werden nicht unterstützt.": "不支持分卷 ZIP 压缩包。",
+ "Datei {name} fehlt im ZIP-Archiv.": "ZIP 压缩包中缺少文件 {name}。",
+ "Unbekannte Kompressionsmethode {n} im ZIP-Archiv.": "ZIP 压缩包中有未知的压缩方式 {n}。",
+ "ZIP-Archiv beschädigt (Prüfsumme von {name} stimmt nicht).": "ZIP 压缩包已损坏（{name} 的校验和不匹配）。",
+ "Dieser Browser kann ZIP-Archive nicht entpacken.": "此浏览器无法解压 ZIP 压缩包。",
+ "Passwort der Exportdatei": "导出文件密码",
+ "PGP-verschlüsselter Export (Proton Pass): Passphrase eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.": "PGP 加密的导出文件（Proton Pass）：请输入密码短语。解密只在此浏览器中进行，任何内容都不会被保存。",
+ "Passwortgeschützter Bitwarden-Export: Passwort der Datei eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.": "受密码保护的 Bitwarden 导出文件：请输入文件密码。解密只在此浏览器中进行，任何内容都不会被保存。",
+ "Entschlüssele mit dem Schlüssel von „{account}“ …": "正在使用“{account}”的密钥解密…",
+ "Anhang fehlgeschlagen: {error}": "附件上传失败：{error}",
+ "Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Bitwarden-Exporte, PGP-verschlüsselte Proton-Pass-Exporte und ZIP-Archive (1Password .1pux, Proton Pass) werden hier im Browser geöffnet.": "如果目标账户支持，自定义字段、支付卡和身份会被保留；否则会写入备注。没有对应字段的 CSV 列也会写入备注。加密的 Bitwarden 导出文件、PGP 加密的 Proton Pass 导出文件和 ZIP 压缩包（1Password .1pux、Proton Pass）都在此浏览器中打开。",
+ "Bitwarden-JSON, passwortgeschützt": "Bitwarden JSON（密码保护）",
+ "Bitwarden-JSON (vollständig, unverschlüsselt)": "Bitwarden JSON（完整，不加密）",
+ "CSV (Logins und Notizen, unverschlüsselt)": "CSV（登录信息和笔记，不加密）",
+ "Export-Passwort": "导出密码",
+ "Export-Passwort wiederholen": "再次输入导出密码",
+ "Schlüsselableitung": "密钥派生",
+ "Argon2id (64 MiB, empfohlen)": "Argon2id（64 MiB，推荐）",
+ "PBKDF2-SHA256 (600.000 Runden)": "PBKDF2-SHA256（600,000 次迭代）",
+ "Wiederholen": "再次输入",
+ "Bitte ein Export-Passwort eingeben.": "请输入导出密码。",
+ "Mindestens 12 Zeichen": "至少需要 12 个字符",
+ "Zu schwach: {reason}": "太弱：{reason}",
+ "Die Passwörter stimmen nicht überein.": "两次输入的密码不一致。",
+ "Verschlüsselt mit deinem Export-Passwort im Format von Bitwardens passwortgeschütztem Export: Bitwarden, Vaultwarden und OmniVault importieren die Datei. Ohne das Passwort lässt sie sich nicht öffnen – es wird nirgends gespeichert.": "使用你的导出密码，按 Bitwarden 密码保护导出的格式加密：Bitwarden、Vaultwarden 和 OmniVault 都能导入此文件。没有密码就无法打开——密码不会保存在任何地方。",
+ "Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert alle Formate.": "不加密，用于迁移到其他密码管理器或作为备份。OmniVault 可以导入所有这些格式。",
+ "Alle Einträge aus „{account}“ passwortgeschützt exportieren?": "要以密码保护的方式导出“{account}”中的所有项目吗？",
+ "Alle Einträge aus allen entsperrten Konten passwortgeschützt exportieren?": "要以密码保护的方式导出所有已解锁账户中的全部项目吗？",
+ "Verschlüssele …": "正在加密…",
+ "{n} Anhänge werden nach dem Import hochgeladen.": {
+  "other": "导入后将上传 {n} 个附件。"
+ },
+ "{n} Anhänge werden nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.": {
+  "other": "{n} 个附件不会被导入：目标账户无法存储附件。"
+ },
+ "{n} Einträge ließen sich nicht entschlüsseln.": {
+  "other": "有 {n} 个项目无法解密。"
+ },
+ "{n} Anhänge hochgeladen.": {
+  "other": "已上传 {n} 个附件。"
+ },
+ "{n} Anhänge nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.": {
+  "other": "{n} 个附件未导入：目标账户无法存储附件。"
+ },
+ "{n} Anhänge nicht übernommen: größer als {size} MB.": {
+  "other": "{n} 个附件未导入：超过 {size} MB。"
+ },
+ "Kein verschlüsselter Bitwarden-Export": "不是加密的 Bitwarden 导出文件",
+ "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "此加密导出文件来自另一个 Bitwarden 账户，或来自此账户无权访问的组织。"
 }

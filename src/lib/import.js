@@ -2,13 +2,22 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Importing export files from other password managers into an existing OmniVault account.
-// Everything here is pure: text (and parsed JSON) in, a normalized item list out. No secrets leave the browser.
+// Everything here works in memory: a file's bytes (or text) in, a normalized item list out. Nothing is written to
+// disk and no secrets leave the browser.
 //
-// A normalized item: { type:'login'|'note', name, username, password, totp, uris:[], notes, favorite }.
-// Only login and note are produced; richer types (cards, identities) are flattened into a note so nothing is lost.
+// A normalized item: { type: 'login'|'note'|'card'|'identity', name, username, password, totp, uris: [], notes,
+// favorite, folder?, fields?: [{ name, value, type }], card?, identity?, passkeys?, files?: [{ fileName, entry, size }] }.
+// The target account decides what it can store (background/tools.js); `files` are attachments inside a ZIP archive.
 
-import { mark, t } from '../i18n/index.js';
+import { mark, t, tn } from '../i18n/index.js';
 import { keepassItems, parseXml } from './kdbx.js';
+import { decryptBitwardenJson, isPasswordProtected } from './export.js';
+import { isZip, openZip } from './zip.js';
+
+/** Errors with a code the popup reacts to: 'bad_password', 'kdf', 'format', 'account'. */
+export class ImportError extends Error {
+  constructor(message, code) { super(message); this.code = code; }
+}
 /** RFC 4180 CSV parser: handles quoted fields, embedded commas, quotes ("") and CR/LF inside quotes. */
 export function parseCsv(text) {
   const rows = [];
@@ -116,8 +125,9 @@ const flattenFields = (obj, labels) => Object.entries(obj || {})
 
 /** Bitwarden / Vaultwarden JSON export ({ items: [...] } or { encrypted:false, items }). */
 export function importBitwardenJson(data) {
+  if (isPasswordProtected(data)) throw new ImportError(t('Passwortgeschützter Bitwarden-Export: bitte das Passwort der Datei eingeben.'), 'password');
+  if (data.encrypted) throw new ImportError(t('Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Er lässt sich nur in das entsperrte Bitwarden-Konto importieren, aus dem er stammt.'), 'account');
   if (!Array.isArray(data.items)) throw new Error(t('Kein Bitwarden-JSON (items fehlt)'));
-  if (data.encrypted) throw new Error(t('Verschlüsselter Bitwarden-Export wird nicht unterstützt – bitte unverschlüsselt exportieren'));
   const folders = Object.fromEntries((data.folders ?? []).map((f) => [f.id, f.name]));
   return data.items.map((i) => {
     const login = i.login ?? {};
@@ -125,6 +135,12 @@ export function importBitwardenJson(data) {
     // cards, identities and custom fields stay structured; the target account decides what it can store
     const fields = (i.fields ?? []).filter((f) => f.type !== 3 && (nonEmpty(f.name) || nonEmpty(f.value)))
       .map((f) => ({ name: f.name ?? '', value: f.value ?? '', type: { 1: 'hidden', 2: 'boolean' }[f.type] ?? 'text' }));
+    // SSH keys (type 5) arrive as a note with the key in hidden fields
+    if (i.type === 5 && i.sshKey) {
+      for (const [name, value, type] of [[t('Privater Schlüssel'), i.sshKey.privateKey, 'hidden'], [t('Öffentlicher Schlüssel'), i.sshKey.publicKey, 'text'], [t('Fingerabdruck'), i.sshKey.keyFingerprint, 'text']]) {
+        if (nonEmpty(value)) fields.push({ name, value, type });
+      }
+    }
     const clean = (o) => Object.fromEntries(Object.entries(o ?? {}).filter(([, v]) => v != null && v !== ''));
     return {
       type: { 1: 'login', 3: 'card', 4: 'identity' }[i.type] ?? 'note',
@@ -178,16 +194,248 @@ export function importKeePassXml(text) {
   return keepassItems(doc).items;
 }
 
+/* ---------- 1Password (.1pux) ---------- */
+
+// 1PUX: ZIP with export.data (JSON: accounts → vaults → items) and attachments in files/<documentId>…
+// (format described in 1Password's support article "About the 1Password Unencrypted Export format").
+const CATEGORY = { '001': 'login', '002': 'card', '003': 'note', '004': 'identity', '005': 'password', '006': 'document' };
+const CARD_BRANDS = { visa: 'Visa', mc: 'Mastercard', mastercard: 'Mastercard', amex: 'Amex', discover: 'Discover', diners: 'Diners Club', jcb: 'JCB', maestro: 'Maestro', unionpay: 'UnionPay', visaelectron: 'Visa' };
+const CARD_IDS = { cardholder: 'cardholderName', ccnum: 'number', cvv: 'code' };
+const IDENTITY_IDS = { firstname: 'firstName', initial: 'middleName', lastname: 'lastName', company: 'company', email: 'email', username: 'username' };
+const PHONE_IDS = ['defphone', 'cellphone', 'homephone', 'busphone'];
+
+const pad2 = (n) => String(n).padStart(2, '0');
+/** A section field's value → { text, hidden, kind } (kind: the value type, e.g. 'totp', 'file', 'address'). */
+function onePuxValue(value) {
+  const [kind, v] = Object.entries(value ?? {})[0] ?? [];
+  if (v == null || kind == null) return { text: '', kind };
+  if (kind === 'concealed') return { text: String(v), hidden: true, kind };
+  if (kind === 'date' && Number.isFinite(Number(v))) {
+    const d = new Date(Number(v) * 1000);
+    return { text: `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`, kind };
+  }
+  if (kind === 'monthYear' && /^\d{6}$/.test(String(v))) return { text: `${String(v).slice(4)}/${String(v).slice(0, 4)}`, kind, year: String(v).slice(0, 4), month: String(Number(String(v).slice(4))) };
+  if (kind === 'email' && typeof v === 'object') return { text: String(v.email_address ?? ''), kind };
+  if (kind === 'address' && typeof v === 'object') {
+    return { text: [v.street, [v.zip, v.city].filter(nonEmpty).join(' '), v.state, v.country].filter(nonEmpty).join(', '), kind, address: v };
+  }
+  if (kind === 'sshKey' && typeof v === 'object') return { text: String(v.privateKey ?? ''), hidden: true, kind };
+  if (kind === 'file') return { text: '', kind, file: v };
+  if (typeof v === 'object') return { text: JSON.stringify(v), kind };
+  return { text: String(v), kind };
+}
+
+/** Items of a .1pux archive (opened with openZip) → { items, skipped: [text] }. Attachments: item.files. */
+export async function import1Pux(zip) {
+  if (!zip.find('export.data')) throw new Error(t('Kein 1Password-Export (export.data fehlt)'));
+  let data;
+  try { data = JSON.parse(new TextDecoder().decode(await zip.read('export.data', { maxBytes: 64 * 1024 * 1024 }))); } catch (e) {
+    if (e.code) throw e;
+    throw new Error(t('Kein 1Password-Export (export.data ist kein JSON)'));
+  }
+  const files = zip.entries.filter((e) => !e.dir && e.name.startsWith('files/'));
+  const fileFor = (documentId, fileName) => {
+    const entry = documentId && files.find((e) => e.name.startsWith(`files/${documentId}`));
+    return entry ? { fileName: String(fileName || entry.name.slice(6 + documentId.length).replace(/^_+/, '') || documentId), entry: entry.name, size: entry.size } : null;
+  };
+  const out = [];
+  let archived = 0;
+  let missingFiles = 0;
+  for (const account of data.accounts ?? []) {
+    for (const vault of account.vaults ?? []) {
+      for (const wrapped of vault.items ?? []) {
+        const it = wrapped.item ?? wrapped;
+        if (it.state === 'archived') { archived++; continue; }
+        const d = it.details ?? {};
+        const ov = it.overview ?? {};
+        const category = CATEGORY[it.categoryUuid] ?? 'other';
+        const item = {
+          type: category === 'login' || category === 'password' ? 'login' : category === 'card' || category === 'identity' ? category : 'note',
+          name: ov.title || t('Ohne Namen'), username: '', password: '', totp: '', uris: [], notes: d.notesPlain ?? '', fields: [],
+          favorite: Number(it.favIndex) > 0, folder: vault.attrs?.name || undefined,
+        };
+        for (const u of [...(ov.urls ?? []).map((x) => x?.url), ov.url]) if (nonEmpty(u) && !item.uris.includes(u.trim())) item.uris.push(u.trim());
+        for (const f of d.loginFields ?? []) {
+          if (!nonEmpty(f.value)) continue;
+          if (f.designation === 'username' && !item.username) item.username = f.value;
+          else if (f.designation === 'password' && !item.password) item.password = f.value;
+          else item.fields.push({ name: f.name || f.id || t('Feld'), value: f.value, type: f.fieldType === 'P' || f.type === 'P' ? 'hidden' : 'text' });
+        }
+        if (nonEmpty(d.password) && !item.password) item.password = d.password;
+        const card = {};
+        const identity = {};
+        const attach = [];
+        for (const section of d.sections ?? []) {
+          for (const f of section.fields ?? []) {
+            const v = onePuxValue(f.value);
+            if (v.kind === 'file') {
+              const a = fileFor(v.file?.documentId, v.file?.fileName);
+              if (a) attach.push(a); else missingFiles++;
+              continue;
+            }
+            if (!nonEmpty(v.text)) continue;
+            const id = String(f.id ?? '');
+            if (v.kind === 'totp' && !item.totp) { item.totp = v.text; continue; }
+            if (item.type === 'card') {
+              if (CARD_IDS[id] && !card[CARD_IDS[id]]) { card[CARD_IDS[id]] = v.text; continue; }
+              if (id === 'type' && !card.brand) { card.brand = CARD_BRANDS[v.text.toLowerCase()] ?? v.text; continue; }
+              if (id === 'expiry' && v.kind === 'monthYear' && !card.expYear) { card.expMonth = v.month; card.expYear = v.year; continue; }
+            }
+            if (item.type === 'identity') {
+              if (IDENTITY_IDS[id] && !identity[IDENTITY_IDS[id]]) { identity[IDENTITY_IDS[id]] = v.text; continue; }
+              if (PHONE_IDS.includes(id) && !identity.phone) { identity.phone = v.text; continue; }
+              if (v.kind === 'address' && !identity.address1) {
+                Object.assign(identity, Object.fromEntries(Object.entries({ address1: v.address.street, city: v.address.city, state: v.address.state, postalCode: v.address.zip, country: v.address.country })
+                  .filter(([, x]) => nonEmpty(x))));
+                continue;
+              }
+            }
+            item.fields.push({ name: f.title || id || section.title || t('Feld'), value: v.text, type: v.hidden ? 'hidden' : 'text' });
+          }
+        }
+        if (d.documentAttributes) {
+          const a = fileFor(d.documentAttributes.documentId, d.documentAttributes.fileName);
+          if (a) attach.push(a); else missingFiles++;
+        }
+        if ((ov.tags ?? []).length) item.fields.push({ name: t('Tags'), value: ov.tags.join(', '), type: 'text' });
+        if (item.type === 'card') item.card = card;
+        if (item.type === 'identity') item.identity = identity;
+        if (attach.length) item.files = attach;
+        out.push(item);
+      }
+    }
+  }
+  if (!out.length && !archived) throw new Error(t('Keine Einträge im 1Password-Export gefunden'));
+  const skipped = [];
+  if (archived) skipped.push(tn(archived, 'Archiv: {n} Eintrag wird nicht übernommen.', 'Archiv: {n} Einträge werden nicht übernommen.'));
+  if (missingFiles) skipped.push(tn(missingFiles, '{n} Anhang fehlt im Archiv.', '{n} Anhänge fehlen im Archiv.'));
+  return { items: out, skipped };
+}
+
 /* ---------- dispatch ---------- */
 
 export const FORMATS = [
   { id: 'auto', name: mark('Automatisch'), label: mark('Automatisch erkennen') },
   { id: 'csv', name: mark('CSV'), label: mark('CSV (Bitwarden, LastPass, Chrome, NordPass, Dashlane, 1Password, KeePass, Safari …)') },
-  { id: 'bitwarden', name: mark('Bitwarden-JSON'), label: mark('Bitwarden / Vaultwarden (.json, unverschlüsselt)') },
-  { id: 'proton', name: mark('Proton-Pass-JSON'), label: mark('Proton Pass (data.json aus dem Export)') },
+  { id: 'bitwarden', name: mark('Bitwarden-JSON'), label: mark('Bitwarden / Vaultwarden (.json, auch verschlüsselt)') },
+  { id: '1pux', name: mark('1Password-Export'), label: mark('1Password (.1pux)'), binary: true },
+  { id: 'proton', name: mark('Proton-Pass-Export'), label: mark('Proton Pass (.zip, .pgp oder data.json)') },
   { id: 'keepassxml', name: mark('KeePass-XML'), label: mark('KeePass 2 (.xml)') },
   { id: 'kdbx', name: mark('KeePass-Datenbank'), label: mark('KeePass-Datenbank (.kdbx)'), binary: true },
 ];
+
+/** Largest import file read into memory (ZIP archives and PGP files included). */
+export const MAX_IMPORT_BYTES = 256 * 1024 * 1024;
+const MAX_TEXT_BYTES = 64 * 1024 * 1024;
+
+/** OpenPGP message: ASCII armor, or a binary packet that can start a message (session key, encrypted data). */
+export function isPgp(bytes, fileName = '') {
+  const head = new TextDecoder().decode(bytes.subarray(0, 64)).trimStart();
+  if (head.startsWith('-----BEGIN PGP MESSAGE-----')) return true;
+  const b = bytes[0];
+  if (!(b & 0x80)) return false;
+  const tag = b & 0x40 ? b & 0x3f : (b >> 2) & 0x0f;
+  return [1, 3, 18].includes(tag) && (/\.(pgp|gpg|asc)$/i.test(fileName) || tag === 3);
+}
+
+/** Decrypts a passphrase-encrypted OpenPGP message (OpenPGP.js, loaded on demand) → bytes, at most `limit`. */
+export async function decryptPgp(bytes, passphrase, limit = MAX_IMPORT_BYTES) {
+  const openpgp = await import('../../vendor/openpgp.mjs');
+  const armored = new TextDecoder().decode(bytes.subarray(0, 64)).trimStart().startsWith('-----BEGIN PGP');
+  let message;
+  try {
+    // as streams, so the plaintext comes out as a stream too and can be counted
+    const stream = new Blob([bytes]).stream();
+    message = armored ? await openpgp.readMessage({ armoredMessage: stream.pipeThrough(new TextDecoderStream()) })
+      : await openpgp.readMessage({ binaryMessage: stream });
+  } catch { throw new ImportError(t('Keine gültige PGP-Datei.'), 'format'); }
+  if (!message.packets.filterByTag(openpgp.enums.packet.symEncryptedSessionKey).length) {
+    throw new ImportError(t('Diese PGP-Datei ist für einen Schlüssel verschlüsselt, nicht mit einer Passphrase.'), 'format');
+  }
+  let data;
+  try {
+    // streamed, so a compressed bomb is stopped at `limit`; the plaintext is used only after the stream ended without an
+    // error, i.e. after OpenPGP.js checked its integrity (MDC or AEAD) – releasing chunks earlier only serves the count
+    ({ data } = await openpgp.decrypt({ message, passwords: [passphrase], format: 'binary', config: { allowUnauthenticatedStream: true } }));
+  } catch { throw new ImportError(t('Falsches Passwort für diese Datei.'), 'bad_password'); }
+  const chunks = [];
+  let n = 0;
+  const reader = data instanceof Uint8Array ? new Blob([data]).stream().getReader() : data.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      n += value.length;
+      if (n > limit) throw new ImportError(t('Die Datei ist zu groß (höchstens {size}).', { size: `${limit / 1024 / 1024} MiB` }), 'too_large');
+      chunks.push(value);
+    }
+  } catch (e) {
+    reader.cancel().catch(() => {});
+    if (e instanceof ImportError) throw e;
+    throw new ImportError(t('Falsches Passwort für diese Datei.'), 'bad_password');
+  }
+  const out = new Uint8Array(n);
+  let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
+}
+
+/** A ZIP archive: 1Password (.1pux) or Proton Pass (Proton Pass/data.json), the latter possibly with a Bitwarden data.json. */
+async function importZip(zip, opts) {
+  if (zip.find('export.data')) return { format: '1pux', ...(await import1Pux(zip)), zip };
+  if (opts.format === '1pux') throw new Error(t('Kein 1Password-Export (export.data fehlt)'));
+  const data = zip.find('Proton Pass/data.json') ?? zip.entries.find((e) => !e.dir && /(^|\/)data\.json$/.test(e.name));
+  if (!data) throw new Error(t('Im ZIP-Archiv steckt kein bekannter Export (export.data oder data.json).'));
+  const text = new TextDecoder().decode(await zip.read(data, { maxBytes: MAX_TEXT_BYTES }));
+  const parsed = await readText(text, { ...opts, format: 'auto' });
+  if (parsed.need) return parsed;
+  const others = zip.entries.filter((e) => !e.dir && e !== data && !/(^|\/)(\.|__MACOSX\/)/.test(e.name)).length;
+  if (others) parsed.skipped = [...(parsed.skipped ?? []), tn(others, 'Weitere Datei im Archiv wird nicht übernommen ({n}).', 'Weitere Dateien im Archiv werden nicht übernommen ({n}).')];
+  return parsed;
+}
+
+async function readText(text, { format, password }) {
+  const trimmed = text.trimStart();
+  if ((format === 'auto' || format === 'bitwarden') && trimmed.startsWith('{')) {
+    let doc = null;
+    try { doc = JSON.parse(text); } catch { /* not JSON: falls through to the text formats */ }
+    if (doc?.encrypted === true) {
+      if (!isPasswordProtected(doc)) return { need: 'account', doc };
+      if (password == null) return { need: 'password', kind: 'bitwarden' };
+      let plain;
+      try { plain = await decryptBitwardenJson(doc, password); } catch (e) {
+        if (e.code === 'bad_password') throw new ImportError(t('Falsches Passwort für diese Datei.'), 'bad_password');
+        if (e.code === 'kdf') throw new ImportError(t('Die Schlüsselableitung der Datei wird nicht unterstützt oder liegt außerhalb der üblichen Grenzen.'), 'kdf');
+        throw new ImportError(t('Die verschlüsselte Datei ist beschädigt.'), 'format');
+      }
+      let inner;
+      try { inner = JSON.parse(plain); } catch { throw new ImportError(t('Die verschlüsselte Datei ist beschädigt.'), 'format'); }
+      return { format: 'bitwarden', items: importBitwardenJson(inner), protected: true };
+    }
+  }
+  return parseImport(text, format);
+}
+
+/**
+ * Reads an import file (bytes) in memory → { format, items, skipped?, zip? } or, when more is needed first,
+ * { need: 'password', kind: 'bitwarden'|'pgp' } (call again with `password`) or { need: 'account', doc } (an
+ * account-restricted Bitwarden export: only the account it came from can open it, see the background).
+ * KeePass databases (.kdbx) have their own path (lib/kdbx.js).
+ */
+export async function readImportFile(bytes, { fileName = '', format = 'auto', password = null } = {}) {
+  if (bytes.length > MAX_IMPORT_BYTES) throw new ImportError(t('Die Datei ist zu groß (höchstens {size}).', { size: `${MAX_IMPORT_BYTES / 1024 / 1024} MiB` }), 'too_large');
+  const opts = { fileName, format, password };
+  if (isZip(bytes)) return importZip(openZip(bytes), opts);
+  if (format === '1pux') throw new Error(t('Kein 1Password-Export (keine ZIP-Datei)'));
+  if ((format === 'auto' || format === 'proton') && isPgp(bytes, fileName)) {
+    if (password == null) return { need: 'password', kind: 'pgp' };
+    const plain = await decryptPgp(bytes, password);
+    if (isZip(plain)) return importZip(openZip(plain), { ...opts, password: null });
+    return readText(new TextDecoder().decode(plain), { ...opts, password: null });
+  }
+  if (bytes.length > MAX_TEXT_BYTES) throw new ImportError(t('Die Datei ist zu groß (höchstens {size}).', { size: `${MAX_TEXT_BYTES / 1024 / 1024} MiB` }), 'too_large');
+  return readText(new TextDecoder().decode(bytes), opts);
+}
 
 /** Detects the format of a text file and returns {format, items}. Throws with a clear message on failure. */
 export function parseImport(text, format = 'auto') {

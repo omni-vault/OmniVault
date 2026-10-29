@@ -88,7 +88,6 @@
  "CSV ohne Datenzeilen": "CSV ファイルにデータ行がありません",
  "CSV-Spalten nicht erkannt (keine Spalte für Name, Benutzer, Passwort oder URL gefunden)": "CSV の列を認識できません（名前・ユーザー名・パスワード・URL の列がありません）",
  "Kein Bitwarden-JSON (items fehlt)": "Bitwarden の JSON エクスポートではありません",
- "Verschlüsselter Bitwarden-Export wird nicht unterstützt – bitte unverschlüsselt exportieren": "暗号化された Bitwarden のエクスポートはインポートできません。暗号化せずにエクスポートし直してください",
  "Kein Proton-Pass-JSON (keine Einträge gefunden)": "Proton Pass の JSON エクスポートではありません",
  "Kein KeePass-XML": "KeePass の XML エクスポートではありません",
  "Automatisch": "自動",
@@ -96,9 +95,6 @@
  "CSV": "CSV",
  "CSV (Bitwarden, LastPass, Chrome, NordPass, Dashlane, 1Password, KeePass, Safari …)": "CSV（Bitwarden、LastPass、Chrome、NordPass、Dashlane、1Password、KeePass、Safari など）",
  "Bitwarden-JSON": "Bitwarden JSON",
- "Bitwarden / Vaultwarden (.json, unverschlüsselt)": "Bitwarden / Vaultwarden（.json、暗号化なし）",
- "Proton-Pass-JSON": "Proton Pass JSON",
- "Proton Pass (data.json aus dem Export)": "Proton Pass（エクスポートの data.json）",
  "KeePass-XML": "KeePass XML",
  "KeePass 2 (.xml)": "KeePass 2（.xml）",
  "Die PIN muss aus {min} bis {max} Ziffern bestehen": "PIN は {min}～{max} 桁の数字にしてください",
@@ -443,18 +439,14 @@
  "… und {n} weitere": "… ほか {n} 件",
  "Importiere …": "インポートしています …",
  "Datei": "ファイル",
- "Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Exporte bitte vorher entschlüsselt exportieren.": "カスタムフィールド、カード、ID は、移動先アカウントが対応していればそのまま残り、対応していなければメモに追加されます。対応するフィールドのない CSV の列もメモに入ります。暗号化されたエクスポートは先に復号してください。",
  "Konto für den Export": "エクスポートするアカウント",
  "Alle entsperrten Konten": "ロック解除済みのすべてのアカウント",
  "Exportformat": "エクスポート形式",
- "Bitwarden-JSON (vollständig)": "Bitwarden JSON（すべて）",
- "CSV (Logins und Notizen)": "CSV（ログインとメモ）",
  "Alle Einträge aus „{account}“ unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.": "「{account}」のすべてのアイテムを暗号化せずにエクスポートしますか？ファイルにはすべてのパスワードが平文で含まれます。使い終わったら削除してください。",
  "Alle Einträge aus allen entsperrten Konten unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.": "ロック解除済みのすべてのアカウントのアイテムを暗号化せずにエクスポートしますか？ファイルにはすべてのパスワードが平文で含まれます。使い終わったら削除してください。",
  "Exportieren": "エクスポート",
  "Exportiere …": "エクスポートしています …",
  "Exportieren …": "エクスポート …",
- "Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert beide Formate.": "暗号化なし。別のパスワードマネージャーへの移行やバックアップ用です。OmniVault はどちらの形式もインポートできます。",
  "{n} Einträge kopiert": {
   "other": "{n} 件のアイテムをコピーしました"
  },
@@ -1131,5 +1123,86 @@
  "Ausstellungsort": "発行地",
  "Ausweisnummer": "証明書番号",
  "Nummer für die Online-Steuererklärung": "オンライン税申告番号",
- "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli が身分証明書と ID 情報を読み取れるのはバージョン 6.2642.0 以降です。"
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli が身分証明書と ID 情報を読み取れるのはバージョン 6.2642.0 以降です。",
+ "Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Wähle als Ziel das entsperrte Bitwarden-Konto, aus dem er stammt.": "この Bitwarden エクスポートはアカウントキーで暗号化されています。移動先として、エクスポート元のロック解除済み Bitwarden アカウントを選んでください。",
+ "Passwortgeschützter Bitwarden-Export: bitte das Passwort der Datei eingeben.": "パスワードで保護された Bitwarden エクスポートです。ファイルのパスワードを入力してください。",
+ "Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Er lässt sich nur in das entsperrte Bitwarden-Konto importieren, aus dem er stammt.": "この Bitwarden エクスポートはアカウントキーで暗号化されています。エクスポート元のロック解除済み Bitwarden アカウントにのみインポートできます。",
+ "Kein 1Password-Export (export.data fehlt)": "1Password のエクスポートではありません（export.data がありません）",
+ "Kein 1Password-Export (export.data ist kein JSON)": "1Password のエクスポートではありません（export.data が JSON ではありません）",
+ "Tags": "タグ",
+ "Keine Einträge im 1Password-Export gefunden": "1Password のエクスポートにアイテムが見つかりません",
+ "Bitwarden / Vaultwarden (.json, auch verschlüsselt)": "Bitwarden / Vaultwarden（.json、暗号化済みも可）",
+ "1Password-Export": "1Password エクスポート",
+ "1Password (.1pux)": "1Password（.1pux）",
+ "Proton-Pass-Export": "Proton Pass エクスポート",
+ "Proton Pass (.zip, .pgp oder data.json)": "Proton Pass（.zip、.pgp、data.json）",
+ "Keine gültige PGP-Datei.": "有効な PGP ファイルではありません。",
+ "Diese PGP-Datei ist für einen Schlüssel verschlüsselt, nicht mit einer Passphrase.": "この PGP ファイルはパスフレーズではなく、鍵に対して暗号化されています。",
+ "Falsches Passwort für diese Datei.": "このファイルのパスワードが正しくありません。",
+ "Im ZIP-Archiv steckt kein bekannter Export (export.data oder data.json).": "ZIP アーカイブに既知のエクスポート（export.data または data.json）が含まれていません。",
+ "Die Schlüsselableitung der Datei wird nicht unterstützt oder liegt außerhalb der üblichen Grenzen.": "このファイルの鍵導出方式はサポートされていないか、通常の範囲を超えています。",
+ "Die verschlüsselte Datei ist beschädigt.": "暗号化されたファイルが破損しています。",
+ "Kein 1Password-Export (keine ZIP-Datei)": "1Password のエクスポートではありません（ZIP ファイルではありません）",
+ "Archiv: {n} Einträge werden nicht übernommen.": {
+  "other": "アーカイブ済みの {n} 件のアイテムはインポートされません。"
+ },
+ "{n} Anhänge fehlen im Archiv.": {
+  "other": "{n} 件の添付ファイルがアーカイブにありません。"
+ },
+ "Weitere Dateien im Archiv werden nicht übernommen ({n}).": {
+  "other": "アーカイブ内のほかのファイル（{n} 件）はインポートされません。"
+ },
+ "Ungültiges ZIP-Archiv.": "無効な ZIP アーカイブです。",
+ "ZIP64-Archive werden nicht unterstützt. Bitte die Exportdatei kleiner erstellen oder entpacken.": "ZIP64 アーカイブには対応していません。より小さいエクスポートを作成するか、先に展開してください。",
+ "Verschlüsselte ZIP-Archive werden nicht unterstützt. Bitte ohne ZIP-Passwort exportieren.": "暗号化された ZIP アーカイブには対応していません。ZIP パスワードなしでエクスポートしてください。",
+ "Das ZIP-Archiv ist zu groß oder entpackt sich zu sehr (Schutz vor ZIP-Bomben).": "ZIP アーカイブが大きすぎるか、展開後のサイズが大きすぎます（ZIP 爆弾対策）。",
+ "Mehrteilige ZIP-Archive werden nicht unterstützt.": "分割された ZIP アーカイブには対応していません。",
+ "Datei {name} fehlt im ZIP-Archiv.": "ZIP アーカイブにファイル {name} がありません。",
+ "Unbekannte Kompressionsmethode {n} im ZIP-Archiv.": "ZIP アーカイブに不明な圧縮方式 {n} があります。",
+ "ZIP-Archiv beschädigt (Prüfsumme von {name} stimmt nicht).": "ZIP アーカイブが破損しています（{name} のチェックサムが一致しません）。",
+ "Dieser Browser kann ZIP-Archive nicht entpacken.": "このブラウザーでは ZIP アーカイブを展開できません。",
+ "Passwort der Exportdatei": "エクスポートファイルのパスワード",
+ "PGP-verschlüsselter Export (Proton Pass): Passphrase eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.": "PGP で暗号化されたエクスポート（Proton Pass）：パスフレーズを入力してください。復号はこのブラウザー内だけで行われ、何も保存されません。",
+ "Passwortgeschützter Bitwarden-Export: Passwort der Datei eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.": "パスワードで保護された Bitwarden エクスポート：ファイルのパスワードを入力してください。復号はこのブラウザー内だけで行われ、何も保存されません。",
+ "Entschlüssele mit dem Schlüssel von „{account}“ …": "「{account}」の鍵で復号しています…",
+ "Anhang fehlgeschlagen: {error}": "添付ファイルのアップロードに失敗しました：{error}",
+ "Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Bitwarden-Exporte, PGP-verschlüsselte Proton-Pass-Exporte und ZIP-Archive (1Password .1pux, Proton Pass) werden hier im Browser geöffnet.": "カスタムフィールド、カード、ID は、移動先アカウントが対応していればそのまま残り、対応していなければメモに追加されます。対応するフィールドのない CSV の列もメモに入ります。暗号化された Bitwarden エクスポート、PGP で暗号化された Proton Pass エクスポート、ZIP アーカイブ（1Password .1pux、Proton Pass）は、このブラウザー内で開かれます。",
+ "Bitwarden-JSON, passwortgeschützt": "Bitwarden JSON（パスワード保護）",
+ "Bitwarden-JSON (vollständig, unverschlüsselt)": "Bitwarden JSON（すべて、暗号化なし）",
+ "CSV (Logins und Notizen, unverschlüsselt)": "CSV（ログインとメモ、暗号化なし）",
+ "Export-Passwort": "エクスポート用パスワード",
+ "Export-Passwort wiederholen": "エクスポート用パスワード（確認）",
+ "Schlüsselableitung": "鍵導出",
+ "Argon2id (64 MiB, empfohlen)": "Argon2id（64 MiB、推奨）",
+ "PBKDF2-SHA256 (600.000 Runden)": "PBKDF2-SHA256（600,000 回）",
+ "Wiederholen": "もう一度入力",
+ "Bitte ein Export-Passwort eingeben.": "エクスポート用パスワードを入力してください。",
+ "Mindestens 12 Zeichen": "12 文字以上にしてください",
+ "Zu schwach: {reason}": "弱すぎます：{reason}",
+ "Die Passwörter stimmen nicht überein.": "パスワードが一致しません。",
+ "Verschlüsselt mit deinem Export-Passwort im Format von Bitwardens passwortgeschütztem Export: Bitwarden, Vaultwarden und OmniVault importieren die Datei. Ohne das Passwort lässt sie sich nicht öffnen – es wird nirgends gespeichert.": "エクスポート用パスワードで、Bitwarden のパスワード保護エクスポートと同じ形式で暗号化します。Bitwarden、Vaultwarden、OmniVault でインポートできます。パスワードがないと開けません。パスワードはどこにも保存されません。",
+ "Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert alle Formate.": "暗号化なし。別のパスワードマネージャーへの移行やバックアップ用です。OmniVault はすべての形式をインポートできます。",
+ "Alle Einträge aus „{account}“ passwortgeschützt exportieren?": "「{account}」のすべてのアイテムをパスワードで保護してエクスポートしますか？",
+ "Alle Einträge aus allen entsperrten Konten passwortgeschützt exportieren?": "ロック解除済みのすべてのアカウントのアイテムをパスワードで保護してエクスポートしますか？",
+ "Verschlüssele …": "暗号化しています…",
+ "{n} Anhänge werden nach dem Import hochgeladen.": {
+  "other": "インポート後に {n} 件の添付ファイルをアップロードします。"
+ },
+ "{n} Anhänge werden nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.": {
+  "other": "{n} 件の添付ファイルはインポートされません：移動先のアカウントは添付ファイルを保存できません。"
+ },
+ "{n} Einträge ließen sich nicht entschlüsseln.": {
+  "other": "{n} 件のアイテムを復号できませんでした。"
+ },
+ "{n} Anhänge hochgeladen.": {
+  "other": "{n} 件の添付ファイルをアップロードしました。"
+ },
+ "{n} Anhänge nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.": {
+  "other": "{n} 件の添付ファイルはインポートされませんでした：移動先のアカウントは添付ファイルを保存できません。"
+ },
+ "{n} Anhänge nicht übernommen: größer als {size} MB.": {
+  "other": "{n} 件の添付ファイルはインポートされませんでした：{size} MB を超えています。"
+ },
+ "Kein verschlüsselter Bitwarden-Export": "暗号化された Bitwarden エクスポートではありません",
+ "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "この暗号化されたエクスポートは、別の Bitwarden アカウント、またはこのアカウントがアクセスできない組織のものです。"
 }

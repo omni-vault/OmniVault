@@ -90,7 +90,6 @@
  "CSV ohne Datenzeilen": "Il file CSV non contiene righe",
  "CSV-Spalten nicht erkannt (keine Spalte für Name, Benutzer, Passwort oder URL gefunden)": "Colonne CSV non riconosciute: manca una colonna per nome, utente, password o URL",
  "Kein Bitwarden-JSON (items fehlt)": "Non è un’esportazione JSON di Bitwarden",
- "Verschlüsselter Bitwarden-Export wird nicht unterstützt – bitte unverschlüsselt exportieren": "Le esportazioni cifrate di Bitwarden non si possono importare: esporta di nuovo senza cifratura",
  "Kein Proton-Pass-JSON (keine Einträge gefunden)": "Non è un’esportazione JSON di Proton Pass",
  "Kein KeePass-XML": "Non è un’esportazione XML di KeePass",
  "Automatisch": "Automatico",
@@ -98,9 +97,6 @@
  "CSV": "CSV",
  "CSV (Bitwarden, LastPass, Chrome, NordPass, Dashlane, 1Password, KeePass, Safari …)": "CSV (Bitwarden, LastPass, Chrome, NordPass, Dashlane, 1Password, KeePass, Safari …)",
  "Bitwarden-JSON": "JSON di Bitwarden",
- "Bitwarden / Vaultwarden (.json, unverschlüsselt)": "Bitwarden / Vaultwarden (.json, non cifrato)",
- "Proton-Pass-JSON": "JSON di Proton Pass",
- "Proton Pass (data.json aus dem Export)": "Proton Pass (data.json dell’esportazione)",
  "KeePass-XML": "XML di KeePass",
  "KeePass 2 (.xml)": "KeePass 2 (.xml)",
  "Die PIN muss aus {min} bis {max} Ziffern bestehen": "Il PIN deve avere da {min} a {max} cifre",
@@ -450,18 +446,14 @@
  "… und {n} weitere": "… e altri {n}",
  "Importiere …": "Importazione …",
  "Datei": "File",
- "Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Exporte bitte vorher entschlüsselt exportieren.": "Campi personalizzati, carte e identità vengono mantenuti se l’account di destinazione li supporta; altrimenti finiscono nelle note. Anche le colonne CSV senza un campo corrispondente finiscono nelle note. Decifra prima le esportazioni cifrate.",
  "Konto für den Export": "Account da esportare",
  "Alle entsperrten Konten": "Tutti gli account sbloccati",
  "Exportformat": "Formato di esportazione",
- "Bitwarden-JSON (vollständig)": "JSON di Bitwarden (completo)",
- "CSV (Logins und Notizen)": "CSV (login e note)",
  "Alle Einträge aus „{account}“ unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.": "Esportare senza cifratura tutti gli elementi di «{account}»? Il file conterrà tutte le password in chiaro: eliminalo quando hai finito.",
  "Alle Einträge aus allen entsperrten Konten unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.": "Esportare senza cifratura tutti gli elementi di tutti gli account sbloccati? Il file conterrà tutte le password in chiaro: eliminalo quando hai finito.",
  "Exportieren": "Esporta",
  "Exportiere …": "Esportazione …",
  "Exportieren …": "Esporta …",
- "Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert beide Formate.": "Non cifrato, per passare a un altro gestore di password o come backup. OmniVault può importare entrambi i formati.",
  "{n} Einträge kopiert": {
   "one": "{n} elemento copiato",
   "other": "{n} elementi copiati"
@@ -1170,5 +1162,95 @@
  "Ausstellungsort": "Luogo di rilascio",
  "Ausweisnummer": "Numero del documento",
  "Nummer für die Online-Steuererklärung": "Numero per la dichiarazione fiscale online",
- "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli legge documenti e identità solo dalla versione 6.2642.0."
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli legge documenti e identità solo dalla versione 6.2642.0.",
+ "Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Wähle als Ziel das entsperrte Bitwarden-Konto, aus dem er stammt.": "Questa esportazione di Bitwarden è cifrata con la chiave dell’account. Scegli come destinazione l’account Bitwarden sbloccato da cui proviene.",
+ "Passwortgeschützter Bitwarden-Export: bitte das Passwort der Datei eingeben.": "Esportazione di Bitwarden protetta da password: inserisci la password del file.",
+ "Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Er lässt sich nur in das entsperrte Bitwarden-Konto importieren, aus dem er stammt.": "Questa esportazione di Bitwarden è cifrata con la chiave dell’account. Si può importare solo nell’account Bitwarden sbloccato da cui proviene.",
+ "Kein 1Password-Export (export.data fehlt)": "Non è un’esportazione di 1Password (manca export.data)",
+ "Kein 1Password-Export (export.data ist kein JSON)": "Non è un’esportazione di 1Password (export.data non è JSON)",
+ "Tags": "Tag",
+ "Keine Einträge im 1Password-Export gefunden": "Nessun elemento trovato nell’esportazione di 1Password",
+ "Bitwarden / Vaultwarden (.json, auch verschlüsselt)": "Bitwarden / Vaultwarden (.json, anche cifrato)",
+ "1Password-Export": "Esportazione di 1Password",
+ "1Password (.1pux)": "1Password (.1pux)",
+ "Proton-Pass-Export": "Esportazione di Proton Pass",
+ "Proton Pass (.zip, .pgp oder data.json)": "Proton Pass (.zip, .pgp o data.json)",
+ "Keine gültige PGP-Datei.": "File PGP non valido.",
+ "Diese PGP-Datei ist für einen Schlüssel verschlüsselt, nicht mit einer Passphrase.": "Questo file PGP è cifrato per una chiave, non con una passphrase.",
+ "Falsches Passwort für diese Datei.": "Password errata per questo file.",
+ "Im ZIP-Archiv steckt kein bekannter Export (export.data oder data.json).": "L’archivio ZIP non contiene alcuna esportazione nota (export.data o data.json).",
+ "Die Schlüsselableitung der Datei wird nicht unterstützt oder liegt außerhalb der üblichen Grenzen.": "La derivazione della chiave del file non è supportata o è fuori dai limiti consueti.",
+ "Die verschlüsselte Datei ist beschädigt.": "Il file cifrato è danneggiato.",
+ "Kein 1Password-Export (keine ZIP-Datei)": "Non è un’esportazione di 1Password (non è un file ZIP)",
+ "Archiv: {n} Einträge werden nicht übernommen.": {
+  "one": "{n} elemento archiviato non verrà importato.",
+  "other": "{n} elementi archiviati non verranno importati."
+ },
+ "{n} Anhänge fehlen im Archiv.": {
+  "one": "Manca {n} allegato nell’archivio.",
+  "other": "Mancano {n} allegati nell’archivio."
+ },
+ "Weitere Dateien im Archiv werden nicht übernommen ({n}).": {
+  "one": "Un altro file dell’archivio non verrà importato ({n}).",
+  "other": "Altri file dell’archivio non verranno importati ({n})."
+ },
+ "Ungültiges ZIP-Archiv.": "Archivio ZIP non valido.",
+ "ZIP64-Archive werden nicht unterstützt. Bitte die Exportdatei kleiner erstellen oder entpacken.": "Gli archivi ZIP64 non sono supportati. Crea un’esportazione più piccola o estraila prima.",
+ "Verschlüsselte ZIP-Archive werden nicht unterstützt. Bitte ohne ZIP-Passwort exportieren.": "Gli archivi ZIP cifrati non sono supportati. Esporta senza password ZIP.",
+ "Das ZIP-Archiv ist zu groß oder entpackt sich zu sehr (Schutz vor ZIP-Bomben).": "L’archivio ZIP è troppo grande o si espande troppo (protezione contro le bombe ZIP).",
+ "Mehrteilige ZIP-Archive werden nicht unterstützt.": "Gli archivi ZIP suddivisi in più parti non sono supportati.",
+ "Datei {name} fehlt im ZIP-Archiv.": "Il file {name} manca nell’archivio ZIP.",
+ "Unbekannte Kompressionsmethode {n} im ZIP-Archiv.": "Metodo di compressione sconosciuto {n} nell’archivio ZIP.",
+ "ZIP-Archiv beschädigt (Prüfsumme von {name} stimmt nicht).": "Archivio ZIP danneggiato (il checksum di {name} non corrisponde).",
+ "Dieser Browser kann ZIP-Archive nicht entpacken.": "Questo browser non può estrarre archivi ZIP.",
+ "Passwort der Exportdatei": "Password del file di esportazione",
+ "PGP-verschlüsselter Export (Proton Pass): Passphrase eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.": "Esportazione cifrata con PGP (Proton Pass): inserisci la passphrase. La decifratura avviene solo qui nel browser; non viene salvato nulla.",
+ "Passwortgeschützter Bitwarden-Export: Passwort der Datei eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.": "Esportazione di Bitwarden protetta da password: inserisci la password del file. La decifratura avviene solo qui nel browser; non viene salvato nulla.",
+ "Entschlüssele mit dem Schlüssel von „{account}“ …": "Decifratura con la chiave di «{account}»…",
+ "Anhang fehlgeschlagen: {error}": "Allegato non riuscito: {error}",
+ "Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Bitwarden-Exporte, PGP-verschlüsselte Proton-Pass-Exporte und ZIP-Archive (1Password .1pux, Proton Pass) werden hier im Browser geöffnet.": "Campi personalizzati, carte e identità vengono mantenuti se l’account di destinazione li supporta; altrimenti finiscono nelle note. Anche le colonne CSV senza un campo corrispondente finiscono nelle note. Le esportazioni cifrate di Bitwarden, le esportazioni di Proton Pass cifrate con PGP e gli archivi ZIP (1Password .1pux, Proton Pass) vengono aperti qui nel browser.",
+ "Bitwarden-JSON, passwortgeschützt": "JSON di Bitwarden, protetto da password",
+ "Bitwarden-JSON (vollständig, unverschlüsselt)": "JSON di Bitwarden (completo, non cifrato)",
+ "CSV (Logins und Notizen, unverschlüsselt)": "CSV (login e note, non cifrato)",
+ "Export-Passwort": "Password di esportazione",
+ "Export-Passwort wiederholen": "Ripeti la password di esportazione",
+ "Schlüsselableitung": "Derivazione della chiave",
+ "Argon2id (64 MiB, empfohlen)": "Argon2id (64 MiB, consigliato)",
+ "PBKDF2-SHA256 (600.000 Runden)": "PBKDF2-SHA256 (600.000 iterazioni)",
+ "Wiederholen": "Ripeti",
+ "Bitte ein Export-Passwort eingeben.": "Inserisci una password di esportazione.",
+ "Mindestens 12 Zeichen": "Almeno 12 caratteri",
+ "Zu schwach: {reason}": "Troppo debole: {reason}",
+ "Die Passwörter stimmen nicht überein.": "Le password non corrispondono.",
+ "Verschlüsselt mit deinem Export-Passwort im Format von Bitwardens passwortgeschütztem Export: Bitwarden, Vaultwarden und OmniVault importieren die Datei. Ohne das Passwort lässt sie sich nicht öffnen – es wird nirgends gespeichert.": "Cifrato con la tua password di esportazione nel formato dell’esportazione protetta da password di Bitwarden: Bitwarden, Vaultwarden e OmniVault possono importare il file. Senza la password non si può aprire, e la password non viene salvata da nessuna parte.",
+ "Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert alle Formate.": "Non cifrato, per passare a un altro gestore di password o come backup. OmniVault può importare tutti i formati.",
+ "Alle Einträge aus „{account}“ passwortgeschützt exportieren?": "Esportare con protezione tramite password tutti gli elementi di «{account}»?",
+ "Alle Einträge aus allen entsperrten Konten passwortgeschützt exportieren?": "Esportare con protezione tramite password tutti gli elementi di tutti gli account sbloccati?",
+ "Verschlüssele …": "Cifratura…",
+ "{n} Anhänge werden nach dem Import hochgeladen.": {
+  "one": "{n} allegato verrà caricato dopo l’importazione.",
+  "other": "{n} allegati verranno caricati dopo l’importazione."
+ },
+ "{n} Anhänge werden nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.": {
+  "one": "{n} allegato non verrà importato: l’account di destinazione non può salvare allegati.",
+  "other": "{n} allegati non verranno importati: l’account di destinazione non può salvare allegati."
+ },
+ "{n} Einträge ließen sich nicht entschlüsseln.": {
+  "one": "Non è stato possibile decifrare {n} elemento.",
+  "other": "Non è stato possibile decifrare {n} elementi."
+ },
+ "{n} Anhänge hochgeladen.": {
+  "one": "{n} allegato caricato.",
+  "other": "{n} allegati caricati."
+ },
+ "{n} Anhänge nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.": {
+  "one": "{n} allegato non importato: l’account di destinazione non può salvare allegati.",
+  "other": "{n} allegati non importati: l’account di destinazione non può salvare allegati."
+ },
+ "{n} Anhänge nicht übernommen: größer als {size} MB.": {
+  "one": "{n} allegato non importato: più di {size} MB.",
+  "other": "{n} allegati non importati: più di {size} MB."
+ },
+ "Kein verschlüsselter Bitwarden-Export": "Non è un’esportazione cifrata di Bitwarden",
+ "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "Questa esportazione cifrata proviene da un altro account Bitwarden o da un’organizzazione a cui questo account non ha accesso."
 }

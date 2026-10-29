@@ -3,7 +3,11 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Tools view: duplicates, bulk selection (copy / move / delete), mirror rules between accounts, import, trash, Send,
 // emergency access.
-import { FORMATS, parseImport } from '../lib/import.js';
+import { FORMATS, MAX_IMPORT_BYTES, parseImport, readImportFile } from '../lib/import.js';
+import { EXPORT_KDF, encryptBitwardenJson } from '../lib/export.js';
+import { b64 } from '../lib/bytes.js';
+import { passwordBits, weakness } from '../lib/strength.js';
+import { strengthLabel } from '../lib/generator.js';
 import { MAX_FILE_BYTES as MAX_KDBX_BYTES, isKdbx, openKdbx } from '../lib/kdbx.js';
 import { HIBP_ORIGIN } from '../lib/hibp.js';
 import { ext } from '../lib/browser.js';
@@ -366,38 +370,58 @@ async function renderMirror(body) {
 
 /* ---------- import ---------- */
 
+const MAX_ATTACHMENT_BYTES = 30 * 1024 * 1024; // as when adding an attachment by hand (one message to the background)
+
 async function renderImport(body) {
   const writable = writableAccounts();
   if (!writable.length) {
     body.append(el('p', { className: 'hint' }, t('Zum Importieren muss ein Konto entsperrt sein, in das OmniVault schreiben kann.')), exportSection(), footer([]));
     return;
   }
-  let parsed = null; // { format, items, skipped?: [text] }
+  // { format, items, skipped?: [text], zip? } – the file and everything read from it stay in this view's memory only
+  let parsed = null;
+  let fileBytes = null;
+  let unlockKind = null; // 'kdbx' | 'bitwarden' | 'pgp' while a password is asked for
+  let accountDoc = null; // account-restricted Bitwarden export, opened with the target account's key
 
-  const fileInput = el('input', { type: 'file', accept: '.csv,.json,.xml,.txt,.kdbx', 'aria-label': t('Exportdatei') });
+  const fileInput = el('input', { type: 'file', accept: '.csv,.json,.xml,.txt,.kdbx,.zip,.1pux,.pgp,.gpg,.asc', 'aria-label': t('Exportdatei') });
   const formatSel = el('select', { 'aria-label': t('Format') }, FORMATS.map((f) => el('option', { value: f.id }, t(f.label))));
   const accSel = el('select', { 'aria-label': t('Ziel-Konto') }, writable.map((a) => el('option', { value: a.id }, a.label)));
   const { select: folderSel, label: folderLabel, load } = folderPicker({ 'aria-label': t('Ordner') });
-  const info = el('p', { className: 'hint' }, t('Wähle eine Exportdatei eines anderen Passwortmanagers. Die Datei wird nur lokal gelesen.'));
+  const info = el('p', { className: 'hint', id: 'import-info' }, t('Wähle eine Exportdatei eines anderen Passwortmanagers. Die Datei wird nur lokal gelesen.'));
   const preview = el('div', {});
   const runBtn = el('button', { type: 'button', disabled: true }, t('Importieren'));
 
-  // KeePass database: master password and optional key file, only in this view's memory
+  // password of the file (KeePass database, password-protected Bitwarden export, PGP passphrase), only in memory
   const kdbxPw = el('input', { type: 'password', autocomplete: 'off', spellcheck: 'false', 'aria-label': t('Master-Passwort der Datenbank') });
+  const pwLabelText = el('span', {}, t('Master-Passwort'));
   const keyInput = el('input', { type: 'file', 'aria-label': t('Schlüsseldatei') });
+  const keyLabel = el('label', {}, t('Schlüsseldatei (optional)'), keyInput);
   const openBtn = el('button', { type: 'submit' }, t('Öffnen'));
   const kdbxError = el('p', { className: 'hint error', hidden: true, role: 'alert' });
-  const kdbxBox = el('form', { className: 'kdbx-unlock', hidden: true },
-    el('label', {}, t('Master-Passwort'), el('div', { className: 'pw-row' }, kdbxPw,
+  const kdbxBox = el('form', { className: 'kdbx-unlock', id: 'import-unlock', hidden: true },
+    el('label', {}, pwLabelText, el('div', { className: 'pw-row' }, kdbxPw,
       iconButton('eye', t('Anzeigen'), { 'aria-label': t('Passwort anzeigen'), onclick: (e) => {
         kdbxPw.type = kdbxPw.type === 'password' ? 'text' : 'password';
         e.currentTarget.replaceChildren(icon(kdbxPw.type === 'password' ? 'eye' : 'eyeOff'));
       } }))),
-    el('label', {}, t('Schlüsseldatei (optional)'), keyInput),
+    keyLabel,
     kdbxError,
     el('div', { className: 'row' }, openBtn));
   const fileFolders = el('input', { type: 'checkbox', checked: true });
   const fileFoldersLabel = el('label', { className: 'inline-check', hidden: true }, fileFolders, t('Gruppen als Ordner übernehmen'));
+
+  const targetCanUpload = () => !!providerOf(accountOf(accSel.value)?.provider)?.capabilities?.attachmentUpload;
+  const fileCount = () => (parsed?.items ?? []).reduce((n, i) => n + (i.files?.length ?? 0), 0);
+  const filesHint = el('p', { className: 'hint warn', id: 'import-files', hidden: true });
+  const updateFilesHint = () => {
+    const n = fileCount();
+    filesHint.hidden = !n;
+    filesHint.className = targetCanUpload() ? 'hint' : 'hint warn';
+    filesHint.textContent = !n ? '' : targetCanUpload()
+      ? tn(n, '{n} Anhang wird nach dem Import hochgeladen.', '{n} Anhänge werden nach dem Import hochgeladen.')
+      : tn(n, '{n} Anhang wird nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.', '{n} Anhänge werden nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.');
+  };
 
   const loadFolders = async () => {
     await load(accSel.value);
@@ -410,9 +434,14 @@ async function renderImport(body) {
     runBtn.disabled = true;
     parsed = null;
     fileFoldersLabel.hidden = true;
+    filesHint.hidden = true;
   };
   const isKdbxFile = async (file) => formatSel.value === 'kdbx'
     || (formatSel.value === 'auto' && (/\.kdbx$/i.test(file.name) || isKdbx(new Uint8Array(await file.slice(0, 8).arrayBuffer()))));
+  const fail = (message) => {
+    info.className = 'hint error';
+    info.textContent = message;
+  };
 
   const showParsed = () => {
     info.className = 'hint';
@@ -431,31 +460,89 @@ async function renderImport(body) {
       n > 8 ? el('p', { className: 'hint' }, t('… und {n} weitere', { n: n - 8 })) : null),
     ...(parsed.skipped ?? []).map((text) => el('p', { className: 'hint warn' }, text)));
     fileFoldersLabel.hidden = !parsed.items.some((i) => i.folder) || folderSel.value !== '' || folderLabel.hidden;
+    updateFilesHint();
     runBtn.disabled = !n;
+  };
+
+  const askPassword = (kind) => {
+    unlockKind = kind;
+    kdbxBox.hidden = false;
+    keyLabel.hidden = kind !== 'kdbx';
+    pwLabelText.textContent = kind === 'kdbx' ? t('Master-Passwort') : kind === 'pgp' ? t('Passphrase') : t('Passwort der Exportdatei');
+    kdbxPw.setAttribute('aria-label', kind === 'kdbx' ? t('Master-Passwort der Datenbank') : pwLabelText.textContent);
+    info.className = 'hint';
+    info.textContent = kind === 'kdbx'
+      ? t('KeePass-Datenbank: Master-Passwort eingeben und, falls verwendet, die Schlüsseldatei wählen. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.')
+      : kind === 'pgp'
+        ? t('PGP-verschlüsselter Export (Proton Pass): Passphrase eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.')
+        : t('Passwortgeschützter Bitwarden-Export: Passwort der Datei eingeben. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.');
+    kdbxPw.focus();
+  };
+
+  /** Account-restricted Bitwarden export: the target account must be the unlocked Bitwarden account it came from. */
+  const openAccountExport = async () => {
+    reset();
+    const a = accountOf(accSel.value);
+    if (a?.provider !== 'bitwarden') {
+      fail(t('Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Wähle als Ziel das entsperrte Bitwarden-Konto, aus dem er stammt.'));
+      return;
+    }
+    info.className = 'hint';
+    info.textContent = t('Entschlüssele mit dem Schlüssel von „{account}“ …', { account: a.label });
+    try {
+      const { content, failed } = await call('decryptAccountExport', { accountId: a.id, doc: accountDoc });
+      parsed = { ...parseImport(content, 'bitwarden'), format: 'bitwarden' };
+      if (failed) parsed.skipped = [tn(failed, '{n} Eintrag ließ sich nicht entschlüsseln.', '{n} Einträge ließen sich nicht entschlüsseln.')];
+      showParsed();
+    } catch (e) { fail(e.message); }
+  };
+
+  /** Reads the file (bytes in memory) with or without a password and shows what comes next. */
+  const readFile = async (password = null) => {
+    const file = fileInput.files?.[0];
+    const r = await readImportFile(fileBytes, { fileName: file?.name ?? '', format: formatSel.value, password });
+    if (r.need === 'password') { askPassword(r.kind); return false; }
+    kdbxBox.hidden = true;
+    unlockKind = null;
+    if (r.need === 'account') { accountDoc = r.doc; await openAccountExport(); return true; }
+    parsed = r;
+    showParsed();
+    return true;
   };
 
   const doParse = async () => {
     reset();
     kdbxError.hidden = true;
+    kdbxPw.value = '';
+    fileBytes = null;
+    accountDoc = null;
+    unlockKind = null;
     const file = fileInput.files?.[0];
     kdbxBox.hidden = true;
     if (!file) return;
-    if (await isKdbxFile(file)) {
-      kdbxBox.hidden = false;
-      info.className = 'hint';
-      info.textContent = t('KeePass-Datenbank: Master-Passwort eingeben und, falls verwendet, die Schlüsseldatei wählen. Entschlüsselt wird nur hier im Browser; nichts davon wird gespeichert.');
-      kdbxPw.focus();
-      return;
-    }
-    let text;
-    try { text = await file.text(); } catch { info.textContent = t('Datei konnte nicht gelesen werden.'); return; }
+    if (await isKdbxFile(file)) { askPassword('kdbx'); return; }
+    if (file.size > MAX_IMPORT_BYTES) { fail(t('Die Datei ist zu groß (höchstens {size}).', { size: `${MAX_IMPORT_BYTES / 1024 / 1024} MiB` })); return; }
+    try { fileBytes = new Uint8Array(await file.arrayBuffer()); } catch { fail(t('Datei konnte nicht gelesen werden.')); return; }
     try {
-      parsed = parseImport(text, formatSel.value);
+      await readFile();
     } catch (e) {
-      info.className = 'hint error';
-      info.textContent = t('Nicht erkannt: {error}', { error: e.message });
-      return;
+      fail(t('Nicht erkannt: {error}', { error: e.message }));
     }
+  };
+
+  const openKdbxFile = async (file) => {
+    if (file.size > MAX_KDBX_BYTES) throw new Error(t('Die Datei ist zu groß (höchstens {size}).', { size: `${MAX_KDBX_BYTES / 1024 / 1024} MiB` }));
+    const keyFile = keyInput.files?.[0];
+    if (keyFile && keyFile.size > 1024 * 1024) throw new Error(t('Die Schlüsseldatei ist zu groß.'));
+    const db = await openKdbx(await file.arrayBuffer(), { password: kdbxPw.value, keyFile: keyFile ? await keyFile.arrayBuffer() : null });
+    const skipped = [];
+    if (db.recycled) skipped.push(tn(db.recycled, 'Papierkorb: {n} Eintrag wird nicht übernommen.', 'Papierkorb: {n} Einträge werden nicht übernommen.'));
+    if (db.attachments.length) {
+      skipped.push(tn(db.attachments.length, 'Anhänge werden nicht übernommen ({n} Eintrag: {names}).', 'Anhänge werden nicht übernommen ({n} Einträge: {names}).',
+        { names: db.attachments.slice(0, 5).join(', ') + (db.attachments.length > 5 ? ' …' : '') }));
+    }
+    parsed = { format: 'kdbx', items: db.items, skipped };
+    kdbxBox.hidden = true;
     showParsed();
   };
 
@@ -468,24 +555,13 @@ async function renderImport(body) {
     openBtn.disabled = true;
     openBtn.textContent = t('Entschlüssele …');
     try {
-      if (file.size > MAX_KDBX_BYTES) throw new Error(t('Die Datei ist zu groß (höchstens {size}).', { size: `${MAX_KDBX_BYTES / 1024 / 1024} MiB` }));
-      const keyFile = keyInput.files?.[0];
-      if (keyFile && keyFile.size > 1024 * 1024) throw new Error(t('Die Schlüsseldatei ist zu groß.'));
-      const db = await openKdbx(await file.arrayBuffer(), { password: kdbxPw.value, keyFile: keyFile ? await keyFile.arrayBuffer() : null });
+      if (unlockKind === 'kdbx') await openKdbxFile(file);
+      else await readFile(kdbxPw.value);
       kdbxPw.value = '';
-      const skipped = [];
-      if (db.recycled) skipped.push(tn(db.recycled, 'Papierkorb: {n} Eintrag wird nicht übernommen.', 'Papierkorb: {n} Einträge werden nicht übernommen.'));
-      if (db.attachments.length) {
-        skipped.push(tn(db.attachments.length, 'Anhänge werden nicht übernommen ({n} Eintrag: {names}).', 'Anhänge werden nicht übernommen ({n} Einträge: {names}).',
-          { names: db.attachments.slice(0, 5).join(', ') + (db.attachments.length > 5 ? ' …' : '') }));
-      }
-      parsed = { format: 'kdbx', items: db.items, skipped };
-      kdbxBox.hidden = true;
-      showParsed();
     } catch (x) {
       kdbxError.textContent = x.message;
       kdbxError.hidden = false;
-      if (x.code === 'credentials') kdbxPw.select();
+      if (x.code === 'credentials' || x.code === 'bad_password') kdbxPw.select();
     } finally {
       openBtn.disabled = false;
       openBtn.textContent = t('Öffnen');
@@ -494,20 +570,44 @@ async function renderImport(body) {
 
   fileInput.addEventListener('change', doParse);
   formatSel.addEventListener('change', () => { if (fileInput.files?.[0]) doParse(); });
-  accSel.addEventListener('change', loadFolders);
+  accSel.addEventListener('change', async () => {
+    await loadFolders();
+    if (accountDoc) await openAccountExport(); else updateFilesHint();
+  });
   runBtn.addEventListener('click', async () => {
     if (!parsed?.items.length) return;
     const a = accountOf(accSel.value);
     if (!await ask(tn(parsed.items.length, '{n} Eintrag nach „{account}“ importieren?', '{n} Einträge nach „{account}“ importieren?', { account: a.label }), { ok: t('Importieren') })) return;
     runBtn.disabled = true;
     toast(t('Importiere …'), 120_000);
-    const results = await call('importItems', { accountId: a.id, items: parsed.items, folderId: folderSel.value || null, fileFolders: !fileFoldersLabel.hidden && fileFolders.checked })
+    const items = parsed.items.map(({ files, ...rest }) => rest);
+    const results = await call('importItems', { accountId: a.id, items, folderId: folderSel.value || null, fileFolders: !fileFoldersLabel.hidden && fileFolders.checked })
       .catch((e) => { toast(e.message); return null; });
     if (!results) { runBtn.disabled = false; return; }
+    const notes = [...(parsed.skipped ?? [])];
+    // attachments from a ZIP archive: one upload per file, after the items exist
+    const files = parsed.items.flatMap((item, i) => (item.files ?? []).map((f) => ({ ...f, result: results[i] })));
+    if (files.length) {
+      const counts = { uploaded: 0, skipped: 0, large: 0, failed: [] };
+      const canUpload = targetCanUpload();
+      for (const f of files) {
+        if (!f.result?.ok) continue;
+        if (!canUpload || !f.result.id) { counts.skipped++; continue; }
+        if (f.size > MAX_ATTACHMENT_BYTES) { counts.large++; continue; }
+        toast(t('Lade {name} hoch …', { name: f.fileName }), 120_000);
+        try {
+          await call('addAttachment', { accountId: a.id, itemId: f.result.id, fileName: f.fileName, data: b64(await parsed.zip.read(f.entry)) });
+          counts.uploaded++;
+        } catch (e) { counts.failed.push(`${f.fileName}: ${e.message}`); }
+      }
+      if (counts.uploaded) notes.push(tn(counts.uploaded, '{n} Anhang hochgeladen.', '{n} Anhänge hochgeladen.'));
+      if (counts.skipped) notes.push(tn(counts.skipped, '{n} Anhang nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.', '{n} Anhänge nicht übernommen: Das Ziel-Konto kann keine Anhänge speichern.'));
+      if (counts.large) notes.push(tn(counts.large, '{n} Anhang nicht übernommen: größer als {size} MB.', '{n} Anhänge nicht übernommen: größer als {size} MB.', { size: MAX_ATTACHMENT_BYTES / 1024 / 1024 }));
+      for (const line of counts.failed.slice(0, 5)) notes.push(t('Anhang fehlgeschlagen: {error}', { error: line }));
+    }
     await refresh();
     const failed = results.filter((r) => !r.ok);
     const okN = results.length - failed.length;
-    const notes = parsed.skipped ?? [];
     if (!failed.length && !notes.length) toast(tn(okN, '{n} Eintrag importiert', '{n} Einträge importiert'));
     else {
       const lines = [failed.length ? t('{done}, {failed} fehlgeschlagen:', { done: tn(okN, '{n} Eintrag importiert', '{n} Einträge importiert'), failed: failed.length })
@@ -517,6 +617,8 @@ async function renderImport(body) {
       await ask(lines.join('\n'), { ok: t('OK'), cancel: false });
     }
     parsed = null;
+    fileBytes = null;
+    accountDoc = null;
     tab = 'bulk';
     render();
   });
@@ -530,7 +632,8 @@ async function renderImport(body) {
     el('div', { className: 'two' }, el('label', {}, t('Ziel-Konto'), accSel), folderLabel),
     fileFoldersLabel,
     preview,
-    el('p', { className: 'hint' }, t('Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Exporte bitte vorher entschlüsselt exportieren.')),
+    filesHint,
+    el('p', { className: 'hint' }, t('Zusatzfelder, Karten und Identitäten bleiben erhalten, wenn das Ziel-Konto sie speichern kann, sonst stehen sie in den Notizen. Nicht zugeordnete CSV-Spalten landen in den Notizen. Verschlüsselte Bitwarden-Exporte, PGP-verschlüsselte Proton-Pass-Exporte und ZIP-Archive (1Password .1pux, Proton Pass) werden hier im Browser geöffnet.')),
     exportSection(),
     el('div', { className: 'row actions' }, el('button', { type: 'button', className: 'secondary', onclick: () => back() }, t('Zurück')), runBtn));
 }
@@ -541,17 +644,73 @@ function exportSection() {
   const unlocked = S.state.accounts.filter((a) => a.unlocked);
   const accSel = el('select', { 'aria-label': t('Konto für den Export') }, el('option', { value: '' }, t('Alle entsperrten Konten')), unlocked.map((a) => el('option', { value: a.id }, a.label)));
   const fmtSel = el('select', { 'aria-label': t('Exportformat') },
-    el('option', { value: 'json' }, t('Bitwarden-JSON (vollständig)')), el('option', { value: 'csv' }, t('CSV (Logins und Notizen)')));
+    el('option', { value: 'protected' }, t('Bitwarden-JSON, passwortgeschützt')),
+    el('option', { value: 'json' }, t('Bitwarden-JSON (vollständig, unverschlüsselt)')), el('option', { value: 'csv' }, t('CSV (Logins und Notizen, unverschlüsselt)')));
+
+  // export password: twice, with a strength estimate; only in this view's memory
+  const pw1 = el('input', { type: 'password', autocomplete: 'new-password', spellcheck: 'false', 'aria-label': t('Export-Passwort') });
+  const pw2 = el('input', { type: 'password', autocomplete: 'new-password', spellcheck: 'false', 'aria-label': t('Export-Passwort wiederholen') });
+  const meter = el('div', { className: 'meter' }, el('div'));
+  const strength = el('p', { className: 'hint', id: 'export-strength', 'aria-live': 'polite' });
+  const kdfSel = el('select', { 'aria-label': t('Schlüsselableitung') },
+    el('option', { value: 'argon2id' }, t('Argon2id (64 MiB, empfohlen)')), el('option', { value: 'pbkdf2' }, t('PBKDF2-SHA256 (600.000 Runden)')));
+  const pwBox = el('div', { className: 'export-pw', id: 'export-pw' },
+    el('div', { className: 'two' }, el('label', {}, t('Export-Passwort'), pw1), el('label', {}, t('Wiederholen'), pw2)),
+    meter, strength,
+    el('label', {}, t('Schlüsselableitung'), kdfSel));
+  const hint = el('p', { className: 'hint' });
+  /** Why the export password cannot be used yet, or null. */
+  const problem = () => {
+    if (!pw1.value) return t('Bitte ein Export-Passwort eingeben.');
+    const weak = pw1.value.length < 12 ? t('Mindestens 12 Zeichen') : weakness(pw1.value);
+    if (weak) return t('Zu schwach: {reason}', { reason: weak });
+    if (pw1.value !== pw2.value) return t('Die Passwörter stimmen nicht überein.');
+    return null;
+  };
+  const update = () => {
+    const isProtected = fmtSel.value === 'protected';
+    pwBox.hidden = !isProtected;
+    hint.textContent = isProtected
+      ? t('Verschlüsselt mit deinem Export-Passwort im Format von Bitwardens passwortgeschütztem Export: Bitwarden, Vaultwarden und OmniVault importieren die Datei. Ohne das Passwort lässt sie sich nicht öffnen – es wird nirgends gespeichert.')
+      : t('Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert alle Formate.');
+    if (!isProtected) return;
+    const bits = pw1.value ? Math.round(passwordBits(pw1.value)) : 0;
+    meter.firstChild.style.width = `${Math.min(100, bits)}%`;
+    const p = problem();
+    strength.className = p && pw1.value ? 'hint warn' : 'hint';
+    strength.textContent = !pw1.value ? '' : [t('≈ {bits} Bit – {strength}', { bits, strength: strengthLabel(bits) }), p].filter(Boolean).join(' · ');
+  };
+  for (const x of [pw1, pw2]) x.addEventListener('input', update);
+  fmtSel.addEventListener('change', update);
+  update();
+
   const btn = el('button', { type: 'button', className: 'secondary', onclick: async () => {
-    const question = accSel.value
-      ? t('Alle Einträge aus „{account}“ unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.', { account: accountOf(accSel.value).label })
-      : t('Alle Einträge aus allen entsperrten Konten unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.');
-    if (!await ask(question, { ok: t('Exportieren'), danger: true })) return;
+    const isProtected = fmtSel.value === 'protected';
+    if (isProtected) {
+      const p = problem();
+      if (p) { toast(p); (pw1.value && pw1.value !== pw2.value ? pw2 : pw1).focus(); return; }
+    }
+    const scope = accSel.value ? { account: accountOf(accSel.value).label } : null;
+    const question = isProtected
+      ? (scope ? t('Alle Einträge aus „{account}“ passwortgeschützt exportieren?', scope) : t('Alle Einträge aus allen entsperrten Konten passwortgeschützt exportieren?'))
+      : scope
+        ? t('Alle Einträge aus „{account}“ unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.', scope)
+        : t('Alle Einträge aus allen entsperrten Konten unverschlüsselt exportieren? Die Datei enthält sämtliche Passwörter im Klartext – nach Gebrauch löschen.');
+    if (!await ask(question, { ok: t('Exportieren'), danger: !isProtected })) return;
     btn.disabled = true;
     toast(t('Exportiere …'), 120_000);
     try {
-      const { fileName, content, count } = await call('exportItems', { accountIds: accSel.value ? [accSel.value] : unlocked.map((a) => a.id), format: fmtSel.value });
+      let { fileName, content, count } = await call('exportItems', { accountIds: accSel.value ? [accSel.value] : unlocked.map((a) => a.id), format: isProtected ? 'json' : fmtSel.value });
+      if (isProtected) {
+        toast(t('Verschlüssele …'), 120_000);
+        content = await encryptBitwardenJson(content, pw1.value, EXPORT_KDF[kdfSel.value]);
+        fileName = fileName.replace(/\.json$/, '-protected.json');
+        pw1.value = '';
+        pw2.value = '';
+        update();
+      }
       const url = URL.createObjectURL(new Blob([content], { type: fmtSel.value === 'csv' ? 'text/csv' : 'application/json' }));
+      content = null;
       const a = el('a', { href: url, download: fileName });
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -560,6 +719,6 @@ function exportSection() {
   } }, t('Exportieren …'));
   return el('div', { className: 'export' }, el('h3', {}, t('Exportieren')),
     el('div', { className: 'two' }, el('label', {}, t('Konto'), accSel), el('label', {}, t('Format'), fmtSel)),
-    el('p', { className: 'hint' }, t('Unverschlüsselt, zum Umzug in einen anderen Passwortmanager oder als Sicherung. OmniVault selbst importiert beide Formate.')),
+    pwBox, hint,
     el('p', {}, btn));
 }

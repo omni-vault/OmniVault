@@ -24,7 +24,7 @@ move entries between managers – without giving up the manager you already use.
 | **Dashlane** | Local helper → official `dcli` CLI | ✅ (logins, notes, identities and IDs; no cards) | – (the CLI is read-only) |
 | **Proton Pass** | Local helper → official `pass-cli` | ✅ | ✅ |
 | **KeePassXC** | KeePassXC's own browser integration (`keepassxc-proxy`) | ✅ | ✅ (logins) |
-| **KeePass files, browser exports and others** | Import a KeePass database (`.kdbx`), a CSV, JSON or KeePass XML export into any account above | – | – |
+| **KeePass files, browser exports and others** | Import a KeePass database (`.kdbx`), a CSV, JSON or KeePass XML export, an encrypted Bitwarden export, a 1Password `.1pux` or a Proton Pass ZIP/PGP export into any account above | – | – |
 
 Proton Pass support is on hold: Proton currently only offers its CLI on paid plans. It works once the CLI is enabled
 for your account.
@@ -92,7 +92,8 @@ destroyed versions are left out.
 - Find duplicates within and across accounts, plus reused and weak passwords (checked locally only) and, if you
   allow it, passwords known from data breaches (Have I Been Pwned; only the first 5 characters of each password's
   SHA-1 hash are sent)
-- Import exports from other managers; export to Bitwarden JSON or CSV
+- Import exports from other managers (also encrypted Bitwarden exports, 1Password `.1pux`, Proton Pass ZIP and PGP); export to
+  password-protected Bitwarden JSON (importable by Bitwarden and Vaultwarden), plain Bitwarden JSON or CSV
 - Trash view for Bitwarden / Vaultwarden
 - Attachments: download them; in Bitwarden / Vaultwarden also add and delete them (up to 30 MB per file)
 - Bitwarden emergency access as a trusted contact (Bitwarden / Vaultwarden, *Tools → Emergency access*): see who

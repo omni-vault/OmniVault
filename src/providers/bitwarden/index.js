@@ -1044,6 +1044,47 @@ class BitwardenProvider extends Provider {
     items.sort((a, b) => a.name.localeCompare(b.name, 'de'));
     return { items, failed, session: s !== session ? s : undefined };
   }
+
+  /**
+   * Opens an account-restricted encrypted export ({ encrypted: true, encKeyValidation_DO_NOT_EDIT, folders, items },
+   * as Bitwarden writes it without an export password): its values are EncStrings under this account's user key or,
+   * for an organization export, under an organization key. encKeyValidation_DO_NOT_EDIT tells which key fits.
+   * Returns { items, failed } decrypted like synced items (nothing is stored), or throws 'wrong_account'.
+   */
+  static async decryptExport(config, session, doc) {
+    if (doc?.encrypted !== true || doc.passwordProtected || typeof doc.encKeyValidation_DO_NOT_EDIT !== 'string' || !Array.isArray(doc.items)) {
+      throw new ProviderError(t('Kein verschlüsselter Bitwarden-Export'), 'format');
+    }
+    let s = session;
+    const userKey = splitKey(fromB64(s.userKey));
+    const fits = (key) => decryptSym(doc.encKeyValidation_DO_NOT_EDIT, key).then(() => true, () => false);
+    let fileKey = (await fits(userKey)) ? userKey : null;
+    let orgKeys = {};
+    if (!fileKey || doc.items.some((c) => c.organizationId)) {
+      const ep = api.endpoints(config.server);
+      const r = await this.#withToken(ep, s, (token) => api.authed(ep, token, 'GET', '/sync?excludeDomains=true'));
+      if (r.session) s = r.session;
+      orgKeys = await this.#orgKeys(r.result.body?.profile, userKey).catch(() => ({}));
+      for (const key of Object.values(orgKeys)) if (!fileKey && !key.cose && await fits(key)) fileKey = key;
+    }
+    if (!fileKey) {
+      throw new ProviderError(t('Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.'), 'wrong_account');
+    }
+    const folderNames = {};
+    for (const f of doc.folders ?? []) folderNames[f.id] = await decryptSymString(f.name, fileKey).catch(() => '');
+    const items = [];
+    let failed = 0;
+    for (const c of doc.items) {
+      if (c.deletedDate) continue;
+      try {
+        items.push(await this.#decryptCipher(c, { userKey: fileKey, orgKeys, folderNames, accountId: config.id }));
+      } catch (e) {
+        failed++;
+        console.warn('OmniVault: cannot decrypt exported item', e);
+      }
+    }
+    return { items, failed, session: s !== session ? s : undefined };
+  }
 }
 
 export default BitwardenProvider;

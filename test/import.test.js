@@ -58,8 +58,9 @@ test('Bitwarden JSON: logins, notes, cards and custom fields stay structured', (
   assert.deepEqual(items[2].card, { cardholderName: 'Ada', number: '4111', expMonth: '09', expYear: '2030', code: '123' });
 });
 
-test('Bitwarden JSON rejects encrypted export', () => {
-  assert.throws(() => importBitwardenJson({ encrypted: true, items: [] }), /unverschlüsselt/);
+test('Bitwarden JSON: encrypted exports need a password or the account they came from', () => {
+  assert.throws(() => importBitwardenJson({ encrypted: true, items: [] }), (e) => e.code === 'account' && /Kontoschlüssel/.test(e.message));
+  assert.throws(() => importBitwardenJson({ encrypted: true, passwordProtected: true, data: '2.x' }), (e) => e.code === 'password');
 });
 
 test('Proton Pass JSON export', () => {

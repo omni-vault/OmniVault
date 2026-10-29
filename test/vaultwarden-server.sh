@@ -4,12 +4,14 @@
 # Copyright (c) 2026 Die OmniVault-Mitwirkenden
 #
 # Local Vaultwarden for tests: test/vaultwarden-server.sh start|stop  (port $VW_PORT, default 8800)
+# With ROCKET_TLS='{certs="cert.pem",key="key.pem"}' it serves HTTPS (the Bitwarden CLI refuses plain HTTP).
 # Uses $VAULTWARDEN_BIN if set, otherwise downloads a pinned, hash-checked static Linux build.
 # NOTE: the default download is a third-party build of upstream Vaultwarden (github.com/zouzonghao/vaultwarden,
 # release upstream-20261010-183532-64895524); the Vaultwarden project itself only publishes container images.
 # It runs only on 127.0.0.1 with throw-away data and is never shipped with OmniVault.
 set -eu
 PORT=${VW_PORT:-8800}
+SCHEME=http; [ -n "${ROCKET_TLS:-}" ] && SCHEME=https
 DIR=${VW_DIR:-${TMPDIR:-/tmp}/omnivault-vaultwarden}
 URL=https://github.com/zouzonghao/vaultwarden/releases/download/upstream-20261010-183532-64895524/vaultwarden-linux-amd64-musl
 SHA256=7d993ce39cc4d3b16bcff4e7aeaf97e452c4be822012e8baa2e54a55289d8ed9
@@ -25,13 +27,13 @@ case "${1:-start}" in
     fi
     rm -rf "$DIR/data" && mkdir -p "$DIR/data"
     DATA_FOLDER="$DIR/data" ROCKET_ADDRESS=127.0.0.1 ROCKET_PORT=$PORT WEB_VAULT_ENABLED=false \
-    SIGNUPS_ALLOWED=true SIGNUPS_VERIFY=false DOMAIN=http://localhost:$PORT LOG_LEVEL=warn \
+    SIGNUPS_ALLOWED=true SIGNUPS_VERIFY=false DOMAIN=$SCHEME://localhost:$PORT LOG_LEVEL=warn \
     LOGIN_RATELIMIT_SECONDS=1 LOGIN_RATELIMIT_MAX_BURST=1000 ADMIN_RATELIMIT_SECONDS=1 ADMIN_RATELIMIT_MAX_BURST=1000 \
     UNAUTHENTICATED_RATELIMIT_SECONDS=1 UNAUTHENTICATED_RATELIMIT_MAX_BURST=1000 \
       setsid nohup "$BIN" > "$DIR/vaultwarden.log" 2>&1 < /dev/null &
     echo $! > "$DIR/pid"
     for i in $(seq 1 50); do
-      curl -fs "http://127.0.0.1:$PORT/alive" >/dev/null 2>&1 && { echo "Vaultwarden running: http://127.0.0.1:$PORT"; exit 0; }
+      curl -fsk "$SCHEME://127.0.0.1:$PORT/alive" >/dev/null 2>&1 && { echo "Vaultwarden running: $SCHEME://127.0.0.1:$PORT"; exit 0; }
       sleep 0.2
     done
     echo "Vaultwarden does not start, see $DIR/vaultwarden.log" >&2; exit 1 ;;

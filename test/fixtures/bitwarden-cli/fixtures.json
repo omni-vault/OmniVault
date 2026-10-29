@@ -1,0 +1,15 @@
+{
+  "_comment": "Written by the official Bitwarden CLI 2026.9.0 (bw export --format encrypted_json) against a local Vaultwarden; test data only.",
+  "protected-pbkdf2.json": {
+    "password": "Bw-Export-1!",
+    "kdf": "PBKDF2-SHA256, 600000 iterations"
+  },
+  "protected-argon2id.json": {
+    "password": "Fixture-Export-Pw-2026",
+    "kdf": "Argon2id, 3 iterations, 64 MiB, 4 lanes"
+  },
+  "account-restricted.json": {
+    "userKey": "ONMjs8b42ksldLFsJM60T90JqqJyle7CWchZeScp8Fthsd1LFWvkGcoh8L7/6QNUcWyA+f7Vn1OA2yBxQ1xFbA==",
+    "note": "user key of the throw-away account that wrote it"
+  }
+}

@@ -241,6 +241,7 @@ try {
   await popup.click('#btn-tools');
   await popup.click('#view-tools .tabs button:has-text("Import")');
   await popup.selectOption('#view-tools select[aria-label="Konto für den Export"]', accA);
+  await popup.selectOption('#view-tools select[aria-label=Exportformat]', 'json');
   const [download] = await Promise.all([
     popup.waitForEvent('download'),
     (async () => { await popup.click('#view-tools button:has-text("Exportieren …")'); await popup.click('#dialog-ok'); })(),

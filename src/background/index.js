@@ -1081,6 +1081,26 @@ const handlers = {
       : { fileName: `omnivault-export-${date}.json`, content: toBitwardenJson(items), count: items.filter((i) => ['login', 'note', 'card', 'identity'].includes(i.type)).length };
   },
 
+  /**
+   * Account-restricted Bitwarden export (encrypted with the account's key, no export password): only the unlocked
+   * Bitwarden account it came from can open it → { content: unencrypted Bitwarden JSON, count, failed } for the import.
+   */
+  async decryptAccountExport({ accountId, doc }) {
+    const account = await store.getAccount(accountId);
+    if (!account) throw new Error(t('Konto nicht gefunden'));
+    const provider = getProvider(account.provider);
+    if (!provider.decryptExport) throw new Error(t('Dieser Bitwarden-Export ist mit dem Kontoschlüssel verschlüsselt. Wähle als Ziel das entsperrte Bitwarden-Konto, aus dem er stammt.'));
+    const session = await store.getSession(accountId);
+    if (!session) throw new Error(t('Tresor gesperrt'));
+    const res = await provider.decryptExport(cfg(account), session, doc);
+    if (res.session) await store.setSession(accountId, res.session);
+    const items = res.items.map((item) => {
+      const keys = passkeysWithKeys(item);
+      return { ...fullItem(item), ...(keys.length ? { passkeys: keys } : {}) };
+    });
+    return { content: toBitwardenJson(items), count: items.length, failed: res.failed };
+  },
+
   async attachment({ accountId, itemId, attachmentId }) {
     const { item } = await findItem(accountId, itemId);
     const account = await store.getAccount(accountId);

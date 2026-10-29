@@ -234,7 +234,7 @@ export function mirrorTargetSet(rules, states) {
  * Items of a type the provider cannot store become notes; a login stored as a note keeps its secrets in the text.
  * With `fileFolders` and no target folder, each item goes into the folder named in the file (KeePass group path,
  * CSV folder column): an existing folder of that name, otherwise a new one where the provider can create folders.
- * Returns one result per item: {name, ok, error?}.
+ * Returns one result per item: {name, ok, id?, error?} (id: the new item, e.g. for attachments from a ZIP archive).
  */
 export async function importItems(deps, { accountId, items, folderId = null, fileFolders = false }) {
   const { provider } = await canWrite(deps, accountId);
@@ -265,8 +265,8 @@ export async function importItems(deps, { accountId, items, folderId = null, fil
     }
     try {
       data.folderId = await folderFor(raw.folder);
-      await deps.write(accountId, (p, a, s) => p.saveItem({ ...a.config, id: a.id }, s, null, data));
-      results.push({ name: data.name, ok: true });
+      const res = await deps.write(accountId, (p, a, s) => p.saveItem({ ...a.config, id: a.id }, s, null, data));
+      results.push({ name: data.name, ok: true, id: res?.item?.id });
     } catch (e) {
       results.push({ name: data.name, ok: false, error: e.message });
     }

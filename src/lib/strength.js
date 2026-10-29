@@ -23,8 +23,13 @@ export function weakness(password, context = []) {
     const word = String(w ?? '').toLowerCase().split('@')[0];
     if (word.length >= 4 && low.includes(word) && pw.length - word.length < 6) return t('Enthält den Benutzer- oder Eintragsnamen');
   }
+  return passwordBits(pw) < 50 ? t('Leicht zu erraten') : null;
+}
+
+/** Rough strength estimate in bits for a typed password (character classes, repeated characters count less). */
+export function passwordBits(password) {
+  const pw = String(password ?? '');
   const pool = (/[a-z]/.test(pw) ? 26 : 0) + (/[A-Z]/.test(pw) ? 26 : 0) + (/\d/.test(pw) ? 10 : 0) + (/[^A-Za-z\d]/.test(pw) ? 33 : 0);
   const distinct = new Set(pw).size;
-  const bits = Math.min(pw.length, distinct * 2) * Math.log2(pool || 1);
-  return bits < 50 ? t('Leicht zu erraten') : null;
+  return Math.min(pw.length, distinct * 2) * Math.log2(pool || 1);
 }

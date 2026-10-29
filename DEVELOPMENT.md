@@ -42,6 +42,9 @@ npm run test:proton  # Proton Pass: Chromium → native messaging → host → s
 npm run test:vaultwarden  # starts a local Vaultwarden and tests provider, tools, import, attachments, Send, organizations
                           # (moving, collections) and automatic sync across a service worker restart
                           # Send: links are opened as a recipient would and decrypted with test/send-check.py (Python, `cryptography`)
+npm run test:exports      # encrypted exports and ZIP imports: browser test against Vaultwarden (two accounts) and a
+                          # simulated Vault; then the official Bitwarden CLI (test/bw-cli.sh) against Vaultwarden over
+                          # HTTPS imports OmniVault's password-protected files, OmniVault opens the CLI's exports
 npm run test:vaultwarden-sso  # Vaultwarden with SSO against a local OIDC provider: sign-in, master password, renewal
 npm run test:login        # Duo and SSO in a tab (simulated servers), with a real toolbar popup; visible with `xvfb-run -a`
 npm run test:emergency    # Bitwarden emergency access (trusted contact, view only) against the simulated server;
@@ -89,6 +92,12 @@ libgpg-error 1.47 and gpgme 1.18.0, all commits verified). First run takes about
 (details in `test/passbolt-server.sh`). On its first run, `test:openbao` downloads the official
 OpenBao release 2.7.1 for Linux amd64 (hash verified, see `test/openbao-server.sh`); with `OPENBAO_BIN=/path/to/bao`
 it uses your own.
+`test:exports` starts Vaultwarden twice (ports `VW_PORT`, default 8830, and `VW_TLS_PORT`, default 8831; the second one
+with a throw-away self-signed certificate, because the Bitwarden CLI refuses plain HTTP) and on its first run
+downloads the official Bitwarden CLI 2026.9.0 (hash pinned, see `test/bw-cli.sh`; `BW_CLI=/path/to/bw` uses your own).
+The CLI reaches the server through a local CONNECT proxy inside the test, restricted to that port. The unit tests in
+`npm test` check the same format against node:crypto, files written by the CLI (`test/fixtures/bitwarden-cli/`) and
+an independent Python decryptor (`test/bw-export-check.py`, needs `cryptography` ≥ 44, otherwise skipped).
 
 **Firefox test** (`test/e2e-firefox.mjs`): Playwright's Firefox cannot load extensions, so the test starts a regular
 Firefox ≥ 140 and controls it via WebDriver BiDi (`test/firefox-bidi.mjs`, no extra packages,
@@ -211,7 +220,7 @@ src/
     pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   thin providers via the host
   content/inline.js  content script (opt-in, in all frames): button in the login field, "Save login?"
   inline/            list and save bar as extension pages in iframes
-  lib/               TOTP (incl. otpauth:// check), URL matching, choosing the frame to fill (frames.js), generator (EFF wordlist in eff-wordlist.js), duplicates, import (incl. KeePass databases), export, password check, PIN and device lock
+  lib/               TOTP (incl. otpauth:// check), URL matching, choosing the frame to fill (frames.js), generator (EFF wordlist in eff-wordlist.js), duplicates, import (incl. KeePass databases, 1Password .1pux, Proton Pass ZIP/PGP, encrypted Bitwarden exports), ZIP reader (zip.js), export (incl. password-protected), password check, PIN and device lock
   i18n/              language selection, t()/tn()/tx(), translations (locales/*.json)
 tools/i18n-extract.mjs  collects all strings for translation
 tools/store-screenshots.mjs  screenshots (1280 × 800) from the web demo: `npm run build:demo`, then

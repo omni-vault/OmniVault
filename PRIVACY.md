@@ -144,6 +144,12 @@ if you granted it, with access to all websites).
 
 Exports, downloaded attachments and imported files are handled entirely in your browser. An export or attachment is
 saved only where you choose; an import file is read only when you select it.
+An import file – including ZIP archives, PGP-encrypted and password-protected exports – is unpacked and decrypted
+in the browser's memory only and never written anywhere else; its password is used once and not stored. The export
+password of a password-protected export is not stored either. An account-restricted Bitwarden export is decrypted
+with the key of the Bitwarden account you choose as the target; for an organization's export OmniVault asks your
+Bitwarden server for your organization keys, as it does when syncing. Attachments from a 1Password export are
+uploaded, encrypted like any other attachment, only to the account you import into.
 
 ## Permissions
 
