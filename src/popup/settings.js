@@ -62,6 +62,7 @@ export async function openSettings() {
     webCheck('offerSave', s.offerSave, t('Nach dem Anmelden anbieten, neue Logins zu speichern und geänderte Passwörter zu übernehmen')),
     webCheck('passkeys', s.passkeys, t('Passkeys mit OmniVault anlegen und damit anmelden')),
     el('p', { className: 'hint' }, t('Alle drei brauchen Zugriff auf Webseiten; der Browser fragt beim Einschalten. Ausgefüllt wird nur, was zur Seite gehört, und nur auf Klick.')),
+    frameTrustNote(),
     el('p', { className: 'hint' }, passkeyHint()),
     s.passkeys ? passkeyStatus() : null,
     el('h3', {}, t('Synchronisieren')),
@@ -81,6 +82,23 @@ export async function openSettings() {
     } }, t('Über OmniVault, Lizenzen und Marken'))),
     el('div', { className: 'row actions' }, el('button', { type: 'button', className: 'secondary', onclick: () => back() }, t('Zurück'))));
   show('settings', { restore: openSettings });
+}
+
+/** Embedded forms of other sites the user allowed to fill (one confirmation per pair of sites); can be forgotten. */
+function frameTrustNote() {
+  const p = el('p', { className: 'hint', id: 'frame-trust', hidden: true });
+  call('frameTrust').then((n) => {
+    if (!n) return;
+    p.replaceChildren(
+      tn(n, 'Ausfüllen erlaubt in {n} eingebetteten Formular anderer Websites.', 'Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.'), ' ',
+      el('button', { type: 'button', className: 'link', onclick: async () => {
+        await call('forgetFrameTrust');
+        p.hidden = true;
+        toast(t('OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.'));
+      } }, t('Vergessen')));
+    p.hidden = false;
+  }).catch(() => {});
+  return p;
 }
 
 /** Every connected account: name, provider, state; unlock or lock, edit, remove. */

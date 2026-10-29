@@ -23,9 +23,13 @@ const BASE = `moz-extension://${UUID}`;
 const { ORIGIN, close: closeServers } = await startServers({ bwPort: 8827, pbPort: 8828 });
 // a page of another origin that embeds the passkey site (Firefox cannot confirm the frame's policy: browser)
 const FRAME_TOP = 'http://127.0.0.1:8829';
+// … and the login page of localhost, shown, transparent or with visibility:hidden (filling in embedded frames)
+const loginFrame = (style) => `<!doctype html><title>Portal</title><iframe id="f" src="${ORIGIN}/login.html" style="width:380px;height:220px;${style}"></iframe>`;
+const FRAME_PAGES = { '/': () => embeddingPage(ORIGIN), '/login': () => loginFrame(''), '/login-transparent': () => loginFrame('opacity:0'), '/login-invisible': () => loginFrame('visibility:hidden') };
 const frameTop = http.createServer((req, res) => {
-  if (req.url !== '/') { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(embeddingPage(ORIGIN));
+  const page = FRAME_PAGES[req.url];
+  if (!page) { res.writeHead(404); res.end(); return; }
+  res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(page());
 });
 await new Promise((r) => { frameTop.listen(8829, '127.0.0.1', r); });
 // a Bitwarden account with a high Argon2id memory setting (derived in a worker of the event page)
@@ -37,7 +41,7 @@ const ext = await mkdtemp(join(tmpdir(), 'omnivault-ff-'));
 await cp('dist/firefox', ext, { recursive: true });
 const manifest = JSON.parse(await readFile(join(ext, 'manifest.json'), 'utf8'));
 // Firefox does not count http://localhost/* as covering other ports (permissions.contains), so name them
-manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${ARGON_ORIGIN}/*`, `${FRAME_TOP}/*`);
+manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${ARGON_ORIGIN}/*`, `${FRAME_TOP}/*`, 'http://127.0.0.1/*');
 manifest.permissions.push('nativeMessaging');
 await writeFile(join(ext, 'manifest.json'), JSON.stringify(manifest));
 
@@ -132,7 +136,7 @@ try {
     const gh = st.result.find((i) => i.name === 'GitHub');
     return browser.runtime.sendMessage({ type: 'fill', accountId: gh.accountId, itemId: gh.id, tabId: tab.id });
   }, ORIGIN);
-  check(filled.ok && filled.result === 2, `fill reported ${JSON.stringify(filled)}`);
+  check(filled.ok && filled.result.filled === 2, `fill reported ${JSON.stringify(filled)}`);
   check(await site.value('#u') === 'alice' && await site.value('#p') === 'gh-pass', 'login form filled');
   const pw = await msg('secret', { accountId: (await msg('state')).accounts[0].id, itemId: (await msg('items')).find((i) => i.name === 'GitHub').id, field: 'password' });
   check(pw === 'gh-pass', 'password revealed on request');
@@ -148,6 +152,33 @@ try {
   const form = await site.$eval(() => Object.fromEntries([...document.querySelectorAll('input, select')].map((e) => [e.id, e.value])));
   check(form.cn === 'Alice Example' && form.cc === '4111111111111111' && form.mm === '07' && form.yy === '2029' && form.cvc === '123'
     && form.fn === 'Alice' && form.em === 'alice@example.org', `card and identity filled (${form.cc}, ${form.mm}/${form.yy}, ${form.fn})`);
+
+  // embedded login form of another site (page on 127.0.0.1, form of localhost): into the frame after the question,
+  // with a note in the page; transparent or invisible frames never (Firefox: the parent frame reports how it shows
+  // the frame element, runtime.getFrameId)
+  const ghLogin = (await msg('items')).find((i) => i.name === 'GitHub').id;
+  await site.goto(`${FRAME_TOP}/login`);
+  await site.activate(); // the visibility check needs a rendered tab
+  const innerOf = async () => {
+    for (let i = 0; i < 80 && !(await site.frames()).length; i++) await new Promise((r) => setTimeout(r, 100));
+    const f = site.frame((await site.frames())[0]);
+    await f.wait(() => !!document.querySelector('#p'), { what: 'login form in the frame' });
+    return f;
+  };
+  let inner = await innerOf();
+  const frameTab = await tabIdOf(`${FRAME_TOP}/login`);
+  let fr = await msg('fill', { accountId, itemId: ghLogin, tabId: frameTab });
+  check(fr.filled === 0 && fr.confirm[0] === ORIGIN && await inner.value('#p') === '', `embedded frame of another site: question first (${JSON.stringify(fr.confirm)})`);
+  fr = await msg('fill', { accountId, itemId: ghLogin, tabId: frameTab, allow: { top: fr.top, frames: fr.confirm } });
+  check(fr.filled === 2 && await inner.value('#u') === 'alice' && await inner.value('#p') === 'gh-pass', 'login filled into the embedded frame');
+  check(await site.$eval(() => !!document.querySelector('omnivault-notice')), 'note in the page about the embedded form');
+  for (const path of ['/login-transparent', '/login-invisible']) {
+    await site.goto(`${FRAME_TOP}${path}`);
+    inner = await innerOf();
+    fr = await msg('fill', { accountId, itemId: ghLogin, tabId: await tabIdOf(`${FRAME_TOP}${path}`) });
+    check(fr.filled === 0 && fr.hidden.includes(ORIGIN) && await inner.value('#p') === '', `hidden frame (${path}) not filled`);
+  }
+  await msg('forgetFrameTrust');
 
   // the real Firefox sidebar: with the setting "sidebar" a click on the toolbar icon (no popup) toggles it
   const sidebarState = () => ff.chrome(`(() => {

@@ -1082,5 +1082,21 @@
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "Le serveur n'a fourni aucune clé pour l'accès d'urgence.",
  "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La clé de l'accès d'urgence ne correspond pas à votre compte.",
  "Passkey-Algorithmus {alg} wird nicht unterstützt": "L’algorithme de clé d’accès {alg} n’est pas pris en charge",
- "Passkey-Kurve {curve} wird nicht unterstützt": "La courbe de clé d’accès {curve} n’est pas prise en charge"
+ "Passkey-Kurve {curve} wird nicht unterstützt": "La courbe de clé d’accès {curve} n’est pas prise en charge",
+ "OmniVault hat das eingebettete Formular von {origin} ausgefüllt.": "OmniVault a rempli le formulaire intégré de {origin}.",
+ "Das Anmeldeformular von {origin} ist in diese Seite eingebettet. Zum ersten Mal bitte über das OmniVault-Symbol ausfüllen, um es hier zu erlauben.": "Le formulaire de connexion de {origin} est intégré à cette page. Pour autoriser son remplissage ici, remplissez-le une première fois depuis l’icône OmniVault.",
+ "Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "Le formulaire intégré de {origin} est masqué ou invisible ; il n’a pas été rempli.",
+ "Das Formular hat inzwischen die Seite gewechselt.": "Entre-temps, le formulaire a changé de page.",
+ "Das Formular ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "Le formulaire est masqué ou invisible ; il n’a pas été rempli.",
+ "Eingebettet in {host}": "Intégré à {host}",
+ "Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.": "Ce formulaire provient de {frame} et est intégré à {page}. Le remplir à cet endroit ? OmniVault ne redemandera pas pour cette combinaison.",
+ "Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "Aucun formulaire de connexion trouvé sur cette page. OmniVault n’atteint les formulaires intégrés d’autres sites qu’avec l’accès aux sites web.",
+ "Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "Aucun formulaire adapté trouvé sur cette page. OmniVault n’atteint les formulaires intégrés d’autres sites qu’avec l’accès aux sites web.",
+ "Eingebettetes Formular von {host}": "Formulaire intégré de {host}",
+ "OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.": "OmniVault redemandera avant de remplir des formulaires intégrés d’autres sites.",
+ "Vergessen": "Oublier",
+ "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
+  "one": "Remplissage autorisé dans {n} formulaire intégré d’un autre site.",
+  "other": "Remplissage autorisé dans {n} formulaires intégrés d’autres sites."
+ }
 }

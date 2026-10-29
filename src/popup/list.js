@@ -10,14 +10,28 @@ import { $, TYPE_LABEL, ask, badge, call, copy, el, icon, t, tn, toast, typeIcon
 export function hostOf(u) {
   try { return new URL(u).hostname; } catch { return u; }
 }
+const hostPort = (u) => { try { return new URL(u).host; } catch { return u; } };
 
 export async function fillItem(i) {
   const tab = S.tab;
   if (!tab) return toast(t('Keine Webseite zum Ausfüllen'));
-  // logins belong to a site; cards and identities fill any payment or address form
-  if (i.type === 'login' && !i.matches && !await ask(t('Dieser Eintrag gehört nicht zur aktuellen Seite. Trotzdem ausfüllen?'), { ok: t('Ausfüllen') })) return;
-  const n = await call('fill', { accountId: i.accountId, itemId: i.id, tabId: tab.id });
-  if (!n) return toast(i.type === 'login' ? t('Kein Anmeldeformular gefunden') : t('Kein passendes Formular gefunden'));
+  // logins belong to a site (the page or a login form embedded in it); cards and identities fill any payment or
+  // address form. A login that belongs to neither only ever goes into the page's own origin.
+  const force = i.type === 'login' && !i.matches && !i.frameMatch;
+  if (force && !await ask(t('Dieser Eintrag gehört nicht zur aktuellen Seite. Trotzdem ausfüllen?'), { ok: t('Ausfüllen') })) return;
+  const args = { accountId: i.accountId, itemId: i.id, tabId: tab.id, force };
+  let r = await call('fill', args);
+  if (r.confirm?.length) {
+    // a form of another site embedded in the page: once per pair of sites
+    if (!await ask(t('Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.',
+      { frame: r.confirm.map(hostPort).join(', '), page: hostPort(r.top) }), { ok: t('Ausfüllen') })) return;
+    r = await call('fill', { ...args, allow: { top: r.top, frames: r.confirm } });
+  }
+  if (!r.filled) {
+    if (r.hidden?.length) return toast(t('Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.', { origin: hostPort(r.hidden[0]) }));
+    if (i.type === 'login') return toast(r.noAccess ? t('Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.') : t('Kein Anmeldeformular gefunden'));
+    return toast(r.noAccess ? t('Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.') : t('Kein passendes Formular gefunden'));
+  }
   if (windowed) {
     toast(t('Ausgefüllt'));
     await ext.windows.update(tab.windowId, { focused: true });
@@ -32,8 +46,8 @@ export function renderItems() {
   const filtered = S.items.filter((i) => (!type || (type === 'fav' ? i.favorite : i.type === type)) && (!q ||
     [i.name, i.username, i.folder, i.subtitle, i.accountLabel, i.accountShort, ...(i.uris ?? [])]
       .some((v) => v?.toLowerCase().includes(q))));
-  const matching = filtered.filter((i) => i.matches);
-  const rest = filtered.filter((i) => !i.matches)
+  const matching = filtered.filter((i) => i.matches || i.frameMatch);
+  const rest = filtered.filter((i) => !i.matches && !i.frameMatch)
     .sort((a, b) => (b.favorite - a.favorite) || a.name.localeCompare(b.name, uiLanguage()));
 
   const group = (title, list) => list.length && el('div', { className: 'group' },
@@ -68,6 +82,8 @@ function itemNode(i) {
   }, label);
   const host = i.uris?.[0] ? hostOf(i.uris[0]) : '';
   const meta = [i.username ?? i.subtitle, host, i.folder].filter(Boolean).join(' · ');
+  // matches a login form embedded in the page, not the page itself
+  const embedded = i.frameMatch ? el('div', { className: 'meta embedded' }, t('Eingebettetes Formular von {host}', { host: hostPort(i.frameMatch) })) : null;
   return el('div', {
     className: 'item', vars: { '--acc-h': i.accountHue }, 'data-account': i.accountId, 'data-id': i.id,
     tabindex: '0', role: 'button', 'aria-label': t('{name} öffnen', { name: i.name }),
@@ -81,6 +97,7 @@ function itemNode(i) {
     i.hasPasskey ? el('span', { className: 'pk', title: t('Mit Passkey') }, icon('passkey', { size: 14 })) : null,
     badge(i.accountShort, i.accountHue, i.accountLabel)),
   el('div', { className: 'meta' }, meta || ' '),
+  embedded,
   i.type === 'login' ? el('div', { className: 'btns' },
     S.tab ? el('button', { onclick: (e) => { e.stopPropagation(); fillItem(i).catch((x) => toast(x.message)); } }, t('Ausfüllen')) : null,
     i.username ? quick('username', t('Benutzer')) : null,

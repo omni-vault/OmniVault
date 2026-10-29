@@ -1082,5 +1082,21 @@
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "The server didn't return a key for emergency access.",
  "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "The emergency access key doesn't match your account.",
  "Passkey-Algorithmus {alg} wird nicht unterstützt": "Passkey algorithm {alg} is not supported",
- "Passkey-Kurve {curve} wird nicht unterstützt": "Passkey curve {curve} is not supported"
+ "Passkey-Kurve {curve} wird nicht unterstützt": "Passkey curve {curve} is not supported",
+ "OmniVault hat das eingebettete Formular von {origin} ausgefüllt.": "OmniVault filled in the embedded form from {origin}.",
+ "Das Anmeldeformular von {origin} ist in diese Seite eingebettet. Zum ersten Mal bitte über das OmniVault-Symbol ausfüllen, um es hier zu erlauben.": "The login form from {origin} is embedded in this page. To allow filling it here, fill it once from the OmniVault icon.",
+ "Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "The embedded form from {origin} is covered or invisible, so it wasn’t filled in.",
+ "Das Formular hat inzwischen die Seite gewechselt.": "The form has moved to another page in the meantime.",
+ "Das Formular ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "The form is covered or invisible, so it wasn’t filled in.",
+ "Eingebettet in {host}": "Embedded in {host}",
+ "Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.": "This form comes from {frame} and is embedded in {page}. Fill it in there? OmniVault won’t ask again for this combination.",
+ "Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "No login form found on this page. OmniVault can only reach embedded forms from other sites with access to websites.",
+ "Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "No matching form found on this page. OmniVault can only reach embedded forms from other sites with access to websites.",
+ "Eingebettetes Formular von {host}": "Embedded form from {host}",
+ "OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.": "OmniVault will ask again before filling embedded forms from other sites.",
+ "Vergessen": "Forget",
+ "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
+  "one": "Filling allowed in {n} embedded form from another site.",
+  "other": "Filling allowed in {n} embedded forms from other sites."
+ }
 }

@@ -9,7 +9,7 @@ import { matchesUrl } from '../lib/match.js';
 import { totp } from '../lib/totp.js';
 import { describeProviders, getProvider, registry } from '../providers/registry.js';
 import * as store from './accounts.js';
-import { fillActiveTab, insertIntoFocused, rememberGenerated } from './autofill.js';
+import { fillBestInTab, fillFrame, fillTab, forgetPairs, insertIntoFocused, loginFrames, rememberGenerated, trustedPairs } from './autofill.js';
 import { applyLocalFavorites, forgetLocalFavorites, writer } from './favorites.js';
 import { clearClipboardNow, handleAlarm as clipboardAlarm, scheduleClipboardClear } from './clipboard.js';
 import { getSettings, setSettings } from './settings.js';
@@ -140,7 +140,8 @@ ext.idle?.onStateChanged.addListener(async (state) => {
 /* ---------- items ---------- */
 
 /** Item without secrets, for listing in the popup. */
-function publicItem(i, tabUrl) {
+function publicItem(i, tabUrl, frameOrigins = []) {
+  const matches = tabUrl ? matchesUrl(i, tabUrl) : false;
   return {
     id: i.id, accountId: i.accountId, provider: i.provider, type: i.type,
     name: i.name, username: i.username, uris: i.uris, folder: i.folder, folderId: i.folderId ?? null, favorite: i.favorite,
@@ -149,7 +150,9 @@ function publicItem(i, tabUrl) {
     hasTotp: i.lazy ? !!i.hasTotp : !!i.totp,
     hasPasskey: !!i.passkeys?.length,
     canEdit: i.canEdit !== false,
-    matches: tabUrl ? matchesUrl(i, tabUrl) : false,
+    matches,
+    // a login frame embedded in the tab (another origin than the page) this login belongs to
+    frameMatch: !matches && i.type === 'login' ? (frameOrigins.find((o) => matchesUrl(i, o)) ?? null) : null,
   };
 }
 
@@ -262,20 +265,21 @@ async function write(accountId, fn) {
 }
 
 /** All items of all unlocked accounts, without secrets, labelled with their account. */
-async function allItems(tabUrl) {
+async function allItems(tabUrl, frameOrigins) {
   const out = [];
   for (const a of await store.listAccounts()) {
     const entry = await ensureSynced(a);
-    for (const i of entry?.items ?? []) out.push({ ...publicItem(i, tabUrl), accountLabel: a.label, accountShort: a.short, accountHue: a.hue });
+    for (const i of entry?.items ?? []) out.push({ ...publicItem(i, tabUrl, frameOrigins), accountLabel: a.label, accountShort: a.short, accountHue: a.hue });
   }
   return out;
 }
 
+/** The first login of the unlocked accounts that belongs to `tabUrl` (ids only; findItem loads its secrets). */
 async function bestMatch(tabUrl) {
   for (const a of await store.listAccounts()) {
     const entry = await ensureSynced(a);
     const hit = entry?.items.find((i) => i.type === 'login' && matchesUrl(i, tabUrl));
-    if (hit) return findItem(a.id, hit.id).then((r) => r.item);
+    if (hit) return { accountId: a.id, itemId: hit.id };
   }
   return null;
 }
@@ -322,7 +326,8 @@ async function syncContentScriptNow() {
   const matches = origins.filter((o) => o === '<all_urls>' || /^https?:\/\//.test(o)).sort();
   const want = [];
   if (matches.length && (s.inlineMenu || s.offerSave || s.passkeys)) {
-    want.push({ id: CONTENT_SCRIPT, js: ['inline.js'], matches, runAt: 'document_idle', allFrames: false, persistAcrossSessions: false });
+    // in all frames: login forms are often embedded; each frame's script only deals with its own fields and origin
+    want.push({ id: CONTENT_SCRIPT, js: ['inline.js'], matches, runAt: 'document_idle', allFrames: true, persistAcrossSessions: false });
   }
   if (matches.length && s.passkeys) {
     // the page script replaces navigator.credentials before the page's own scripts run; the bridge talks to us.
@@ -349,6 +354,12 @@ ext.permissions?.onAdded?.addListener(() => syncContentScript().catch(() => {}))
 ext.permissions?.onRemoved?.addListener(() => syncContentScript().catch(() => {}));
 
 const PENDING_MAX_AGE = 3 * 60_000;
+const originOf = (url) => { try { return new URL(url).origin; } catch { return null; } };
+/** The frame whose login field the inline list belongs to (the top page if none was recorded). */
+async function inlineFrame(tab) {
+  const { inlineFrames = {} } = await ext.storage.session.get('inlineFrames');
+  return inlineFrames[tab?.id] ?? { frameId: 0, origin: originOf(tab?.url) };
+}
 async function pendingSave(tabId) {
   if (tabId == null) return null;
   const { pendingSaves = {} } = await ext.storage.session.get('pendingSaves');
@@ -415,7 +426,8 @@ const contentHandlers = {
   /** A login form was sent: offer to save it when it is new, or to update the password when it changed. */
   async ovCapture({ username = '', password = '' }, sender) {
     const s = await getSettings();
-    const url = sender.tab.url;
+    // the frame the form was sent in (an embedded login form belongs to its own site, not to the page around it)
+    const url = sender.url ?? sender.tab.url;
     const host = hostOf(url);
     if (!s.offerSave || !password || !host || !/^https?:/.test(url)) return { show: false };
     const { neverSave = [] } = await ext.storage.local.get('neverSave');
@@ -434,7 +446,19 @@ const contentHandlers = {
     const { pendingSaves = {} } = await ext.storage.session.get('pendingSaves');
     pendingSaves[sender.tab.id] = { url, host, username, password, kind: target ? 'update' : 'save', target, at: Date.now() };
     await ext.storage.session.set({ pendingSaves });
+    // from an embedded frame: the bar opens in the top page, where it has room; in the frame only if the top page
+    // has no OmniVault script (no access to that site)
+    if (sender.frameId) {
+      const shown = await ext.tabs.sendMessage(sender.tab.id, { type: 'ov-save-show' }, { frameId: 0 }).catch(() => false);
+      if (shown === true) return { show: false };
+    }
     return { show: true };
+  },
+  /** The list in a login field is about to open in this frame: remember which frame it belongs to. */
+  async ovMenuFrame(_msg, sender) {
+    const { inlineFrames = {} } = await ext.storage.session.get('inlineFrames');
+    inlineFrames[sender.tab.id] = { frameId: sender.frameId ?? 0, origin: sender.origin && sender.origin !== 'null' ? sender.origin : new URL(sender.url).origin };
+    await ext.storage.session.set({ inlineFrames });
   },
   async ovPendingSave(_msg, sender) {
     return { show: !!(await pendingSave(sender.tab.id)) };
@@ -557,9 +581,11 @@ const handlers = {
     return next;
   },
 
-  // inline menu (iframe in a login field) – only logins that belong to the page
+  // inline menu (iframe in a login field) – only logins that belong to the frame the field is in
   async inlineItems(_msg, sender) {
-    const url = sender.tab?.url ?? '';
+    const frame = await inlineFrame(sender.tab);
+    const url = frame.origin;
+    const topOrigin = originOf(sender.tab?.url);
     const accounts = await store.listAccounts();
     let unlocked = 0;
     for (const a of accounts) if (await store.getSession(a.id)) unlocked++;
@@ -567,13 +593,15 @@ const handlers = {
     const items = !inlineMenu ? [] : (await allItems(url)).filter((i) => i.type === 'login' && i.matches)
       .map(({ id, accountId, name, username, accountShort, accountHue, accountLabel }) => ({ id, accountId, name, username, accountShort, accountHue, accountLabel }));
     // passkeys only while the page waits for one (a conditional request: "username webauthn" fields)
-    const offer = sender.tab ? await passkeys.conditionalOffer(sender.tab.id) : null;
-    return { host: hostOf(url) ?? '', items, passkeys: offer?.passkeys ?? [], requestId: offer?.requestId ?? null, locked: accounts.length > 0 && unlocked === 0 };
+    const offer = sender.tab && frame.frameId === 0 ? await passkeys.conditionalOffer(sender.tab.id) : null;
+    const embeddedIn = frame.frameId !== 0 && topOrigin && topOrigin !== url ? new URL(topOrigin).host : null;
+    return { host: hostOf(url) ?? '', embeddedIn, items, passkeys: offer?.passkeys ?? [], requestId: offer?.requestId ?? null, locked: accounts.length > 0 && unlocked === 0 };
   },
   async inlineFill({ accountId, itemId }, sender) {
     const { item } = await findItem(accountId, itemId);
-    if (!sender.tab || !matchesUrl(item, sender.tab.url)) throw new Error(t('Dieser Login gehört nicht zu dieser Seite'));
-    await fillActiveTab(sender.tab.id, item);
+    const frame = await inlineFrame(sender.tab);
+    if (!sender.tab || !matchesUrl(item, frame.origin)) throw new Error(t('Dieser Login gehört nicht zu dieser Seite'));
+    await fillFrame(sender.tab.id, frame, item);
     ext.tabs.sendMessage(sender.tab.id, { type: 'ov-inline-close' }).catch(() => {});
   },
 
@@ -749,7 +777,11 @@ const handlers = {
     return { itemCount: entry?.items.length ?? 0, error: entry?.error, warning: entry?.warning };
   },
 
-  items: ({ tabUrl }) => allItems(tabUrl),
+  items: ({ tabUrl, frameOrigins }) => allItems(tabUrl, Array.isArray(frameOrigins) ? frameOrigins : []),
+  /** Origins of the login forms embedded in the tab (shown, other origin than the page). */
+  loginFrames: ({ tabId }) => (tabId != null ? loginFrames(tabId) : []),
+  frameTrust: async () => (await trustedPairs()).length,
+  forgetFrameTrust: () => forgetPairs(),
 
   async item({ accountId, itemId }) {
     const { item, account } = await findItem(accountId, itemId);
@@ -776,9 +808,10 @@ const handlers = {
 
   async totp({ uri }) { return totp(uri); },
 
-  async fill({ accountId, itemId, tabId }) {
+  /** Fills an item into the tab; see fillTab for `force` and `allow` (answers to the questions the result asks). */
+  async fill({ accountId, itemId, tabId, force = false, allow = null }) {
     const { item } = await findItem(accountId, itemId);
-    return fillActiveTab(tabId, item);
+    return fillTab(tabId, item, { interactive: true, force: !!force, allow });
   },
 
   async saveItem({ accountId, itemId, data }) {
@@ -1129,8 +1162,9 @@ ext.windows?.onRemoved?.addListener(async (id) => {
 
 async function fillBestMatch(tab) {
   if (!tab?.id || !/^https?:/.test(tab.url ?? '')) return;
-  const item = await bestMatch(tab.url);
-  if (item) { await touch(); await fillActiveTab(tab.id, item); }
+  await touch();
+  await fillBestInTab(tab.id, bestMatch, async (ref) => (await findItem(ref.accountId, ref.itemId)).item)
+    .catch((e) => console.warn('OmniVault: filling failed', e));
 }
 
 ext.commands?.onCommand.addListener(async (command, tab) => {

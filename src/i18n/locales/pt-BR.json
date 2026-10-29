@@ -1082,5 +1082,21 @@
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "O servidor não forneceu nenhuma chave para o acesso de emergência.",
  "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "A chave do acesso de emergência não corresponde à sua conta.",
  "Passkey-Algorithmus {alg} wird nicht unterstützt": "O algoritmo de chave de acesso {alg} não é compatível",
- "Passkey-Kurve {curve} wird nicht unterstützt": "A curva de chave de acesso {curve} não é compatível"
+ "Passkey-Kurve {curve} wird nicht unterstützt": "A curva de chave de acesso {curve} não é compatível",
+ "OmniVault hat das eingebettete Formular von {origin} ausgefüllt.": "O OmniVault preencheu o formulário incorporado de {origin}.",
+ "Das Anmeldeformular von {origin} ist in diese Seite eingebettet. Zum ersten Mal bitte über das OmniVault-Symbol ausfüllen, um es hier zu erlauben.": "O formulário de login de {origin} está incorporado nesta página. Para permitir o preenchimento aqui, preencha-o uma vez pelo ícone do OmniVault.",
+ "Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "O formulário incorporado de {origin} está coberto ou invisível e não foi preenchido.",
+ "Das Formular hat inzwischen die Seite gewechselt.": "Enquanto isso, o formulário mudou de página.",
+ "Das Formular ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "O formulário está coberto ou invisível e não foi preenchido.",
+ "Eingebettet in {host}": "Incorporado em {host}",
+ "Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.": "Este formulário vem de {frame} e está incorporado em {page}. Preencher lá? O OmniVault não vai perguntar de novo para esta combinação.",
+ "Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "Nenhum formulário de login encontrado nesta página. O OmniVault só alcança formulários incorporados de outros sites com acesso aos sites.",
+ "Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "Nenhum formulário compatível encontrado nesta página. O OmniVault só alcança formulários incorporados de outros sites com acesso aos sites.",
+ "Eingebettetes Formular von {host}": "Formulário incorporado de {host}",
+ "OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.": "O OmniVault vai perguntar de novo antes de preencher formulários incorporados de outros sites.",
+ "Vergessen": "Esquecer",
+ "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
+  "one": "Preenchimento permitido em {n} formulário incorporado de outro site.",
+  "other": "Preenchimento permitido em {n} formulários incorporados de outros sites."
+ }
 }

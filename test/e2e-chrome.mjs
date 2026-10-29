@@ -274,7 +274,7 @@ try {
     const gh = st.result.find((i) => i.name === 'GitHub');
     return chrome.runtime.sendMessage({ type: 'fill', accountId: gh.accountId, itemId: gh.id, tabId: tab.id });
   });
-  check(filled.ok && filled.result === 2, `fill reported ${JSON.stringify(filled)}`);
+  check(filled.ok && filled.result.filled === 2, `fill reported ${JSON.stringify(filled)}`);
   check(await site.inputValue('#u') === 'alice' && await site.inputValue('#p') === 'gh-pass', 'login form filled');
 
   // service worker restart: session survives in storage.session, items are re-synced

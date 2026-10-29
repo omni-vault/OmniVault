@@ -1082,5 +1082,21 @@
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "Il server non ha fornito alcuna chiave per l'accesso di emergenza.",
  "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "La chiave dell'accesso di emergenza non corrisponde al tuo account.",
  "Passkey-Algorithmus {alg} wird nicht unterstützt": "L’algoritmo della passkey {alg} non è supportato",
- "Passkey-Kurve {curve} wird nicht unterstützt": "La curva della passkey {curve} non è supportata"
+ "Passkey-Kurve {curve} wird nicht unterstützt": "La curva della passkey {curve} non è supportata",
+ "OmniVault hat das eingebettete Formular von {origin} ausgefüllt.": "OmniVault ha compilato il modulo incorporato di {origin}.",
+ "Das Anmeldeformular von {origin} ist in diese Seite eingebettet. Zum ersten Mal bitte über das OmniVault-Symbol ausfüllen, um es hier zu erlauben.": "Il modulo di accesso di {origin} è incorporato in questa pagina. Per consentirne la compilazione qui, compilalo una prima volta dall’icona di OmniVault.",
+ "Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "Il modulo incorporato di {origin} è coperto o invisibile, quindi non è stato compilato.",
+ "Das Formular hat inzwischen die Seite gewechselt.": "Nel frattempo il modulo è passato a un’altra pagina.",
+ "Das Formular ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "Il modulo è coperto o invisibile, quindi non è stato compilato.",
+ "Eingebettet in {host}": "Incorporato in {host}",
+ "Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.": "Questo modulo proviene da {frame} ed è incorporato in {page}. Compilarlo lì? OmniVault non lo chiederà più per questa combinazione.",
+ "Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "Nessun modulo di accesso trovato in questa pagina. OmniVault raggiunge i moduli incorporati di altri siti solo con l’accesso ai siti web.",
+ "Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "Nessun modulo adatto trovato in questa pagina. OmniVault raggiunge i moduli incorporati di altri siti solo con l’accesso ai siti web.",
+ "Eingebettetes Formular von {host}": "Modulo incorporato di {host}",
+ "OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.": "OmniVault chiederà di nuovo prima di compilare moduli incorporati di altri siti.",
+ "Vergessen": "Dimentica",
+ "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
+  "one": "Compilazione consentita in {n} modulo incorporato di un altro sito.",
+  "other": "Compilazione consentita in {n} moduli incorporati di altri siti."
+ }
 }

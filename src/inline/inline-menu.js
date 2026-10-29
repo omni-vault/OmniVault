@@ -29,8 +29,15 @@ const row = (title, sub, i, onclick) => {
 };
 
 try {
-  const { host, items, locked, passkeys = [], requestId } = await call('inlineItems');
+  const { host, embeddedIn, items, locked, passkeys = [], requestId } = await call('inlineItems');
   document.getElementById('host').textContent = host;
+  if (embeddedIn) {
+    // an embedded login form: name the page around it, so it is clear whose form this is
+    const p = document.createElement('p');
+    p.className = 'embedded';
+    p.textContent = t('Eingebettet in {host}', { host: embeddedIn });
+    list.before(p);
+  }
   const keys = passkeys.map((p) => row(p.userName || p.name, t('Passkey · {name}', { name: p.name }), p, () => call('passkeyChoose', {
     requestId, choice: { accountId: p.accountId, itemId: p.itemId, credentialId: p.credentialId },
   }).catch((e) => note(e.message))));

@@ -1044,5 +1044,20 @@
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "服务器未提供紧急访问的密钥。",
  "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "紧急访问的密钥与你的账户不匹配。",
  "Passkey-Algorithmus {alg} wird nicht unterstützt": "不支持通行密钥算法 {alg}",
- "Passkey-Kurve {curve} wird nicht unterstützt": "不支持通行密钥曲线 {curve}"
+ "Passkey-Kurve {curve} wird nicht unterstützt": "不支持通行密钥曲线 {curve}",
+ "OmniVault hat das eingebettete Formular von {origin} ausgefüllt.": "OmniVault 已填充来自 {origin} 的嵌入表单。",
+ "Das Anmeldeformular von {origin} ist in diese Seite eingebettet. Zum ersten Mal bitte über das OmniVault-Symbol ausfüllen, um es hier zu erlauben.": "来自 {origin} 的登录表单嵌入在此页面中。如需允许在此填充，请先通过 OmniVault 图标填充一次。",
+ "Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "来自 {origin} 的嵌入表单被遮挡或不可见，因此未填充。",
+ "Das Formular hat inzwischen die Seite gewechselt.": "表单已在此期间切换到其他页面。",
+ "Das Formular ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "表单被遮挡或不可见，因此未填充。",
+ "Eingebettet in {host}": "嵌入于 {host}",
+ "Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.": "此表单来自 {frame}，嵌入在 {page} 中。要在那里填充吗？对于此组合，OmniVault 不会再次询问。",
+ "Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "此页面上没有找到登录表单。只有获得访问网站的权限，OmniVault 才能访问其他网站的嵌入表单。",
+ "Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "此页面上没有找到合适的表单。只有获得访问网站的权限，OmniVault 才能访问其他网站的嵌入表单。",
+ "Eingebettetes Formular von {host}": "来自 {host} 的嵌入表单",
+ "OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.": "在填充其他网站的嵌入表单之前，OmniVault 将再次询问。",
+ "Vergessen": "清除",
+ "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
+  "other": "已允许在 {n} 个其他网站的嵌入表单中填充。"
+ }
 }

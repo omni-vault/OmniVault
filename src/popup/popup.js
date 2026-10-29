@@ -57,6 +57,18 @@ async function updateTarget() {
   const target = $('#target');
   target.hidden = !windowed || !S.tab;
   if (S.tab) target.textContent = t('Ziel: {host}', { host: new URL(S.tab.url).host });
+  loadFrames().catch(() => {});
+}
+
+/** Login forms embedded in the tab: their logins count as "matching this page" too (looked up after the list shows). */
+async function loadFrames() {
+  const tab = S.tab;
+  S.frames = [];
+  if (!tab) return;
+  const origins = await call('loginFrames', { tabId: tab.id }).catch(() => []);
+  if (S.tab?.id !== tab.id || !origins.length) return;
+  S.frames = origins;
+  await refresh();
 }
 
 let retargetTimer;

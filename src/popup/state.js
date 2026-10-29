@@ -28,6 +28,8 @@ export const S = {
   state: { providers: [], accounts: [], settings: {} },
   items: [],
   tab: null,
+  /** origins of login forms embedded in the tab (other origin than the page) */
+  frames: [],
 };
 
 export const providerOf = (id) => S.state.providers.find((p) => p.id === id);
@@ -39,7 +41,7 @@ export const onRefresh = (fn) => listeners.add(fn);
 
 export async function refresh() {
   S.state = await call('state');
-  S.items = await call('items', { tabUrl: S.tab?.url });
+  S.items = await call('items', { tabUrl: S.tab?.url, frameOrigins: S.frames });
   for (const fn of listeners) fn();
 }
 

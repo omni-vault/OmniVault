@@ -6,9 +6,12 @@
 // login?" after a form is submitted.
 // The list and the save bar are extension pages in iframes, so the page never sees account data; filling only
 // accepts logins that belong to this site.
+// Runs in embedded frames as well: there the list shows the logins of the frame's own site, and "save this login?"
+// opens in the top page. Passkey suggestions stay with the top page (requests from frames go to the browser).
 (() => {
-  if (window.top !== window || window.__omnivaultInline) return;
+  if (window.__omnivaultInline) return;
   window.__omnivaultInline = true;
+  const isTop = window.top === window;
   const ext = globalThis.browser ?? globalThis.chrome;
   const send = (type, payload = {}) => ext.runtime.sendMessage({ type, ...payload }).then((r) => (r?.ok ? r.result : null)).catch(() => null);
 
@@ -55,13 +58,24 @@
     const x = r.right + window.scrollX - 26;
     const y = r.top + window.scrollY + (r.height - 22) / 2;
     Object.assign(button.style, { left: `${x}px`, top: `${y}px` });
-    Object.assign(menu.style, { left: `${Math.max(4, r.left + window.scrollX + r.width - 300)}px`, top: `${r.bottom + window.scrollY + 4}px`, width: '300px', height: '230px' });
+    // 300 × 230 below the field; in a small embedded frame as much as fits, above the field if there is more room there
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const vh = document.documentElement.clientHeight || window.innerHeight;
+    const width = Math.min(300, Math.max(160, vw - 8));
+    const below = vh - r.bottom - 8;
+    const above = r.top - 8;
+    const up = below < 230 && above > below;
+    const height = Math.max(90, Math.min(230, up ? above : below));
+    const left = Math.min(Math.max(4, r.left + r.width - width), Math.max(4, vw - width - 4));
+    const top = up ? r.top - height - 4 : r.bottom + 4;
+    Object.assign(menu.style, { left: `${left + window.scrollX}px`, top: `${top + window.scrollY}px`, width: `${width}px`, height: `${height}px` });
   };
   const closeMenu = () => { menu.style.display = 'none'; if (menu.src) menu.src = 'about:blank'; };
   const mount = () => { if (!host.isConnected) document.documentElement.append(host); };
 
-  const openMenu = (auto = false) => {
+  const openMenu = async (auto = false) => {
     place();
+    await send('ovMenuFrame'); // the list belongs to this frame (its logins, and filling goes here)
     menu.src = ext.runtime.getURL(`inline-menu.html${auto ? '?auto' : ''}`); // opened by itself: the field keeps the focus
     menu.style.display = 'block';
   };
@@ -72,7 +86,7 @@
     const passkeyField = isPasskeyField(el);
     if (!(login || passkeyField) || !visible(el)) return;
     // passkeys: only while the page waits for one (it asked with mediation "conditional")
-    const offer = config.passkeys && (passkeyField || login) ? (await send('ovPasskeyOffer'))?.pending : false;
+    const offer = isTop && config.passkeys && (passkeyField || login) ? (await send('ovPasskeyOffer'))?.pending : false;
     if (!(config.inline || offer) || document.activeElement !== el) return;
     if (anchor !== el) closeMenu();
     anchor = el;
@@ -85,7 +99,8 @@
     if (e.target === anchor) setTimeout(() => { if (menu.style.display === 'none' && document.activeElement !== anchor) button.style.display = 'none'; }, 150);
   }, true);
   button.addEventListener('mousedown', (e) => e.preventDefault()); // keep the focus in the field
-  button.addEventListener('click', () => {
+  button.addEventListener('click', (e) => {
+    if (!e.isTrusted) return;
     if (menu.style.display === 'block') return closeMenu();
     openMenu();
   });
@@ -95,9 +110,12 @@
   window.addEventListener('scroll', place, true);
 
   const showBar = () => { mount(); bar.src = ext.runtime.getURL('save-bar.html'); bar.style.display = 'block'; };
-  ext.runtime.onMessage.addListener((msg) => {
+  ext.runtime.onMessage.addListener((msg, _sender, respond) => {
     if (msg?.type === 'ov-inline-close') { closeMenu(); button.style.display = 'none'; }
     if (msg?.type === 'ov-save-close') { bar.style.display = 'none'; bar.src = 'about:blank'; }
+    // a login was sent in an embedded frame: the top page shows the bar
+    if (msg?.type === 'ov-save-show' && isTop && config.save) { showBar(); respond(true); }
+    return false;
   });
 
   // "Save this login?": remember what was typed when a login form is sent
@@ -123,6 +141,6 @@
     config = c ?? config;
     // titles in the interface language (the content script has no catalogs of its own)
     if (config.labels) { button.title = config.labels.button; bar.title = config.labels.bar; }
-    if (config.save && (await send('ovPendingSave'))?.show) showBar();
+    if (isTop && config.save && (await send('ovPendingSave'))?.show) showBar();
   });
 })();

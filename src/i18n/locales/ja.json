@@ -1044,5 +1044,20 @@
  "Der Server hat keinen Schlüssel für den Notfallzugriff geliefert.": "サーバーから緊急アクセス用の鍵が返されませんでした。",
  "Der Schlüssel für den Notfallzugriff passt nicht zu deinem Konto.": "緊急アクセスの鍵があなたのアカウントと一致しません。",
  "Passkey-Algorithmus {alg} wird nicht unterstützt": "パスキーのアルゴリズム {alg} には対応していません",
- "Passkey-Kurve {curve} wird nicht unterstützt": "パスキーの曲線 {curve} には対応していません"
+ "Passkey-Kurve {curve} wird nicht unterstützt": "パスキーの曲線 {curve} には対応していません",
+ "OmniVault hat das eingebettete Formular von {origin} ausgefüllt.": "OmniVault が {origin} の埋め込みフォームに入力しました。",
+ "Das Anmeldeformular von {origin} ist in diese Seite eingebettet. Zum ersten Mal bitte über das OmniVault-Symbol ausfüllen, um es hier zu erlauben.": "{origin} のログインフォームがこのページに埋め込まれています。ここでの入力を許可するには、まず OmniVault アイコンから一度入力してください。",
+ "Das eingebettete Formular von {origin} ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "{origin} の埋め込みフォームは隠れているか見えないため、入力しませんでした。",
+ "Das Formular hat inzwischen die Seite gewechselt.": "その間にフォームが別のページに移動しました。",
+ "Das Formular ist verdeckt oder unsichtbar und wurde nicht ausgefüllt.": "フォームが隠れているか見えないため、入力しませんでした。",
+ "Eingebettet in {host}": "{host} に埋め込み",
+ "Das Formular stammt von {frame} und ist in {page} eingebettet. Dort ausfüllen? OmniVault fragt für diese Kombination nicht noch einmal.": "このフォームは {frame} のもので、{page} に埋め込まれています。そこに入力しますか？この組み合わせについて OmniVault は再度確認しません。",
+ "Kein Anmeldeformular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "このページにログインフォームが見つかりません。他のサイトの埋め込みフォームには、ウェブサイトへのアクセスが許可されている場合のみ OmniVault が届きます。",
+ "Kein passendes Formular gefunden. Eingebettete Formulare anderer Websites erreicht OmniVault nur mit Zugriff auf Webseiten.": "このページに対応するフォームが見つかりません。他のサイトの埋め込みフォームには、ウェブサイトへのアクセスが許可されている場合のみ OmniVault が届きます。",
+ "Eingebettetes Formular von {host}": "{host} の埋め込みフォーム",
+ "OmniVault fragt wieder, bevor es eingebettete Formulare anderer Websites ausfüllt.": "他のサイトの埋め込みフォームに入力する前に、OmniVault が再度確認します。",
+ "Vergessen": "リセット",
+ "Ausfüllen erlaubt in {n} eingebetteten Formularen anderer Websites.": {
+  "other": "他のサイトの埋め込みフォーム {n} 件への入力を許可済みです。"
+ }
 }
