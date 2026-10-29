@@ -1116,5 +1116,20 @@
  "Keine Webseite zum Scannen": "没有可扫描的网页",
  "Kein Zugriff auf die Seite. OmniVault über das Symbol in der Symbolleiste öffnen und erneut versuchen.": "无法访问该页面。请通过工具栏中的 OmniVault 图标打开后重试。",
  "Kein QR-Code im sichtbaren Teil der Seite gefunden": "在页面的可见部分未找到二维码",
- "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "填充登录信息后复制验证码（TOTP）"
+ "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "填充登录信息后复制验证码（TOTP）",
+ "Version {n}, bis {date}": "版本 {n}，使用至 {date}",
+ "Keine früheren Passwörter": "没有以前的密码",
+ "Reisepass": "护照",
+ "Personalausweis": "身份证",
+ "Führerschein": "驾驶证",
+ "Sozialversicherungsausweis": "社会保障卡",
+ "Steuernummer": "税号",
+ "Geschlecht": "性别",
+ "Geburtsdatum": "出生日期",
+ "Geburtsort": "出生地",
+ "Ausgestellt am": "签发日期",
+ "Ausstellungsort": "签发地",
+ "Ausweisnummer": "证件号码",
+ "Nummer für die Online-Steuererklärung": "网上报税编号",
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli 从 6.2642.0 版起才能读取证件和身份。"
 }

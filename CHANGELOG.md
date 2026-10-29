@@ -25,6 +25,15 @@
   never stored or sent. It needs OmniVault to be opened from its toolbar button, keyboard shortcut or context menu
   (activeTab); no new permission.
 
+- **Password history for HashiCorp Vault / OpenBao**: entries with older versions show "Password history" in the
+  detail view, as for Bitwarden. Only when you open it does OmniVault read the version list and the earlier
+  passwords (at most 20 older versions); deleted and destroyed versions are skipped, and each password is listed once
+  per change with the date it was replaced. Needs the `read` capability on the entry's `metadata` path.
+- **Dashlane: identities and IDs** (passport, ID card, driver's licence, social security and tax number) are read
+  with `dcli id` (Dashlane CLI 6.2642.0 or later) and shown as identities, read only. The list holds only the type
+  and the holder's name; numbers and dates are read when you open the entry. Payment cards cannot be read: `dcli`
+  has no command for them.
+
 ### Improvements
 - **Filling in embedded frames**: login forms embedded in a page (for example a bank's or a partner's sign-in in an
   iframe) and card forms of payment providers can now be filled – with a click, the keyboard shortcut, the context

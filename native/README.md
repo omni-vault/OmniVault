@@ -80,7 +80,7 @@ for the permission "Communicate with cooperating native applications".
 | Feature | pass | gopass | 1Password | LastPass | Proton Pass | Dashlane |
 |---|---|---|---|---|---|---|
 | Read (username, password, URL, notes) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (logins, secure notes, secrets) |
-| Read cards, identities, SSH keys | – | – | ✅ (cards, identities) | – | ✅ | – (secrets as notes) |
+| Read cards, identities, SSH keys | – | – | ✅ (cards, identities) | – | ✅ | 🟡 (identities and IDs via `dcli id`, ≥ 6.2642.0; no cards; secrets as notes) |
 | Create and edit cards, identities | – | – | ✅ (from the `op` template; address read only) | – | – | – |
 | Download attachments (up to 30 MB) | – | – | ✅ (`op read`, `op document get`) | ✅ (`lpass show --attach`) | ✅ (`item attachment download`) | – |
 | Password history | – | – | if `op` outputs it | – | – | – |
@@ -98,12 +98,15 @@ pass and gopass have no separate note type: every entry starts with a password l
 and `gopass rm -f`; mounted stores (`gopass mounts`) appear as top-level folders, and moving
 between them uses `gopass mv`. gopass notifications and reminders are turned off for these calls.
 
-Dashlane: the host only calls `dcli --version`, `dcli status`, `dcli sync` and `dcli password|note|secret --output json`
+Dashlane: the host only calls `dcli --version`, `dcli status`, `dcli sync` and `dcli password|note|secret|id --output json`
 (with the filter `id={…}` when an entry is opened), always with `/dev/null` as input. dcli always outputs these lists
 with all secrets; for the list, the host keeps only the title, username or email, URL and whether there is a
-TOTP, and reads the password, note and TOTP secret only when you open an entry – again via dcli; nothing
-is cached. IDs must have the form `{UUID}`. Dashlane "secrets" (arbitrary text, e.g. an
-SSH key) appear as notes; dcli does not output IDs (`dcli id`), folders and attachments, or not as a list.
+TOTP (for personal IDs: the type and the holder's name), and reads the password, note, TOTP secret and ID numbers
+only when you open an entry – again via dcli; nothing is cached. Entry IDs must have the form `{UUID}`. Dashlane
+"secrets" (arbitrary text, e.g. an SSH key) appear as notes. `dcli id` (since 6.2642.0) delivers identities,
+passports, ID cards, driver's licences, social security and tax numbers; OmniVault shows them as identities (dates,
+places and other numbers as custom fields). With an older dcli the IDs are left out and the account shows a notice.
+dcli has no command for payment cards, addresses, phone numbers, folders or attachments.
 dcli itself syncs with the server at most once an hour; `dcli sync` forces it.
 
 ## Security
@@ -193,7 +196,8 @@ python3 selftest.py pass                       # read only
 python3 selftest.py gopass --write             # create, edit, move, delete a throwaway entry
 python3 selftest.py onepassword --write        # additionally create, edit, delete (login, card, identity)
 python3 selftest.py lastpass --write
-python3 selftest.py dashlane                   # read only: dcli sync, list, one login, one note, one secret each
+python3 selftest.py dashlane                   # read only: dcli sync, list, one login, one note, one secret, one ID each;
+                                               # prints the field NAMES of each kind of personal ID (never values)
 python3 selftest.py proton --write --vault OmniVault-Test   # Proton: create an EMPTY vault first
 python3 selftest.py lastpass --limit 200       # search more entries for attachments (default 25)
 ```
@@ -209,8 +213,9 @@ pass is tested against real `pass` + GnuPG, gopass against the official release 
 hash verified, `test/gopass-bin.sh`) + GnuPG, also with a mounted second store. 1Password and LastPass are tested against simulated programs
 that reproduce the formats of `op` 2.x and `lastpass-cli` 1.x; Proton Pass against a simulated `pass-cli` whose
 commands, error messages and exit codes have been compared with the real `pass-cli` 2.3.1 (without signing in). Dashlane is
-tested against a simulated `dcli` whose JSON fields follow the dcli source code; version, `dcli status` and
-the message when not signed in have been compared against the real release 6.2642.0 (Linux x64, hash verified, `test/dcli-bin.sh`).
+tested against a simulated `dcli` whose JSON fields follow the dcli source code (for `dcli id`: Dashlane's item keys,
+not checked against a real account – `selftest.py dashlane` shows which field names your dcli delivers); version, `dcli status`,
+the `id` command and the message when not signed in have been compared against the real release 6.2642.0 (Linux x64, hash verified, `test/dcli-bin.sh`).
 Check these four with `selftest.py` against the real programs before using them in production.
 
 All names mentioned are trademarks of their respective owners; OmniVault is not affiliated with them.

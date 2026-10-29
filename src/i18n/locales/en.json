@@ -1155,5 +1155,20 @@
  "Keine Webseite zum Scannen": "There's no web page to scan",
  "Kein Zugriff auf die Seite. OmniVault über das Symbol in der Symbolleiste öffnen und erneut versuchen.": "No access to the page. Open OmniVault from its toolbar icon and try again.",
  "Kein QR-Code im sichtbaren Teil der Seite gefunden": "No QR code found in the visible part of the page",
- "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copy the verification code (TOTP) after filling in a login"
+ "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copy the verification code (TOTP) after filling in a login",
+ "Version {n}, bis {date}": "Version {n}, until {date}",
+ "Keine früheren Passwörter": "No earlier passwords",
+ "Reisepass": "Passport",
+ "Personalausweis": "ID card",
+ "Führerschein": "Driver’s license",
+ "Sozialversicherungsausweis": "Social security card",
+ "Steuernummer": "Tax number",
+ "Geschlecht": "Sex",
+ "Geburtsdatum": "Date of birth",
+ "Geburtsort": "Place of birth",
+ "Ausgestellt am": "Issued on",
+ "Ausstellungsort": "Place of issue",
+ "Ausweisnummer": "ID number",
+ "Nummer für die Online-Steuererklärung": "Online tax filing number",
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli reads IDs and identities only from version 6.2642.0."
 }

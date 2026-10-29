@@ -1116,5 +1116,20 @@
  "Keine Webseite zum Scannen": "スキャンできるページがありません",
  "Kein Zugriff auf die Seite. OmniVault über das Symbol in der Symbolleiste öffnen und erneut versuchen.": "ページにアクセスできません。ツールバーの OmniVault アイコンから開いて、もう一度お試しください。",
  "Kein QR-Code im sichtbaren Teil der Seite gefunden": "ページの表示部分に QR コードが見つかりません",
- "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "ログインの入力後に確認コード（TOTP）をコピーする"
+ "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "ログインの入力後に確認コード（TOTP）をコピーする",
+ "Version {n}, bis {date}": "バージョン {n}（{date} まで）",
+ "Keine früheren Passwörter": "以前のパスワードはありません",
+ "Reisepass": "パスポート",
+ "Personalausweis": "身分証明書",
+ "Führerschein": "運転免許証",
+ "Sozialversicherungsausweis": "社会保障カード",
+ "Steuernummer": "納税者番号",
+ "Geschlecht": "性別",
+ "Geburtsdatum": "生年月日",
+ "Geburtsort": "出生地",
+ "Ausgestellt am": "発行日",
+ "Ausstellungsort": "発行地",
+ "Ausweisnummer": "証明書番号",
+ "Nummer für die Online-Steuererklärung": "オンライン税申告番号",
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli が身分証明書と ID 情報を読み取れるのはバージョン 6.2642.0 以降です。"
 }

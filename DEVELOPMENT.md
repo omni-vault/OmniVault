@@ -11,12 +11,12 @@ from other managers and export everything again.
 | Bitwarden (bitwarden.com, bitwarden.eu) | direct, decryption in the browser | read and write, tested against real Vaultwarden |
 | Vaultwarden / self-hosted Bitwarden | direct | as above |
 | Passbolt v4 and v5 | direct, OpenPGP in the browser | read, write, share; tested against real Passbolt CE 5.16 |
-| HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash; tested against real OpenBao 2.7.1 |
+| HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash, password history; tested against real OpenBao 2.7.1 |
 | pass (password-store) | local host → `pass` + GnuPG | read and write, tested against real pass |
 | gopass | local host → `gopass` + GnuPG | read and write, stores as folders; tested against real gopass 1.17.4 |
 | 1Password | local host → official `op` | read and write, tested against a simulated CLI |
 | LastPass | local host → official `lpass` | read and write, tested against a simulated CLI |
-| Dashlane | local host → official `dcli` | read only (dcli cannot write); tested against a simulated CLI, and without an account against real dcli 6.2642.0 |
+| Dashlane | local host → official `dcli` | read only (dcli cannot write): logins, notes, identities and IDs; tested against a simulated CLI, and without an account against real dcli 6.2642.0 |
 | KeePassXC | KeePassXC's browser interface via `keepassxc-proxy` | read, create, edit, delete logins; tested against a simulated KeePassXC |
 | Proton Pass | local host → official `pass-cli` | on hold: Proton only offers the CLI on paid plans |
 | KeePass files, browsers and others | file import (KeePass database `.kdbx`, CSV, JSON, KeePass XML) | into any writable account |
@@ -47,7 +47,8 @@ npm run test:login        # Duo and SSO in a tab (simulated servers), with a rea
 npm run test:emergency    # Bitwarden emergency access (trusted contact, view only) against the simulated server;
                           # the same test runs against real Vaultwarden as part of test:vaultwarden
 npm run test:passbolt     # sets up a local Passbolt CE (PostgreSQL) and tests provider and sharing against it
-npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it
+npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it,
+                          # including the password history from older versions (deleted and destroyed ones skipped)
 npm run test:inline       # button in the login field, "Save login?", filling cards
 npm run test:frames       # filling in embedded frames (two origins): question per pair of sites, note in the page,
                           # hidden frames, same-origin frames, list in the frame, "Save login?" from a frame, cards
@@ -61,7 +62,9 @@ npm run test:shortcuts    # keyboard shortcuts and context menu with real X11 in
                           # also in an embedded login frame of another site; scans a TOTP QR code from the toolbar
                           # popup opened by the shortcut (activeTab)
 npm run test:generator    # generator (password, passphrase, PIN, username; copying), username die in the editor,
-                          # TOTP code copied after filling (clipboard read back, cleared), TOTP QR code read from a page
+                          # TOTP code copied after filling (clipboard read back, cleared; also with the button in the
+                          # login field, in the top document and in an embedded frame of the same site, notice in the
+                          # frame that was filled), TOTP QR code read from a page
 npm run test:device-unlock  # unlock with the device: virtual authenticators with PRF over CDP, pop-out window and
                             # real toolbar popup with the device window; visible with `xvfb-run -a`
 npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see below)
@@ -75,7 +78,7 @@ in `npm test` need an installed `gpg`, otherwise they are skipped; the pass test
 `OMNIVAULT_PASS_BIN=/path/to/pass`, the gopass tests with `OMNIVAULT_GOPASS_BIN=/path/to/gopass` or
 `OMNIVAULT_GOPASS_DOWNLOAD=1` (downloads the pinned release 1.17.4, hash verified, see `test/gopass-bin.sh`). The Dashlane tests run with a simulated `dcli`; with
 `OMNIVAULT_DCLI_DOWNLOAD=1` (or `OMNIVAULT_DCLI_BIN_REAL=/path/to/dcli`) one test additionally checks the real release 6.2642.0
-without an account (hash verified, see `test/dcli-bin.sh`). `test:passbolt` needs PHP ≥ 8.2 (with `phpize`), Composer, git, a C compiler,
+without an account (hash verified, see `test/dcli-bin.sh`): version, status, `dcli id` and that it has no command for payment cards. `test:passbolt` needs PHP ≥ 8.2 (with `phpize`), Composer, git, a C compiler,
 GnuPG with libgpgme and the PostgreSQL programs; package repositories, packagist.org and pecl.php.net are not needed. Passbolt CE
 5.16.0 and its dependencies come from their Git sources (commits pinned: tag or `composer.lock`); if PHP lacks the
 gnupg extension, the script builds php-gnupg 1.5.4 once against the existing libgpgme (headers generated from the Git sources of

@@ -1155,5 +1155,20 @@
  "Keine Webseite zum Scannen": "Nessuna pagina web da scansionare",
  "Kein Zugriff auf die Seite. OmniVault über das Symbol in der Symbolleiste öffnen und erneut versuchen.": "Nessun accesso alla pagina. Apri OmniVault dalla sua icona nella barra degli strumenti e riprova.",
  "Kein QR-Code im sichtbaren Teil der Seite gefunden": "Nessun codice QR trovato nella parte visibile della pagina",
- "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copia il codice di verifica (TOTP) dopo aver compilato un login"
+ "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copia il codice di verifica (TOTP) dopo aver compilato un login",
+ "Version {n}, bis {date}": "Versione {n}, fino al {date}",
+ "Keine früheren Passwörter": "Nessuna password precedente",
+ "Reisepass": "Passaporto",
+ "Personalausweis": "Carta d’identità",
+ "Führerschein": "Patente di guida",
+ "Sozialversicherungsausweis": "Tessera previdenziale",
+ "Steuernummer": "Codice fiscale",
+ "Geschlecht": "Sesso",
+ "Geburtsdatum": "Data di nascita",
+ "Geburtsort": "Luogo di nascita",
+ "Ausgestellt am": "Rilasciato il",
+ "Ausstellungsort": "Luogo di rilascio",
+ "Ausweisnummer": "Numero del documento",
+ "Nummer für die Online-Steuererklärung": "Numero per la dichiarazione fiscale online",
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "dcli legge documenti e identità solo dalla versione 6.2642.0."
 }

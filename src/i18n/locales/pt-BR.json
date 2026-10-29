@@ -1155,5 +1155,20 @@
  "Keine Webseite zum Scannen": "Não há página para escanear",
  "Kein Zugriff auf die Seite. OmniVault über das Symbol in der Symbolleiste öffnen und erneut versuchen.": "Sem acesso à página. Abra o OmniVault pelo ícone na barra de ferramentas e tente de novo.",
  "Kein QR-Code im sichtbaren Teil der Seite gefunden": "Nenhum código QR encontrado na parte visível da página",
- "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copiar o código de verificação (TOTP) depois de preencher um login"
+ "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copiar o código de verificação (TOTP) depois de preencher um login",
+ "Version {n}, bis {date}": "Versão {n}, até {date}",
+ "Keine früheren Passwörter": "Nenhuma senha anterior",
+ "Reisepass": "Passaporte",
+ "Personalausweis": "Carteira de identidade",
+ "Führerschein": "Carteira de motorista",
+ "Sozialversicherungsausweis": "Cartão da previdência social",
+ "Steuernummer": "Número de identificação fiscal",
+ "Geschlecht": "Sexo",
+ "Geburtsdatum": "Data de nascimento",
+ "Geburtsort": "Local de nascimento",
+ "Ausgestellt am": "Emitido em",
+ "Ausstellungsort": "Local de emissão",
+ "Ausweisnummer": "Número do documento",
+ "Nummer für die Online-Steuererklärung": "Número para a declaração de impostos on-line",
+ "Ausweise und Identitäten liest dcli erst ab Version 6.2642.0.": "O dcli só lê documentos e identidades a partir da versão 6.2642.0."
 }
