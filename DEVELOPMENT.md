@@ -50,6 +50,8 @@ npm run test:login        # Duo and SSO in a tab (simulated servers), with a rea
 npm run test:emergency    # Bitwarden emergency access (trusted contact, view only) against the simulated server;
                           # the same test runs against real Vaultwarden as part of test:vaultwarden
 npm run test:passbolt     # sets up a local Passbolt CE (PostgreSQL) and tests provider and sharing against it
+npm run test:passbolt-mfa # Passbolt CE with TOTP and 30-second tokens behind a TLS front (https://localhost:8932):
+                          # staying signed in through renewals in Chromium and Firefox (cookies permission), see below
 npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it,
                           # including the password history from older versions (deleted and destroyed ones skipped)
 npm run test:inline       # button in the login field, "Save login?", filling cards
@@ -98,6 +100,26 @@ downloads the official Bitwarden CLI 2026.9.0 (hash pinned, see `test/bw-cli.sh`
 The CLI reaches the server through a local CONNECT proxy inside the test, restricted to that port. The unit tests in
 `npm test` check the same format against node:crypto, files written by the CLI (`test/fixtures/bitwarden-cli/`) and
 an independent Python decryptor (`test/bw-export-check.py`, needs `cryptography` ≥ 44, otherwise skipped).
+
+**Passbolt token renewal** (`src/providers/passbolt/tokens.js`, `cookies.js`): every request of a Passbolt account
+goes through one keeper per account that holds the current access token. A renewal waits until the requests in flight
+are answered; requests that start meanwhile wait and then use the new token. Passbolt binds a second-factor proof
+(`passbolt_mfa` cookie) to the access token, moves it on `/auth/jwt/refresh`, and voids it for good when a request with
+another (even unexpired) token arrives – so after a renewal the old token must never be sent. Accounts with a second
+factor and the optional `cookies` permission renew through `/auth/jwt/refresh` (refresh token in the body,
+`credentials: 'include'` so `passbolt_mfa` goes along; the rotated token comes only as a Secure HttpOnly cookie, read
+with `cookies.get` and removed with `cookies.remove`; with the cookie in the jar Passbolt would require CSRF). The used
+token is marked in the stored session before the request (`refreshPending`), so a stopped worker never sends it again
+and adopts the cookie next time; `storage.local` notes the server meanwhile, and `runtime.onStartup` removes a cookie
+left by a crash. All other accounts sign in again with the GPG challenge, as before. The background stores renewed
+sessions at once (`onSession`) and closes the keeper when an account locks (also before PIN/device sealing).
+`test/passbolt.test.js` and `test/passbolt-tokens.test.js` cover the lock, the race (old token in flight), the
+interrupted renewal and a foreign cookie against the simulated server (`test/fake-passbolt.js` binds the MFA proof to
+the token, rotates the refresh cookie and records reuse). `npm run test:passbolt-mfa` runs the same against real
+Passbolt CE 5.16 (own directory `$TMPDIR/omnivault-passbolt-mfa`, ports 8930/5463 and 8932 for the TLS front, set with
+`PB_MFA_DIR`, `PB_MFA_PORT`, `PB_MFA_PG_PORT`, `PB_MFA_TLS_PORT`), needs `openssl` and `psql` (it checks Passbolt's
+e-mail queue for security warnings) and takes about 6 minutes; `test/passbolt-server.sh` takes `PB_BASE_URL` and
+`PASSBOLT_AUTH_JWT_ACCESS_TOKEN` for it.
 
 **Firefox test** (`test/e2e-firefox.mjs`): Playwright's Firefox cannot load extensions, so the test starts a regular
 Firefox ≥ 140 and controls it via WebDriver BiDi (`test/firefox-bidi.mjs`, no extra packages,
@@ -301,6 +323,8 @@ vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, Twe
   and the passkey would then silently return different PRF values – for websites that encrypt data with them,
   that would mean data loss.
 - Self-hosted servers: host permission is only requested when connecting.
+- Passbolt with a second factor: the refresh token lives only in `storage.session`; the optional `cookies` permission
+  is used only to read and delete Passbolt's `refresh_token` cookie of the account's server (see above).
 - Passbolt: the private key is stored passphrase-protected in `storage.local` (as in the official extension);
   the server key is remembered on the first login; if it changes, sign-in is aborted. When editing and
   sharing, secrets are encrypted with the public keys that the server names for the readers.

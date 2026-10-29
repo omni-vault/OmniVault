@@ -146,11 +146,11 @@ shows whether the real program provides it.
 | OpenPGP keys: RSA, Ed25519/Cv25519, v6 according to RFC 9580 (Argon2 S2K, AEAD, SEIPD v2) | – | – | ✅ R (RSA, ECC), ✅ U (v6) ¹⁵ | – |
 | Bitwarden's new encryption format ("Encryption V2": COSE, XAES-256-GCM, cipher blobs) | ✅ U read; writing blocked ¹⁴ | – | – | – |
 | Sign in with API key | ✅ R | – | – | – |
-| Two-factor | 🟡 S ¹¹ | ❌ (server MFA) | 🟡 S ¹² | handled by the CLI |
+| Two-factor | 🟡 S ¹¹ | ❌ (server MFA) | ✅ R ¹² | handled by the CLI |
 | Duo Universal Prompt (personal and organization) in a tab, popup continues afterwards | ✅ S ²⁷ | – | ❌ | – |
 | New device verification (email code) | ✅ S | – | – | – |
 | Self-hosted server | ✅ R | ✅ R | ✅ R | – |
-| Token renewal / keeping the session alive | ✅ R | ✅ R (`renew-self`) | ✅ S | ✅ S |
+| Token renewal / keeping the session alive | ✅ R | ✅ R (`renew-self`) | ✅ R ³¹ | ✅ S |
 | Verify server identity | – | – (browser TLS) | ✅ R (key pinning) | – |
 | Unlock with PIN, 4–12 digits, checked while typing (after auto-lock, until the browser restarts) | ✅ S | ✅ (same path, not tested separately) | ✅ S | ✅ (same path, not tested separately) |
 | Organization SSO (OIDC with PKCE in a tab), then master password | ✅ R (Vaultwarden with local OIDC provider), ✅ S (Bitwarden) ²⁷ | ❌ (OIDC) | ❌ | – |
@@ -160,7 +160,25 @@ shows whether the real program provides it.
 
 ¹¹ TOTP, email, YubiKey OTP, Duo (²⁷). WebAuthn is missing; in that case the API key helps.
 ³⁰ Chrome and other Chromium browsers only. Chromium (virtual authenticators over CDP): setup, unlock, PIN and device side by side, cancelled or failed verification, an authenticator that does not know the passkey, a security key that evaluates PRF only when signing in (asked a second time during setup), replacing and removing, an authenticator without PRF (explained, not offered); from the real toolbar popup the ceremony runs in a window of its own and the popup is reopened afterwards. Real Windows Hello, Touch ID, phones (hybrid) and security keys were not tested automatically. Firefox only lets extensions use WebAuthn for sites in their host permissions, not for their own origin (checked: `SecurityError`), so the settings explain this instead.
-¹² TOTP and YubiKey OTP. Duo is missing.
+¹² TOTP and YubiKey OTP (TOTP tested against real Passbolt CE 5.16 in Chromium and Firefox, YubiKey simulated), each with
+"Remember the second factor for 30 days" (Passbolt's `remember`; also applies to the Passbolt web app in the same
+browser, and Passbolt Pro/Enterprise can switch it off). Duo is missing.
+³¹ Without a second factor: a new sign-in with the GPG challenge and the unlocked key (no refresh token kept). With a
+second factor and the optional `cookies` permission: Passbolt's `/auth/jwt/refresh`, the only way that keeps the
+confirmation (Passbolt binds it to the access token and moves it to the new one). The refresh token is sent in the
+body; the rotated one comes only as a Secure HttpOnly cookie, which OmniVault reads with `cookies.get` right away,
+keeps in storage.session and removes from the browser. Per account, one token at a time: a renewal starts when the
+requests in flight are answered, requests started meanwhile wait and use the new token (Passbolt voids the
+confirmation as soon as a request with the previous, still valid token arrives); renewal happens before the token
+expires (30 s, at most a quarter of its lifetime). A refresh token is marked as used before it is sent; if the
+service worker stops in between, the next renewal takes the token left in the cookie; a cookie left behind by a crash
+is removed at the next browser start. A `refresh_token` cookie of Passbolt's own web app or extension is put back
+after the renewal. Needs https (the cookie is always `Secure`; Chromium also keeps it from `http://localhost`, Firefox
+does not); otherwise, and without the permission, the code is asked for again after expiry unless it was remembered.
+Tested against real Passbolt CE 5.16 with TOTP and 30-second tokens behind a TLS front, in Chromium and Firefox: five
+and more renewals, four syncs around a renewal, a stopped service worker (Chromium), no refresh cookie left behind,
+no security e-mail from Passbolt; the race, the interrupted renewal and the foreign cookie also against the simulated
+server.
 ¹⁴ Not yet used by any production account and not supported by Vaultwarden (as of 2026-10-19). Checked against
 the vectors of the XAES specification, Bitwarden's published vectors (local only) and a V2 account generated independently in Python.
 In OmniVault, such accounts are read-only until writing in the new format is implemented.

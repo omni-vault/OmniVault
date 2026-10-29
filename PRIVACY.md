@@ -83,6 +83,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 - **Mirror rules** you create between accounts, the IDs of the entries they copied, a revision date or a hash of each
   copied entry, and the result of the last run (counts and error messages, which can include entry names).
 - **Websites where you chose "never save"** for the "Save login?" prompt (host names).
+- **Passbolt token renewal:** while a renewal is under way, the address of that Passbolt server (no token), so that a
+  renewal cut off by a crash can be cleaned up at the next browser start (see "Permissions").
 - **Embedded forms you allowed:** pairs of website addresses (the page and a login or payment form of another site
   embedded in it) for which you confirmed filling. Settings → On websites → "Forget" deletes them.
 
@@ -91,6 +93,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 - Decrypted vault keys and sign-in tokens of unlocked accounts (for HashiCorp Vault / OpenBao: the token) (and, if you sign in to a Bitwarden-compatible server
   with a personal API key, that key). They are deleted when you lock an account, when OmniVault locks itself after
   the inactivity time you set, when your computer's screen locks (if enabled) and when the browser closes.
+- For Passbolt accounts with a second factor: the refresh token Passbolt issued for the session (see "Permissions"
+  below). It goes when the account locks.
 - If PIN unlock is on: the locked sessions, sealed with the PIN key pair, and the count of wrong PIN attempts.
   Five wrong attempts delete them.
 - If device unlock is on: the locked sessions, sealed with the device key pair; and, while the device window is open,
@@ -154,9 +158,24 @@ uploaded, encrypted like any other attachment, only to the account you import in
 ## Permissions
 
 OmniVault asks for the browser permissions it needs to work. Access to websites, to self-hosted servers, to
-Bitwarden's cloud file storage and to programs on your computer (Native Messaging) is optional and requested only
+Bitwarden's cloud file storage, to programs on your computer (Native Messaging) and to cookies (Passbolt) is optional and requested only
 when you use a feature that needs it. You can withdraw these permissions at any time in your browser's extension
 settings.
+
+**Cookies (optional, Passbolt with a second factor).** When you enter the code of a Passbolt account on a server with
+https, OmniVault asks for the "cookies" permission. Passbolt hands out the token for renewing the session only as a
+cookie (`refresh_token`) of your Passbolt server. Right after each renewal OmniVault reads exactly this cookie of that
+server, keeps its value in memory with the session (cleared when the account locks or the browser closes) and
+deletes the cookie from the browser. If a renewal was cut off, OmniVault takes the token from that cookie the next
+time, or deletes it at the next browser start. If Passbolt's own web app or extension had a `refresh_token` cookie in
+your browser, OmniVault puts it back unchanged after the renewal. OmniVault reads, changes and sends no other cookies,
+and the value never leaves your browser except to your Passbolt server. Note that browsers grant this permission for
+every site OmniVault may access (your servers, and websites if you allowed access to them); OmniVault uses it only for
+the Passbolt cookie described here. Without the permission, OmniVault asks for the code again when the session
+expires. You can withdraw it at any time in the browser's extension settings.
+
+**Passbolt's "remember for 30 days".** If you tick it when entering the code, Passbolt stores its confirmation cookie
+for 30 days in your browser; Passbolt's web app in the same browser uses it too.
 
 For Duo and SSO sign-ins OmniVault watches only the tab it opened itself, and only to see when it arrives back at your
 server's address – which it may access anyway for that account. No further permission is needed or requested.

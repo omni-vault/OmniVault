@@ -47,6 +47,16 @@
 ### Improvements
 - **Export of SSH keys**: SSH key items are now part of the Bitwarden JSON export (type 5), and importing them keeps
   the keys in hidden fields of a note.
+- **Passbolt with a second factor stays signed in.** Until now, a Passbolt account with TOTP or YubiKey asked for the
+  code again whenever its access token expired (after about 5 minutes by default). Now OmniVault renews the session
+  through Passbolt's refresh endpoint, which keeps the confirmation. Passbolt hands out the next refresh token only as
+  a cookie, so OmniVault asks for the optional "cookies" permission when you enter the code: it reads only Passbolt's
+  `refresh_token` cookie of that server, keeps the value in memory and deletes the cookie right away. All requests of
+  an account wait while its token is renewed, so the old token is never sent again (Passbolt would void the
+  confirmation), and a refresh token is never used twice (Passbolt would e-mail a security warning). This needs an
+  https server; without the permission or on an http server, the code is asked for again as before.
+- **"Remember the second factor for 30 days"** (Passbolt, when you enter the code): Passbolt's own option; the code is
+  then not asked for in this browser for 30 days – this also applies to the Passbolt web app. No new permission.
 - **Filling in embedded frames**: login forms embedded in a page (for example a bank's or a partner's sign-in in an
   iframe) and card forms of payment providers can now be filled – with a click, the keyboard shortcut, the context
   menu and the OmniVault button in the field. A login only goes into a frame whose own website matches it, never

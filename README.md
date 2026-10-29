@@ -142,6 +142,11 @@ Click the OmniVault icon, then *New* (the plus sign at the top right) → *Add a
   tab; once you are done there, OmniVault closes the tab and the popup continues where it left off. Accounts that unlock
   without a master password (trusted devices, Key Connector) and FIDO2 / WebAuthn as the second factor are not
   supported yet – for the latter, the API key works.
+- **Passbolt with a second factor** (authenticator app or YubiKey): OmniVault stays signed in when the session is
+  renewed, if you allow the optional "cookies" permission it asks for when you enter the code (https servers only;
+  OmniVault reads and deletes only Passbolt's own session cookie, see [PRIVACY.md](PRIVACY.md)). Otherwise the code is
+  asked for again after about 5 minutes – unless you tick *Remember the second factor for 30 days*, which also applies
+  to the Passbolt web app in this browser.
 - **pass, gopass, 1Password, LastPass, Dashlane, Proton Pass:** these need the local helper described below.
 - **KeePassXC:** uses KeePassXC's own browser integration, see [KeePassXC](#keepassxc) below.
 
@@ -249,7 +254,8 @@ What OmniVault stores and where it sends data is described in detail in the [pri
   instead of home-grown crypto, and contains no code from the official password manager clients.
 - **Minimal permissions.** Access to self-hosted servers and to native applications is requested only when you
   add such an account. Access to Bitwarden's cloud file storage (Azure Blob Storage) is requested only when you
-  first upload an attachment or create a file Send in a bitwarden.com or bitwarden.eu account.
+  first upload an attachment or create a file Send in a bitwarden.com or bitwarden.eu account. The cookies permission
+  is requested only when you enter the second factor of a Passbolt account.
 
 Found a security issue? Please report it privately via
 [GitHub's security advisories](https://github.com/omni-vault/OmniVault/security/advisories/new) instead of a public
