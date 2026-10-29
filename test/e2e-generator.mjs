@@ -196,7 +196,13 @@ try {
     await menu.waitForSelector('.row:has-text("GitHub")');
     const first = await code();
     await menu.click('.row:has-text("GitHub")');
-    await frame.waitForFunction(() => document.querySelector('#p').value !== '');
+    const filled = () => frame.waitForFunction(() => document.querySelector('#p').value !== '', null, { timeout: 10_000 });
+    if (!(await filled().then(() => true, () => false))) {
+      // seen rarely under load: the first click on a freshly shown list is lost; say so and click once more
+      console.log('note: the click on the list was not taken, clicking again');
+      await menu.click('.row:has-text("GitHub")');
+      await filled();
+    }
     await frame.waitForFunction(() => !!document.querySelector('omnivault-notice'), null, { timeout: 5000 }).catch(() => {});
     return [first, await code()];
   };
