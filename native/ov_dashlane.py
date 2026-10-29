@@ -5,9 +5,12 @@
 Dashlane backend via the official Dashlane CLI `dcli` (github.com/Dashlane/dashlane-cli), read only.
 
 Commands run (fixed list, no shell, stdin /dev/null): `dcli --version`, `dcli status`, `dcli sync`,
-`dcli password --output json [id=<id>]`, `dcli note --output json [id=<id>]`, `dcli secret --output json [id=<id>]`.
-The JSON output of `password`/`note`/`secret` always contains the secrets; the listing drops them here, in the host,
-before anything goes to the browser, and `reveal` reads the one entry again. Nothing is kept between requests.
+`dcli password --output json [id=<id>]`, `dcli note --output json [id=<id>]`, `dcli secret --output json [id=<id>]`,
+`dcli id --output json [id=<id>]` (personal IDs: identity, passport, ID card, driver's licence, social security and
+tax numbers; since dcli 6.2642.0, older versions answer "unknown command" and the IDs are left out).
+The JSON output always contains the secrets; the listing drops them here, in the host, before anything goes to the
+browser (for IDs it keeps only the type and the holder's name), and `reveal` reads the one entry again. Nothing is
+kept between requests. dcli has no command for payment cards, so they cannot be read.
 dcli asks interactively when it is not signed in or the vault is locked; with stdin closed that prompt fails, and the
 host turns the failure into a clear message (sign in once in the terminal with `dcli sync`).
 """
@@ -18,7 +21,12 @@ from ov_common import HostError, run, which
 
 # Dashlane item ids are a UUID in braces: {0A1B2C3D-…}
 DL_ID = re.compile(r"^\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}$")
-KINDS = {"login": "password", "note": "note", "secret": "secret"}  # OmniVault kind → dcli command
+KINDS = {"login": "password", "note": "note", "secret": "secret", "id": "id"}  # OmniVault kind → dcli command
+# `dcli id`: the transaction type of each personal ID item
+ID_TYPES = ("IDENTITY", "PASSPORT", "IDCARD", "DRIVERLICENCE", "SOCIALSECURITYSTATEMENT", "FISCALSTATEMENT")
+# keys of an ID item that are bookkeeping, not content (dcli exposes every field of the item)
+ID_INTERNAL = {"id", "anonid", "kwtype", "type", "localeformat", "spaceid", "creationdatetime", "creationdate",
+               "usermodificationdatetime", "lastbackuptime", "lastuse", "linkedidentity", "attachments", "checked"}
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 NOT_FOUND = "`dcli` (Dashlane CLI) wurde nicht gefunden."
@@ -103,11 +111,22 @@ def _parse(stdout):
     raise HostError(BAD_JSON)
 
 
+class NoIdCommand(Exception):
+    """The installed dcli predates `dcli id` (6.2642.0)."""
+
+
 def _fetch(kind, iid=None):
     args = [KINDS[kind], "--output", "json"]
     if iid is not None:
         args.append(f"id={iid}")  # dcli filter: substring match on the id field; the exact id is picked below
-    return _parse(_run(args).stdout)
+    if kind != "id":
+        return _parse(_run(args).stdout)
+    proc = _run(args, check=False)
+    if proc.returncode != 0:
+        if "unknown command 'id'" in _clean(proc.stderr or ""):
+            raise NoIdCommand()
+        raise HostError(describe(proc))
+    return _parse(proc.stdout)
 
 
 def _text(v):
@@ -126,8 +145,28 @@ def _summary(kind, e):
                 "username": username, "uris": [url] if url else [],
                 "hasTotp": bool(_text(e.get("otpSecret")) or _text(e.get("otpUrl"))),
                 "revision": _text(e.get("modificationDatetime")) or None}
+    if kind == "id":
+        id_type = _text(e.get("type")).upper()
+        if id_type not in ID_TYPES:
+            return None
+        return {"id": iid, "kind": kind, "type": "identity", "idType": id_type, "name": _holder(e)}
     return {"id": iid, "kind": kind, "type": "note", "name": _text(e.get("title")),
             "revision": _text(e.get("userModificationDatetime")) or _text(e.get("updateDate")) or None}
+
+
+def _holder(e):
+    """Name of the person an ID belongs to (the only content of an ID item the listing shows)."""
+    full = _text(e.get("fullname")) or _text(e.get("socialSecurityFullname"))
+    if full:
+        return full
+    parts = [_text(e.get(k)) for k in ("firstName", "middleName", "lastName", "lastName2")]
+    return " ".join(p for p in parts if p)
+
+
+def _id_fields(e):
+    """Every content field of an ID item as text (dcli names them after Dashlane's keys: number, expireDate, …)."""
+    return {k: v.strip() for k, v in e.items()
+            if isinstance(k, str) and isinstance(v, str) and v.strip() and k.lower() not in ID_INTERNAL}
 
 
 def dl_status(_a):
@@ -145,12 +184,18 @@ def dl_list(a):
     if a.get("sync"):
         _run(["sync"])
     items = []
+    no_ids = False
     for kind in KINDS:
-        for e in _fetch(kind):
+        try:
+            entries = _fetch(kind)
+        except NoIdCommand:
+            no_ids = True
+            continue
+        for e in entries:
             s = _summary(kind, e)
             if s:
                 items.append(s)
-    return {"items": items}
+    return {"items": items, **({"idsUnavailable": True} if no_ids else {})}
 
 
 def dl_reveal(a):
@@ -161,7 +206,11 @@ def dl_reveal(a):
     if kind not in KINDS:
         raise HostError("Ungültige Eintragsart")
     _require_ready()
-    e = next((x for x in _fetch(kind, iid) if _text(x.get("id")).lower() == iid.lower()), None)
+    try:
+        found = _fetch(kind, iid)
+    except NoIdCommand:
+        found = []
+    e = next((x for x in found if _text(x.get("id")).lower() == iid.lower()), None)
     if e is None:
         raise HostError("Eintrag nicht gefunden")
     out = _summary(kind, e)
@@ -174,6 +223,10 @@ def dl_reveal(a):
                 extra.append({"name": key, "value": value})
         out.update(password=e.get("password") or "", notes=e.get("note") or "",
                    totp=_text(e.get("otpUrl")) or _text(e.get("otpSecret")), fields=extra)
+    elif kind == "id":
+        if out is None:
+            raise HostError("Eintrag nicht gefunden")
+        out.update(data=_id_fields(e))
     else:
         out.update(notes=e.get("content") or "")
     return out

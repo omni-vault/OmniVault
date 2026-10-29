@@ -9,7 +9,11 @@ array of the decrypted items (keys = Dashlane field names with a lower-case firs
 (case-insensitive substring; without a key: url/title for passwords, title otherwise). Without a signed-in device
 or with a locked vault dcli prompts on stderr; with stdin closed the prompt fails like the real 6.2642.0 binary:
 `error: User force closed the prompt with 0 null`, exit code 1. `dcli status` never prompts.
-$FAKE_DCLI_MODE: "ok" (default), "logged-out", "locked"; $FAKE_DCLI_WARN=1 prints a keychain warning on stdout first.
+`id --output json` (since 6.2642.0) prints the personal ID items: every field of the item's XML (`KWDataItem key=…`,
+first letter lower-cased) plus `kwType` (root element, e.g. KWPassport) and `type` (transaction type, e.g. PASSPORT);
+filters default to type/fullname/firstName/lastName/number/idNumber. There is no command for payment cards.
+$FAKE_DCLI_MODE: "ok" (default), "logged-out", "locked"; $FAKE_DCLI_WARN=1 prints a keychain warning on stdout first;
+$FAKE_DCLI_NO_ID=1 behaves like dcli before 6.2642.0 (no `id` command).
 """
 import json
 import os
@@ -24,6 +28,18 @@ SHOP = "{7B2D4F1C-3A5E-4C8B-8D22-1E3F4A5B6C7D}"
 APP = "{8C3E5A2D-4B6F-4D9C-9E33-2F4A5B6C7D8E}"
 NOTE = "{9D4F6B3E-5C7A-4EAD-AF44-3A5B6C7D8E9F}"
 SECRET = "{AE5A7C4F-6D8B-4FBE-B055-4B6C7D8E9FA0}"
+IDENT = "{B06B8D5A-7E9C-4A0F-8166-5C7D8E9FA0B1}"
+PASSPORT = "{C17C9E6B-8FAD-4B1A-9277-6D8E9FA0B1C2}"
+IDCARD = "{D28DAF7C-9ABE-4C2B-A388-7E9FA0B1C2D3}"
+LICENCE = "{E39EB08D-ABCF-4D3C-B499-8FA0B1C2D3E4}"
+SOCIAL = "{F4AFC19E-BCD0-4E4D-85AA-9AB1C2D3E4F5}"
+FISCAL = "{05B0D2AF-CDE1-4F5E-96BB-AB12C3D4E5F6}"
+
+
+def personal(iid, tx_type, kw_type, **fields):
+    base = {"id": iid, "anonId": "anon-" + iid[1:9], "creationDatetime": "1750000000", "localeFormat": "DE",
+            "spaceId": "", "userModificationDatetime": "1760000400", "lastBackupTime": "1760000000"}
+    return {**base, **fields, "kwType": kw_type, "type": tx_type}
 
 
 def cred(iid, title, url, login, email, password, note="", otp_secret=None, otp_url=None, secondary=""):
@@ -59,6 +75,22 @@ def load():
             ],
             "note": [text_item(NOTE, "WLAN zuhause", "SSID: Haus\nSchlüssel: wlan-geheim")],
             "secret": [text_item(SECRET, "deploy.key", "-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----")],
+            "id": [
+                personal(IDENT, "IDENTITY", "KWIdentity", title="MS", firstName="Ada", middleName="Augusta", lastName="King",
+                         lastName2="", pseudo="ada", birthDate="1815-12-10", birthPlace="London"),
+                personal(PASSPORT, "PASSPORT", "KWPassport", fullname="Ada King", sex="FEMALE", dateOfBirth="1815-12-10",
+                         number="C01X00T47", deliveryDate="2020-03-01", expireDate="2030-02-28", deliveryPlace="Berlin",
+                         linkedIdentity=IDENT),
+                personal(IDCARD, "IDCARD", "KWIDCard", fullname="Ada King", sex="FEMALE", dateOfBirth="1815-12-10",
+                         number="L01X00T48", deliveryDate="2021-05-01", expireDate="2031-04-30", linkedIdentity=IDENT),
+                personal(LICENCE, "DRIVERLICENCE", "KWDriverLicence", fullname="Ada King", sex="FEMALE",
+                         dateOfBirth="1815-12-10", number="B072RRE2I55", deliveryDate="2019-01-15", expireDate="2034-01-14",
+                         state="BE", linkedIdentity=IDENT),
+                personal(SOCIAL, "SOCIALSECURITYSTATEMENT", "KWSocialSecurityStatement", socialSecurityFullname="Ada King",
+                         socialSecurityNumber="65101215K007", sex="FEMALE", dateOfBirth="1815-12-10"),
+                personal(FISCAL, "FISCALSTATEMENT", "KWFiscalStatement", fullname="", fiscalNumber="86095742719",
+                         teledeclarantNumber="TD-4711", taxOffice="Finanzamt Mitte"),
+            ],
             "syncs": 0,
         }
         save(seed)
@@ -127,6 +159,8 @@ def main():
         print("\x1b[32m✔ \x1b[0mSuccessfully synced")
         return
     names = {"password": "password", "p": "password", "note": "note", "n": "note", "secret": "secret"}
+    if os.environ.get("FAKE_DCLI_NO_ID") != "1":
+        names["id"] = "id"
     if cmd in names:
         kind = names[cmd]
         output, filters, i = None, [], 0
@@ -150,7 +184,7 @@ def main():
         unlock()
         if os.environ.get("FAKE_DCLI_WARN") == "1":
             print("\x1b[33mwarn: \x1b[0mUnable to reach OS keychain because of error: \"no backend\"")
-        default = ["url", "title"] if kind == "password" else ["title"]
+        default = {"password": ["url", "title"], "id": ["type", "fullname", "firstName", "lastName", "number", "idNumber"]}.get(kind, ["title"])
         print(json.dumps([x for x in state[kind] if matches(x, filters, default)]))
         return
     sys.stderr.write(f"\x1b[31merror: unknown command '{cmd}'\x1b[0m\n")

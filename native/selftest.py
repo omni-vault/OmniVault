@@ -6,7 +6,8 @@
 Self-test of the OmniVault host against YOUR own, unlocked CLI session.
 
   python3 selftest.py pass                         # read-only
-  python3 selftest.py dashlane                     # Dashlane is read only (no --write)
+  python3 selftest.py dashlane                     # Dashlane is read only (no --write); also lists the field names
+                                                   # of personal IDs (never their values)
   python3 selftest.py gopass --write               # gopass: also create, edit, move and delete a throw-away entry
   python3 selftest.py onepassword --write          # also create, edit and delete throw-away entries
                                                    # (1Password: a login, a card and an identity)
@@ -126,8 +127,28 @@ def main():
         finish()
     if a.backend == "dashlane":
         step("Sync with the server (dcli sync)", lambda: cmd["sync"]({}) and None)
+    def personal_ids():
+        """Dashlane: personal IDs from `dcli id` (since 6.2642.0). Prints per type how many there are and which field
+        NAMES dcli delivers (never their values), so the mapping can be checked against a real vault."""
+        r = state["list"]
+        if r.get("idsUnavailable"):
+            return "skipped (this dcli has no `id` command; needs 6.2642.0 or later)"
+        ids = [it for it in r["items"] if it.get("kind") == "id"]
+        for it in ids:
+            if set(it) - {"id", "kind", "type", "idType", "name"}:
+                raise RuntimeError(f"listing carries more than type and holder: {sorted(set(it))}")
+        seen = {}
+        for it in ids:
+            keys = seen.setdefault(it["idType"], {"count": 0, "fields": set()})
+            keys["count"] += 1
+            if keys["count"] == 1:  # one reveal per type is enough
+                keys["fields"] = set(cmd["reveal"](ref(it)).get("data", {}))
+        return "; ".join(f"{t}: {v['count']} ({', '.join(sorted(v['fields'])) or 'no fields'})" for t, v in sorted(seen.items())) or "no personal IDs"
+
     if step("List without secrets", listing):
         step("Fetch a secret", reveal)
+        if a.backend == "dashlane":
+            step("Personal IDs (dcli id): types and field names", personal_ids)
         step("Count attachments, password history, passkeys", extras)
         step("Download an attachment (size only)", download)
     if a.write and "create" not in cmd:
