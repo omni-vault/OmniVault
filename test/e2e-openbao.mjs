@@ -2,7 +2,8 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Browser test against a REAL OpenBao (test/openbao-server.sh start): add a userpass account in the popup, list the
-// entries, fill a login form, edit an entry (check on the server), delete it and restore it from the trash.
+// entries, fill a login form, edit an entry (check on the server), show its password history from the older versions,
+// delete it and restore it from the trash.
 // Usage: OPENBAO_URL=http://127.0.0.1:8820 node test/e2e-openbao.mjs [path-to-playwright] [screenshot-dir]
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
@@ -86,6 +87,18 @@ try {
   const raw = (await seed.read('web/shop')).data;
   check(raw.data.password === 'shop-neu' && raw.data.login === 'kunde' && raw.data.port === 8080 && raw.metadata.version === 3,
     `edit written with check-and-set (version ${raw.metadata.version}, keys kept)`);
+  // password history: offered for the older versions, read only when opened
+  const before = await msg('item', { accountId: shop.accountId, itemId: shop.id });
+  check(before.passwordHistoryOnDemand && !before.passwordHistory, 'history offered, nothing read with the item');
+  const hist = '#view-item details.history:has(summary:text-is("Passwortverlauf"))';
+  check(await popup.isVisible(hist) && !(await popup.$eval(hist, (d) => d.open)), 'history section closed, without a count');
+  await popup.click(`${hist} summary`);
+  await popup.waitForSelector('#view-item details.history summary:text-is("Passwortverlauf (1)")');
+  const row = '#view-item details.history .field';
+  check(/^Version 2, bis /.test(await popup.textContent(`${row} .k`)), `labelled with version and date (${await popup.textContent(`${row} .k`)})`);
+  check(await popup.textContent(`${row} .v`) === '••••••••', 'old password hidden until revealed');
+  await popup.click(`${row} button[aria-label$="anzeigen"]`);
+  check(await popup.textContent(`${row} .v`) === 'shop-geheim', 'old password from version 2 (version 1 had the same one)');
   await popup.screenshot({ path: join(shots, 'openbao-detail.png') });
 
   // delete → trash → restore

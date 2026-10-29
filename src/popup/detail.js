@@ -181,10 +181,8 @@ export async function openItem(accountId, itemId) {
     },
   }) : (i.favorite ? el('span', { className: 'fav on', title: t('Favorit') }, icon('starFilled')) : null);
 
-  const history = (i.passwordHistory ?? []).length ? el('details', { className: 'history' },
-    el('summary', {}, t('Passwortverlauf ({n})', { n: i.passwordHistory.length })),
-    el('div', { className: 'fields' }, i.passwordHistory.map((h) =>
-      field(h.lastUsedDate ? formatDateTime(h.lastUsedDate) : t('früher'), h.password, { secret: true, copyLabel: mark('Altes Passwort'), own: true })))) : null;
+  const history = (i.passwordHistory ?? []).length ? historySection(i.passwordHistory)
+    : i.passwordHistoryOnDemand ? lazyHistorySection(accountId, itemId) : null;
 
   // replaceChildren() is a native DOM call: unlike el(), it turns a null argument into a "null" text node,
   // so filter falsy entries (e.g. an absent password history or revision date) out first.
@@ -252,6 +250,42 @@ export async function openItem(accountId, itemId) {
         ? el('button', { type: 'button', onclick: () => fillItem(listItem).catch((e) => toast(e.message)) }, t('Ausfüllen')) : null),
   ].filter(Boolean));
   show('item', { restore: () => openItem(accountId, itemId) });
+}
+
+/** Earlier passwords, each hidden until revealed; `version` names the provider's version (Vault/OpenBao). */
+function historyRows(list) {
+  return el('div', { className: 'fields' }, list.map((h) => {
+    const date = h.lastUsedDate ? formatDateTime(h.lastUsedDate) : t('früher');
+    return field(h.version ? t('Version {n}, bis {date}', { n: h.version, date }) : date, h.password, { secret: true, copyLabel: mark('Altes Passwort'), own: true });
+  }));
+}
+
+function historySection(list) {
+  return el('details', { className: 'history' }, el('summary', {}, t('Passwortverlauf ({n})', { n: list.length })), historyRows(list));
+}
+
+/**
+ * Password history of a provider that reads it only on request (Vault/OpenBao keeps it in older versions): nothing is
+ * fetched until the section is opened, and the passwords stay in this view only.
+ */
+function lazyHistorySection(accountId, itemId) {
+  const summary = el('summary', {}, t('Passwortverlauf'));
+  const body = el('p', { className: 'hint' }, t('Lade …'));
+  let loading = null;
+  const box = el('details', {
+    className: 'history',
+    ontoggle: () => {
+      if (!box.open || loading) return;
+      loading = call('passwordHistory', { accountId, itemId }).then((list) => {
+        summary.textContent = t('Passwortverlauf ({n})', { n: list.length });
+        body.replaceWith(list.length ? historyRows(list) : el('p', { className: 'hint' }, t('Keine früheren Passwörter')));
+      }, (e) => {
+        body.textContent = e.message;
+        loading = null; // closing and opening again retries
+      });
+    },
+  }, summary, body);
+  return box;
 }
 
 /** Largest file OmniVault uploads (it travels base64-encoded between popup and background). */

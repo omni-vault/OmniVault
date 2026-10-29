@@ -2,7 +2,8 @@
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Simulated HashiCorp Vault / OpenBao server: token and userpass auth, renew-self, KV v2 (list, read, write with
-// check-and-set, soft delete, undelete, metadata delete), optional namespace and forbidden paths. Used through fetch.
+// check-and-set, soft delete, undelete, metadata read and delete, older versions, delete/destroy of versions), optional
+// namespace and forbidden paths. Used through fetch.
 
 export function fakeVault({ mount = 'secret', namespace = null, users = { ada: 'ada-pw' }, ttl = 3600, denied = [] } = {}) {
   const tokens = new Map([['root', { ttl: 0, renewable: false }]]);
@@ -18,7 +19,7 @@ export function fakeVault({ mount = 'secret', namespace = null, users = { ada: '
     kv.set(path, e);
     return e;
   };
-  const meta = (e, v = e.current) => ({ version: v, created_time: e.versions[v - 1].created, deletion_time: e.versions[v - 1].deleted, destroyed: false });
+  const meta = (e, v = e.current) => ({ version: v, created_time: e.versions[v - 1].created, deletion_time: e.versions[v - 1].deleted, destroyed: !!e.versions[v - 1].destroyed });
 
   const res = (status, body) => ({ status, body });
   const err = (status, ...errors) => res(status, { errors });
@@ -60,9 +61,27 @@ export function fakeVault({ mount = 'secret', namespace = null, users = { ada: '
     const e = kv.get(rel);
     if (kind === 'data' && method === 'GET') {
       if (!e) return err(404);
-      const v = e.versions[e.current - 1];
-      if (v.deleted) return res(404, { data: { data: null, metadata: meta(e) } });
-      return res(200, { data: { data: v.data, metadata: meta(e) } });
+      const n = Number(u.searchParams.get('version') || e.current);
+      const v = e.versions[n - 1];
+      if (!v) return err(404);
+      if (v.deleted || v.destroyed) return res(404, { data: { data: null, metadata: meta(e, n) } });
+      return res(200, { data: { data: v.data, metadata: meta(e, n) } });
+    }
+    if (kind === 'metadata' && method === 'GET') {
+      if (!e) return err(404);
+      const versions = Object.fromEntries(e.versions.map((_, k) => {
+        const { created_time, deletion_time, destroyed } = meta(e, k + 1);
+        return [String(k + 1), { created_time, deletion_time, destroyed }];
+      }));
+      return res(200, { data: { current_version: e.current, oldest_version: 1, versions } });
+    }
+    if ((kind === 'delete' || kind === 'destroy') && (method === 'POST' || method === 'PUT')) {
+      for (const n of body?.versions ?? []) {
+        const v = e?.versions[n - 1];
+        if (v && kind === 'delete') v.deleted = now();
+        if (v && kind === 'destroy') { v.destroyed = true; v.data = null; }
+      }
+      return res(204, null);
     }
     if (kind === 'data' && method === 'POST') {
       const cas = body?.options?.cas;

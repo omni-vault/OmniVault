@@ -124,6 +124,46 @@ test('write with check-and-set, conflict, move, soft delete, restore, purge', as
   assert.equal(fake.kv.has('neu/ordner/mail'), false);
 });
 
+test('password history from older versions: only on request, deleted and destroyed versions skipped', async () => {
+  const fake = setup();
+  const config = { id: 'v5', server: SERVER, auth: 'token', mount: 'secret', prefix: 'web' };
+  // v1 gh-pw (setup) → v2 alt-1 → v3 alt-1 (only the URL changed) → v4 weg (deleted) → v5 zerstört (destroyed)
+  // → v6 without password → v7 aktuell
+  fake.put('web/github', { username: 'ada', password: 'alt-1' });
+  fake.put('web/github', { username: 'ada', password: 'alt-1', url: 'https://github.com/login' });
+  fake.put('web/github', { username: 'ada', password: 'weg' });
+  fake.put('web/github', { username: 'ada', password: 'zerstört' });
+  fake.put('web/github', { username: 'ada' });
+  fake.put('web/github', { username: 'ada', password: 'aktuell' });
+  const e = fake.kv.get('web/github');
+  e.versions[3].deleted = '2026-01-01T00:00:00Z';
+  e.versions[4].destroyed = true;
+  const { session } = await VaultProvider.login(config, { password: 'root' });
+  const { items } = await VaultProvider.sync(config, session);
+  const gh = items.find((i) => i.id === 'github');
+  const shop = items.find((i) => i.id === 'shop');
+  assert.ok(gh.passwordHistoryOnDemand, 'an entry with older versions offers a history');
+  assert.equal(shop.passwordHistoryOnDemand, undefined, 'a single version has none');
+  assert.equal(gh.passwordHistory, undefined, 'nothing read for the list');
+  assert.ok(!fake.log.some((l) => /version=|GET secret\/metadata\/web\/github$/.test(l)), 'no version read during sync');
+
+  const { history } = await VaultProvider.passwordHistory(config, session, gh);
+  assert.deepEqual(history.map((h) => [h.version, h.password]), [[3, 'alt-1'], [1, 'gh-pw']],
+    'v6 has no password, v5/v4 skipped, v2 = v3 counted once');
+  assert.equal(history[0].lastUsedDate, e.versions[5].created, 'dated when the next readable version replaced it');
+  assert.equal(history[1].lastUsedDate, e.versions[1].created);
+  assert.ok(!fake.log.some((l) => /version=[45]\b/.test(l)), 'deleted and destroyed versions are not requested');
+
+  // at most LIMITS.history older versions are read
+  const saved = { ...LIMITS };
+  try {
+    LIMITS.history = 2;
+    const short = await VaultProvider.passwordHistory(config, session, gh);
+    assert.deepEqual(short.history.map((h) => h.version), [3]);
+  } finally { Object.assign(LIMITS, saved); }
+  assert.deepEqual((await VaultProvider.passwordHistory(config, session, shop)).history, []);
+});
+
 test('limits, progress, forbidden sub-paths, wrong mount', async () => {
   const fake = setup({ denied: ['tief/a'] });
   const config = { id: 'v4', server: SERVER, auth: 'token', mount: 'secret' };

@@ -88,6 +88,33 @@ test('userpass login, renew-self, check-and-set conflict, move, delete, restore,
   assert.ok(!gone?.data, 'metadata deleted');
 });
 
+test('password history from older KV versions, deleted and destroyed versions skipped', { skip }, async () => {
+  const config = { id: 'b5', server: BASE, auth: 'userpass', username: seed.user, mount: 'secret', prefix: seed.run };
+  const { session } = await VaultProvider.login(config, { password: seed.password });
+  // v1 erst → v2 zwei → v3 zwei (other user name) → v4 gelöscht → v5 zerstört → v6 jetzt
+  for (const [password, user] of [['erst', 'a'], ['zwei', 'a'], ['zwei', 'b'], ['gelöscht', 'b'], ['zerstört', 'b'], ['jetzt', 'b']]) {
+    await seed.put('verlauf/konto', { username: user, password });
+  }
+  await bao(BASE, 'POST', `secret/delete/${seed.run}/verlauf/konto`, { versions: [4] });
+  await bao(BASE, 'PUT', `secret/destroy/${seed.run}/verlauf/konto`, { versions: [5] });
+  const meta = (await bao(BASE, 'GET', `secret/metadata/${seed.run}/verlauf/konto`)).data;
+  assert.ok(meta.versions['4'].deletion_time && meta.versions['5'].destroyed, 'server state as intended');
+
+  const out = await VaultProvider.sync(config, session);
+  const item = out.items.find((i) => i.id === 'verlauf/konto');
+  assert.ok(item.passwordHistoryOnDemand && item.password === undefined && item.passwordHistory === undefined);
+  assert.equal(out.items.find((i) => i.id === 'notiz').passwordHistoryOnDemand, undefined);
+  const { history } = await VaultProvider.passwordHistory(config, session, item);
+  assert.deepEqual(history.map((h) => [h.version, h.password]), [[3, 'zwei'], [1, 'erst']]);
+  assert.equal(history[0].lastUsedDate, meta.versions['6'].created_time);
+  assert.equal(history[1].lastUsedDate, meta.versions['2'].created_time);
+
+  // a token whose policy may read the data but not the metadata gets a clear refusal, not a broken view
+  await bao(BASE, 'PUT', `sys/policies/acl/${seed.run}-nometa`, { policy: `path "secret/data/${seed.run}/*" { capabilities = ["read"] }\npath "secret/metadata/${seed.run}" { capabilities = ["list"] }\npath "secret/metadata/${seed.run}/*" { capabilities = ["list"] }` });
+  const tok = await bao(BASE, 'POST', 'auth/token/create', { policies: [`${seed.run}-nometa`], ttl: '1h' });
+  await assert.rejects(VaultProvider.passwordHistory({ ...config, auth: 'token' }, { token: tok.auth.client_token }, item), (e) => e.code === 'forbidden');
+});
+
 test('wrong mount and revoked token', { skip }, async () => {
   await assert.rejects(VaultProvider.login({ id: 'b3', server: BASE, auth: 'token', mount: 'gibtsnicht' }, { password: 'root' }), /keine KV-Engine/);
   const tok = await bao(BASE, 'POST', 'auth/token/create', { policies: [seed.run], ttl: '1h' });

@@ -10,7 +10,7 @@ import { virtualFolder } from '../native-host.js';
 import { Provider, ProviderError } from '../provider.js';
 
 /** Limits of the recursive listing (each entry costs one request). */
-export const LIMITS = { entries: 2000, depth: 12, parallel: 4 };
+export const LIMITS = { entries: 2000, depth: 12, parallel: 4, history: 20 };
 
 /** Keys read as login fields (first match wins); the first name is the one OmniVault writes for new entries. */
 const ROLES = {
@@ -263,6 +263,8 @@ class VaultProvider extends Provider {
       name, username: m.username, uris: m.uris, folderId: folder, folder: folder ?? undefined, favorite: false,
       canEdit: true, canDelete: true,
       revisionDate: res.metadata?.created_time || undefined,
+      // older versions may hold earlier passwords; they are read only when the history is opened
+      passwordHistoryOnDemand: (res.metadata?.version ?? 0) > 1 || undefined,
       _version: res.metadata?.version ?? 0,
     };
     if (full) return { ...base, password: m.password, totp: m.totp, notes: m.notes, fields: m.fields, _keys: m.keys, _raw: res.data };
@@ -336,6 +338,40 @@ class VaultProvider extends Provider {
       username: full.username, uris: full.uris, type: full.type, password: full.password, totp: full.totp, notes: full.notes,
       fields: full.fields, revisionDate: full.revisionDate, _version: full._version, _keys: full._keys, _raw: full._raw,
     };
+  }
+
+  /**
+   * Earlier passwords from the older versions of an entry (KV v2 keeps up to `max_versions`), newest first, read only
+   * when the user opens the history. Deleted and destroyed versions are skipped; a password counts once per change,
+   * dated when the next version replaced it (as Bitwarden's `lastUsedDate`). At most LIMITS.history versions are read.
+   */
+  static async passwordHistory(config, session, item) {
+    const { mount, prefix } = location(config);
+    const path = enc([...prefix, item.id].join('/'));
+    const { result, session: s } = await this.#with(config, session, async (token) => {
+      const meta = await api(config, `${mount}/metadata/${path}`, { token, allow404: true });
+      if (meta?.notFound) return [];
+      const now = Date.now();
+      const live = Object.entries(meta?.data?.versions ?? {})
+        .map(([v, m]) => ({ version: Number(v), created: m?.created_time || '', gone: !!m?.destroyed || (!!m?.deletion_time && Date.parse(m.deletion_time) <= now) }))
+        .filter((v) => Number.isInteger(v.version) && v.version > 0 && !v.gone)
+        .sort((a, b) => b.version - a.version)
+        .slice(0, LIMITS.history + 1); // the newest one is the reference for the first change
+      await pool(live, LIMITS.parallel, async (v) => {
+        const r = await api(config, `${mount}/data/${path}?version=${v.version}`, { token, allow404: true });
+        // a version deleted in the meantime answers 404 with metadata only
+        v.password = r?.notFound || !r?.data?.data ? null : (mapData(r.data.data).password ?? '');
+      });
+      const out = [];
+      let newer = null;
+      for (const v of live) {
+        if (v.password === null) continue;
+        if (newer && v.password && v.password !== newer.password) out.push({ password: v.password, lastUsedDate: newer.created || undefined, version: v.version });
+        newer = v;
+      }
+      return out;
+    });
+    return { history: result, session: s };
   }
 
   /* ---------- writing ---------- */
