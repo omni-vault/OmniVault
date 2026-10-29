@@ -104,7 +104,7 @@ for (const [name, manifest] of Object.entries(targets)) {
   await cp('LICENSES', `${out}/LICENSES`, { recursive: true });
   // Third-party libraries stay separate, unmodified files (OpenPGP.js is LGPL: must be replaceable).
   await mkdir(`${out}/vendor`, { recursive: true });
-  for (const f of ['openpgp.mjs', 'argon2id.mjs', 'argon2.mjs', 'noble-ciphers.mjs', 'tweetnacl.mjs']) await cp(`vendor/${f}`, `${out}/vendor/${f}`);
+  for (const f of ['openpgp.mjs', 'argon2id.mjs', 'argon2.mjs', 'noble-ciphers.mjs', 'tweetnacl.mjs', 'jsqr.mjs']) await cp(`vendor/${f}`, `${out}/vendor/${f}`);
 
   const opts = {
     plugins: [vendorExternal],

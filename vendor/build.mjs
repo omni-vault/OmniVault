@@ -1,8 +1,8 @@
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
 // If a copy of the MPL was not distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
-// Builds vendor/openpgp.mjs (LGPL-3.0-or-later), vendor/argon2id.mjs (MIT), vendor/argon2.mjs (CC0/Apache-2.0) and
-// vendor/noble-ciphers.mjs (MIT) from the sources pinned in
+// Builds vendor/openpgp.mjs (LGPL-3.0-or-later), vendor/argon2id.mjs (MIT), vendor/argon2.mjs (CC0/Apache-2.0),
+// vendor/noble-ciphers.mjs (MIT), vendor/tweetnacl.mjs (Unlicense) and vendor/jsqr.mjs (Apache-2.0) from the sources pinned in
 // vendor/sources.json (fetch them with vendor/fetch-sources.sh). Needs clang with the wasm32 target.
 // The OpenPGP.js sources are bundled unmodified; only the module substitutions below are applied.
 import * as esbuild from 'esbuild';
@@ -110,3 +110,4 @@ await esbuild.build({
 console.log('vendor/openpgp.mjs, vendor/argon2id.mjs and vendor/argon2.mjs written');
 await import('./build-noble.mjs');
 await import('./build-tweetnacl.mjs');
+await import('./build-jsqr.mjs');
