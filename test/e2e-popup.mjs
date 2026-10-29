@@ -19,7 +19,7 @@ const { chromium } = await import(pwPath);
 const DEBUG_PORT = 9351;
 const headless = !process.env.DISPLAY;
 
-const { ORIGIN, PB_ORIGIN, close: closeServers } = await startServers({ bwPort: 8797, pbPort: 8798, pbMfa: true });
+const { ORIGIN, PB_ORIGIN, close: closeServers } = await startServers({ bwPort: Number(process.env.E2E_BW_PORT ?? 8797), pbPort: Number(process.env.E2E_PB_PORT ?? 8798), pbMfa: true });
 const ext = await extensionCopy();
 const { ctx, sw } = await launch(chromium, ext, { headless, debugPort: DEBUG_PORT });
 

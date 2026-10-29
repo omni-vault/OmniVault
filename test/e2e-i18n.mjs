@@ -19,7 +19,7 @@ const shots = process.argv[3] ?? join(tmpdir(), 'omnivault-i18n');
 await mkdir(shots, { recursive: true });
 const { chromium } = await import(pwPath);
 
-const { ORIGIN, close: closeServers } = await startServers({ bwPort: 8797, pbPort: 8798 });
+const { ORIGIN, close: closeServers } = await startServers({ bwPort: Number(process.env.E2E_BW_PORT ?? 8797), pbPort: Number(process.env.E2E_PB_PORT ?? 8798) });
 const ext = await extensionCopy();
 const { ctx, extId } = await launch(chromium, ext, { lang: 'en-US' });
 

@@ -12,7 +12,7 @@ import { extensionCopy, launch, startServers } from './servers.mjs';
 const pwPath = process.argv[2] ?? 'playwright';
 const shots = process.argv[3] ?? tmpdir();
 const { chromium } = await import(pwPath);
-const { ORIGIN, close: closeServers } = await startServers({ bwPort: 8797, pbPort: 8798, extraItems: 0 });
+const { ORIGIN, close: closeServers } = await startServers({ bwPort: Number(process.env.E2E_BW_PORT ?? 8797), pbPort: Number(process.env.E2E_PB_PORT ?? 8798), extraItems: 0 });
 const ext = await extensionCopy();
 const { ctx, extId } = await launch(chromium, ext);
 let failures = 0;
