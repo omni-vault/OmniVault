@@ -71,6 +71,9 @@ npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see be
 ```
 
 The e2e scripts take the path to Playwright as their first argument if it is not installed in the project.
+To run several of them at the same time, move the fixed ports of `e2e-i18n`, `e2e-inline` and `e2e-popup` with
+`E2E_BW_PORT`/`E2E_PB_PORT` and the DevTools port of `e2e-popup`, `e2e-shortcuts`, `e2e-device-unlock` and
+`e2e-bitwarden-login` with `E2E_DEBUG_PORT`.
 `test:popup` checks the fixed popup size; this only works with a visible browser (`xvfb-run -a npm run test:popup`).
 On its first run, `test:vaultwarden` downloads a static Vaultwarden Linux binary (third-party build, hash verified, see
 `test/vaultwarden-server.sh`); with `VAULTWARDEN_BIN=/path/to/vaultwarden` it uses your own. The GnuPG cross-checks

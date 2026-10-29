@@ -22,7 +22,7 @@ if (!process.env.DISPLAY) {
 const pwPath = process.argv[2] ?? 'playwright';
 const shots = process.argv[3] ?? tmpdir();
 const { chromium } = await import(pwPath);
-const DEBUG_PORT = 9334;
+const DEBUG_PORT = Number(process.env.E2E_DEBUG_PORT ?? 9334);
 const { ORIGIN, close: closeServers } = await startServers({ bwPort: 8807, pbPort: 8808, extraItems: 0 });
 const TOP = 'http://127.0.0.1:8845';
 const top = http.createServer((req, res) => {

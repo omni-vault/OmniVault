@@ -16,7 +16,7 @@ import { extensionCopy, launch, startServers } from './servers.mjs';
 const pwPath = process.argv[2] ?? 'playwright';
 const shots = process.argv[3] ?? tmpdir();
 const { chromium } = await import(pwPath);
-const DEBUG_PORT = 9351;
+const DEBUG_PORT = Number(process.env.E2E_DEBUG_PORT ?? 9351);
 const headless = !process.env.DISPLAY;
 
 const { ORIGIN, PB_ORIGIN, close: closeServers } = await startServers({ bwPort: Number(process.env.E2E_BW_PORT ?? 8797), pbPort: Number(process.env.E2E_PB_PORT ?? 8798), pbMfa: true });

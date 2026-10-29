@@ -11,7 +11,7 @@ import { extensionCopy, launch, listen } from './servers.mjs';
 
 const pwPath = process.argv[2] ?? 'playwright';
 const { chromium } = await import(pwPath);
-const DEBUG_PORT = 9361;
+const DEBUG_PORT = Number(process.env.E2E_DEBUG_PORT ?? 9361);
 const DUO_PORT = 8817;
 const SSO_PORT = 8818;
 const headless = !process.env.DISPLAY;
