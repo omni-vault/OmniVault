@@ -8,6 +8,8 @@ import { mark, t, tn } from '../../i18n/index.js';
 import * as openpgp from '../../../vendor/openpgp.mjs';
 import { fromB64, fromUtf8 } from '../../lib/bytes.js';
 import { Provider, ProviderError } from '../provider.js';
+import { cleanupRefreshCookies, cookieRefresh } from './cookies.js';
+import { forgetKeeper, keeperFor } from './tokens.js';
 
 const SYM = { 7: 'aes128', 8: 'aes192', 9: 'aes256' };
 
@@ -36,7 +38,11 @@ async function api(base, path, { method = 'GET', token, body } = {}) {
   }
   let json = null;
   try { json = await res.json(); } catch { /* not JSON */ }
-  if (res.status === 401) throw new ProviderError(t('Sitzung abgelaufen – bitte neu anmelden'), 'session_expired');
+  if (res.status === 401) {
+    const e = new ProviderError(t('Sitzung abgelaufen – bitte neu anmelden'), 'session_expired');
+    e.status = 401;
+    throw e;
+  }
   if (res.status === 429) throw new ProviderError(t('Zu viele Anfragen – Passbolt bremst gerade (Rate-Limit). Bitte etwa eine Minute warten.'), 'rate_limited');
   if (res.status === 403 && json?.body?.mfa_providers) {
     throw new ProviderError(t('Zweiter Faktor erforderlich – bitte neu entsperren'), 'session_expired');
@@ -144,7 +150,7 @@ class PassboltProvider extends Provider {
 
   /**
    * JWT login with a GPG challenge: proves possession of the user's key and checks the server key against the pinned
-   * fingerprint. Used to sign in and to get a new access token later (see #refresh).
+   * fingerprint. Used to sign in and to get a new access token later (see #renew).
    */
   static async #challengeLogin(base, config, key) {
     const verify = await api(base, '/auth/verify.json');
@@ -194,9 +200,11 @@ class PassboltProvider extends Provider {
         return { status: 'needs_2fa', configPatch, twoFactorProviders: usable.map((id) => ({ id, label: labels[id] })) };
       }
       const provider = creds.twoFactorProvider || 'totp';
+      // remember: Passbolt keeps the proof for 30 days without binding it to this session (if its policy allows)
+      const remember = creds.rememberMfa ? { remember: 1 } : {};
       await api(base, `/mfa/verify/${provider}.json`, {
         method: 'POST', token: answer.access_token,
-        body: provider === 'yubikey' ? { hotp: creds.twoFactorCode.trim() } : { totp: creds.twoFactorCode.replace(/\s/g, '') },
+        body: provider === 'yubikey' ? { hotp: creds.twoFactorCode.trim(), ...remember } : { totp: creds.twoFactorCode.replace(/\s/g, ''), ...remember },
       });
     }
 
@@ -206,6 +214,12 @@ class PassboltProvider extends Provider {
       session: {
         accessToken: answer.access_token,
         expiresAt: jwtExpiry(answer.access_token),
+        obtainedAt: Date.now(),
+        sid: crypto.randomUUID(), // one sign-in; renewals count up `gen`
+        gen: 0,
+        // With a second factor the refresh token is kept (memory only): /auth/jwt/refresh moves the proof to the
+        // next access token (see cookies.js).
+        ...(mfa.length ? { mfa: true, mfaRemembered: !!creds.rememberMfa, refreshToken: answer.refresh_token ?? null } : {}),
         // Decrypted key, ASCII-armored – lives only in storage.session (RAM), like Bitwarden's user key.
         unlockedKey: key.armor(),
       },
@@ -213,39 +227,84 @@ class PassboltProvider extends Provider {
   }
 
   /**
-   * A new access token (they last 5 minutes by default). Not through /auth/jwt/refresh: Passbolt hands the new refresh
-   * token out only as an HttpOnly cookie, so the token in the request body works exactly once – a second refresh with
-   * it counts as a replay attack (Passbolt e-mails the user and the administrators). Instead OmniVault signs in again
-   * with the GPG challenge, using the key that is already unlocked in this session.
+   * Set by the background: stores a renewed session at once (storage.session), before any request uses its token –
+   * a refresh token must survive a stopped worker. Without it (tests) the operations return the renewed session.
    */
-  static async #refresh(base, config, s) {
+  static onSession = null;
+
+  /** The account was locked: its token keeper goes. */
+  static forgetSession(accountId) { forgetKeeper(accountId); }
+
+  /** On browser start: refresh cookies that a crash left in the browser (see cookies.js). */
+  static cleanup() { return cleanupRefreshCookies(); }
+
+  /** All requests of an account go through one keeper, so a renewed access token replaces the old one everywhere. */
+  static #keeper(base, config, session) {
+    const key = config.id ?? `${base}|${config.userId}`;
+    return keeperFor(key, session, {
+      renew: (s, save) => this.#renew(base, config, s, save),
+      persist: this.onSession && config.id ? (s) => this.onSession(config.id, s) : null,
+    });
+  }
+
+  /** The renewed session for the caller to store – unless the keeper stored it already. */
+  static #renewed(k, session) {
+    if (this.onSession && session && k.session.sid === session.sid) return undefined;
+    return k.session !== session ? k.session : undefined;
+  }
+
+  /** A request helper for one operation: every call uses the account's current token. */
+  static #caller(base, k) {
+    const retryIf = (e) => e?.code === 'session_expired';
+    return (path, opts = {}) => k.run((token) => api(base, path, { ...opts, token }), { retryIf });
+  }
+
+  /**
+   * A new access token (they last 5 minutes by default).
+   * - With a second factor and the `cookies` permission: Passbolt's refresh endpoint, which keeps the proof
+   *   (cookies.js).
+   * - Otherwise, and when that fails: a new sign-in with the GPG challenge, using the key that is already unlocked in
+   *   this session. It needs no refresh token – a token sent in the body works exactly once, and Passbolt treats a
+   *   second use as an attack (it e-mails the user and the administrators). With a second factor the server then
+   *   asks for the code again, unless it was remembered for 30 days.
+   */
+  static async #renew(base, config, s, save) {
+    const viaCookie = await cookieRefresh({
+      base, userId: config.userId.trim(), session: s, save, jwtExpiry,
+      request: (path, opts) => api(base, path, opts),
+    }).catch((e) => {
+      if (e.code === 'session_expired') throw e; // locked meanwhile
+      console.warn('OmniVault: Passbolt refresh not possible', e);
+      return null;
+    });
+    if (viaCookie) return viaCookie;
+    return this.#challengeRefresh(base, config, s);
+  }
+
+  static async #challengeRefresh(base, config, s) {
     if (!s.unlockedKey) throw new ProviderError(t('Sitzung abgelaufen – bitte neu anmelden'), 'session_expired');
     const key = await openpgp.readPrivateKey({ armoredKey: s.unlockedKey });
     const { answer } = await this.#challengeLogin(base, { ...config, serverFingerprint: config.serverFingerprint }, key);
     if ((answer.providers ?? answer.mfa_providers ?? []).length) {
       throw new ProviderError(t('Zweiter Faktor erforderlich – bitte neu entsperren'), 'session_expired');
     }
-    const { refreshToken, ...rest } = s; // sessions from older versions
-    return { ...rest, accessToken: answer.access_token, expiresAt: jwtExpiry(answer.access_token) };
+    const { refreshToken, refreshPending, ...rest } = s;
+    return {
+      ...rest, accessToken: answer.access_token, expiresAt: jwtExpiry(answer.access_token), obtainedAt: Date.now(),
+      ...(s.mfa ? { refreshToken: answer.refresh_token ?? null } : {}),
+    };
   }
 
   static async sync(config, session) {
     const base = baseUrl(config.server);
     const userId = config.userId.trim();
-    let s = session;
-    if (Date.now() > s.expiresAt - 30_000) s = await this.#refresh(base, config, s);
-    const get = async (path) => {
-      try { return await api(base, path, { token: s.accessToken }); } catch (e) {
-        if (e.code !== 'session_expired' || !s.unlockedKey) throw e;
-        s = await this.#refresh(base, config, s);
-        return api(base, path, { token: s.accessToken });
-      }
-    };
+    const k = this.#keeper(base, config, session);
+    const get = this.#caller(base, k);
     const optional = async (path, fallback) => {
       try { return await get(path); } catch (e) { if (e.code === 'server' && [400, 404].includes(e.status)) return fallback; throw e; }
     };
 
-    const key = await openpgp.readPrivateKey({ armoredKey: s.unlockedKey });
+    const key = await openpgp.readPrivateKey({ armoredKey: session.unlockedKey });
     const types = Object.fromEntries((await get('/resource-types.json')).map((rt) => [rt.id, rt.slug]));
     const resources = await get('/resources.json?contain[secret]=1&contain[favorite]=1&contain[permission]=1');
     const folders = await optional('/folders.json?contain[permission]=1', []);
@@ -386,7 +445,7 @@ class PassboltProvider extends Provider {
     }
     if (failed) warnings.push(tn(failed, '{n} Eintrag konnte nicht entschlüsselt werden', '{n} Einträge konnten nicht entschlüsselt werden'));
     const folderList = folders.map((f) => ({ id: f.id, name: folderPath(f.id), parentId: f.folder_parent_id ?? null, canShare: folderById.get(f.id).owner })).sort((a, b) => a.name.localeCompare(b.name, 'de'));
-    return { items, folders: folderList, session: s !== session ? s : undefined, warning: warnings.join('; ') || undefined };
+    return { items, folders: folderList, session: this.#renewed(k, session), warning: warnings.join('; ') || undefined };
   }
 
   /** Decrypt one resource's secret: returns { password, totp, notes }. */
@@ -417,17 +476,9 @@ class PassboltProvider extends Provider {
 
   static async #ctx(config, session) {
     const base = baseUrl(config.server);
-    let s = session;
-    if (Date.now() > s.expiresAt - 30_000) s = await this.#refresh(base, config, s);
-    const call = async (path, opts = {}) => {
-      try { return await api(base, path, { ...opts, token: s.accessToken }); } catch (e) {
-        if (e.code !== 'session_expired' || !s.unlockedKey) throw e;
-        s = await this.#refresh(base, config, s);
-        return api(base, path, { ...opts, token: s.accessToken });
-      }
-    };
-    const key = await openpgp.readPrivateKey({ armoredKey: s.unlockedKey });
-    return { base, call, key, renewed: () => (s !== session ? s : undefined) };
+    const k = this.#keeper(base, config, session);
+    const key = await openpgp.readPrivateKey({ armoredKey: session.unlockedKey });
+    return { base, call: this.#caller(base, k), key, renewed: () => this.#renewed(k, session) };
   }
 
   static async #encryptFor(text, encryptionKeys, signingKeys) {

@@ -1204,5 +1204,9 @@
   "other": "{n} 件の添付ファイルはインポートされませんでした：{size} MB を超えています。"
  },
  "Kein verschlüsselter Bitwarden-Export": "暗号化された Bitwarden エクスポートではありません",
- "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "この暗号化されたエクスポートは、別の Bitwarden アカウント、またはこのアカウントがアクセスできない組織のものです。"
+ "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "この暗号化されたエクスポートは、別の Bitwarden アカウント、またはこのアカウントがアクセスできない組織のものです。",
+ "Zweiten Faktor 30 Tage merken": "2 要素目の認証を 30 日間記憶する",
+ "Passbolt fragt dann in diesem Browser 30 Tage lang nicht nach dem Code – auch nicht in der Passbolt-Weboberfläche.": "このブラウザーでは 30 日間、Passbolt がコードを求めなくなります。Passbolt の Web アプリでも同様です。",
+ "Damit die Bestätigung erhalten bleibt, wenn OmniVault die Sitzung erneuert, bittet es um Zugriff auf Cookies. Gelesen wird nur Passbolts Sitzungs-Cookie dieses Servers (refresh_token); OmniVault löscht es sofort aus dem Browser und behält es nur im Arbeitsspeicher.": "OmniVault がセッションを更新しても認証を保てるよう、Cookie へのアクセスを求めます。読み取るのはこのサーバーの Passbolt のセッション Cookie（refresh_token）だけで、すぐにブラウザーから削除し、メモリーにのみ保持します。",
+ "Ohne https kann der Browser Passbolts Sitzungs-Cookie nicht speichern: Nach Ablauf der Sitzung (bei Passbolt meist 5 Minuten) fragt OmniVault erneut nach dem Code – außer du lässt ihn 30 Tage merken.": "https でないと、ブラウザーは Passbolt のセッション Cookie を保存できません。セッションの期限が切れると（Passbolt では通常 5 分）、OmniVault はもう一度コードを求めます。30 日間記憶する場合を除きます。"
 }

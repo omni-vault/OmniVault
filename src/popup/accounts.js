@@ -5,6 +5,7 @@
 import { ACCOUNT_HUES, defaultShort } from '../background/accounts.js';
 import { ext } from '../lib/browser.js';
 import { hostPatterns } from '../providers/hosts.js';
+import { cookieRefreshPossible } from '../providers/passbolt/cookies.js';
 import { openMenu } from './menu.js';
 import { requestPermissions } from './resume.js';
 import { S, accountOf, providerOf, refresh } from './state.js';
@@ -273,6 +274,8 @@ export function openUnlock(a) {
   $('#btn-apikey').hidden = !p?.unlockOptions?.includes('apikey');
   $('#unlock-apikey').hidden = true;
   $('#unlock-2fa').hidden = true;
+  $('#unlock-pb-mfa').hidden = true;
+  f.rememberMfa.checked = false;
   $('#unlock-device').hidden = true;
   $('#unlock-browser').hidden = true;
   $('#unlock-error').hidden = true;
@@ -314,6 +317,7 @@ function showLoginResult(r, extra = {}) {
     f.twoFactorProvider.replaceChildren(...r.twoFactorProviders.map((p) => el('option', { value: p.id }, p.label)));
     $('#btn-email-code').hidden = !r.twoFactorProviders.some((p) => p.id === '1');
     $('#unlock-2fa').hidden = false;
+    showPassboltMfa();
     updateTwoFactorKind();
     if (extra.requestEmailCode) toast(t('Code wurde gesendet'));
     (isDuo() ? $('#unlock-submit') : f.twoFactorCode).focus();
@@ -338,6 +342,20 @@ function showLoginResult(r, extra = {}) {
   return false;
 }
 
+/**
+ * Passbolt with a second factor: "remember for 30 days", and why the cookies permission is asked for (only where the
+ * browser can keep Passbolt's Secure refresh cookie, see providers/passbolt/cookies.js).
+ */
+const isPassboltMfa = () => unlockAccount?.provider === 'passbolt' && !$('#unlock-2fa').hidden;
+function showPassboltMfa() {
+  const on = isPassboltMfa();
+  $('#unlock-pb-mfa').hidden = !on;
+  if (!on) return;
+  const possible = cookieRefreshPossible((unlockAccount.config ?? unlockAccount).server ?? '');
+  $('#unlock-pb-cookies').hidden = !possible;
+  $('#unlock-pb-nocookies').hidden = possible;
+}
+
 const isDuo = () => ['2', '6'].includes($('#form-unlock').twoFactorProvider.value);
 function updateTwoFactorKind() {
   const duo = isDuo();
@@ -360,8 +378,11 @@ async function submitUnlock(ev, extra = {}) {
   // Must run synchronously inside the user gesture (Firefox requirement).
   const origins = hostPatterns(unlockAccount.provider, unlockAccount.config ?? unlockAccount);
   const permissions = providerOf(unlockAccount.provider)?.optionalPermissions ?? [];
-  const granted = origins.length || permissions.length
-    ? await requestPermissions({ origins, permissions }, { view: 'unlock', accountId: unlockAccount.id }) : true;
+  // Passbolt with a second factor: also the cookies permission (optional – without it the code is asked again later)
+  const withCookies = isPassboltMfa() && !$('#unlock-pb-cookies').hidden;
+  let granted = origins.length || permissions.length || withCookies
+    ? await requestPermissions({ origins, permissions: withCookies ? [...permissions, 'cookies'] : permissions }, { view: 'unlock', accountId: unlockAccount.id }) : true;
+  if (!granted && withCookies) granted = !origins.length || await ext.permissions.contains({ origins }).catch(() => false);
   if (!granted) {
     err.textContent = permissions.length && !origins.length
       ? t('Ohne die Berechtigung „Mit kooperierenden nativen Anwendungen kommunizieren“ erreicht OmniVault den lokalen Host nicht.')
@@ -375,6 +396,7 @@ async function submitUnlock(ev, extra = {}) {
     password: f.password.value,
     twoFactorCode: $('#unlock-2fa').hidden ? undefined : f.twoFactorCode.value || undefined,
     twoFactorProvider: $('#unlock-2fa').hidden ? undefined : f.twoFactorProvider.value,
+    ...(isPassboltMfa() && f.rememberMfa.checked ? { rememberMfa: true } : {}),
     deviceOtp: $('#unlock-device').hidden ? undefined : f.deviceOtp.value || undefined,
     ...(useApiKey ? { clientId: f.clientId.value.trim(), clientSecret: f.clientSecret.value.trim() } : {}),
     ...extra,

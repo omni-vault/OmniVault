@@ -1204,5 +1204,9 @@
   "other": "{n} 个附件未导入：超过 {size} MB。"
  },
  "Kein verschlüsselter Bitwarden-Export": "不是加密的 Bitwarden 导出文件",
- "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "此加密导出文件来自另一个 Bitwarden 账户，或来自此账户无权访问的组织。"
+ "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "此加密导出文件来自另一个 Bitwarden 账户，或来自此账户无权访问的组织。",
+ "Zweiten Faktor 30 Tage merken": "30 天内记住第二重验证",
+ "Passbolt fragt dann in diesem Browser 30 Tage lang nicht nach dem Code – auch nicht in der Passbolt-Weboberfläche.": "这样 Passbolt 在此浏览器中 30 天内不会再要求输入验证码，Passbolt 网页版也一样。",
+ "Damit die Bestätigung erhalten bleibt, wenn OmniVault die Sitzung erneuert, bittet es um Zugriff auf Cookies. Gelesen wird nur Passbolts Sitzungs-Cookie dieses Servers (refresh_token); OmniVault löscht es sofort aus dem Browser und behält es nur im Arbeitsspeicher.": "为了在 OmniVault 续期会话时保留验证结果，它会请求访问 Cookie 的权限。它只读取此服务器上 Passbolt 的会话 Cookie（refresh_token），随即将其从浏览器中删除，并且只保存在内存中。",
+ "Ohne https kann der Browser Passbolts Sitzungs-Cookie nicht speichern: Nach Ablauf der Sitzung (bei Passbolt meist 5 Minuten) fragt OmniVault erneut nach dem Code – außer du lässt ihn 30 Tage merken.": "没有 https，浏览器无法保存 Passbolt 的会话 Cookie：会话过期后（Passbolt 通常为 5 分钟），OmniVault 会再次要求输入验证码，除非你选择 30 天内记住它。"
 }

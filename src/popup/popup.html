@@ -112,6 +112,12 @@
           <label id="unlock-code">Code <input name="twoFactorCode" inputmode="numeric" autocomplete="one-time-code"></label>
           <p class="hint" id="unlock-duo-hint" hidden>Duo öffnet sich in einem neuen Tab. Nach der Bestätigung dort schließt OmniVault den Tab und meldet dich an.</p>
           <button type="button" class="link" id="btn-email-code" hidden>Code per E-Mail senden</button>
+          <div id="unlock-pb-mfa" hidden>
+            <label class="inline-check"><input type="checkbox" name="rememberMfa"> Zweiten Faktor 30 Tage merken</label>
+            <p class="hint">Passbolt fragt dann in diesem Browser 30 Tage lang nicht nach dem Code – auch nicht in der Passbolt-Weboberfläche.</p>
+            <p class="hint" id="unlock-pb-cookies">Damit die Bestätigung erhalten bleibt, wenn OmniVault die Sitzung erneuert, bittet es um Zugriff auf Cookies. Gelesen wird nur Passbolts Sitzungs-Cookie dieses Servers (refresh_token); OmniVault löscht es sofort aus dem Browser und behält es nur im Arbeitsspeicher.</p>
+            <p class="hint" id="unlock-pb-nocookies" hidden>Ohne https kann der Browser Passbolts Sitzungs-Cookie nicht speichern: Nach Ablauf der Sitzung (bei Passbolt meist 5 Minuten) fragt OmniVault erneut nach dem Code – außer du lässt ihn 30 Tage merken.</p>
+          </div>
         </div>
         <div id="unlock-device" hidden>
           <p class="hint">Neues Gerät: Bitwarden hat einen Bestätigungscode an deine E-Mail-Adresse geschickt.</p>

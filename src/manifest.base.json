@@ -53,7 +53,8 @@
     }
   },
   "optional_permissions": [
-    "nativeMessaging"
+    "nativeMessaging",
+    "cookies"
   ],
   "web_accessible_resources": [
     {

@@ -29,10 +29,13 @@ const unlock = async (k) => {
  * @param {Object} o
  * @param {'userRsa'|'userEcc'} o.user   fixture key of the account; the other user key acts as admin
  * @param {string} o.domain              base URL the server believes it runs on
- * @param {boolean} [o.mfa]              require TOTP 123456 after login (cookie passbolt_mfa)
+ * @param {boolean} [o.mfa]              require TOTP 123456 after login (cookie passbolt_mfa). Like Passbolt, the proof
+ *                                       is bound to the access token it was given with (unless `remember`); a request
+ *                                       with another token voids it, and /auth/jwt/refresh moves it to the new token
+ * @param {number} [o.ttl]               access token lifetime in seconds (default 300)
  * @param {boolean} [o.forgeMetadataKey] sign the shared metadata key with an untrusted key
  */
-export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forgeMetadataKey = false, defaultTypes = 'v5', loginUri = 'https://gitlab.example.com/users/sign_in' }) {
+export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, ttl = 300, forgeMetadataKey = false, defaultTypes = 'v5', loginUri = 'https://gitlab.example.com/users/sign_in' }) {
   const admin = user === 'userRsa' ? 'userEcc' : 'userRsa';
   const server = await unlock(KEYS.server);
   const adminKey = await unlock(KEYS[admin]);
@@ -44,13 +47,20 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
     encryptionKeys: to, signingKeys: signer ?? undefined, sessionKey,
   });
 
-  const tokens = new Map(); // access token → { mfaCookie }
+  const tokens = new Map(); // access token → { exp } (ms)
   const refresh = new Set();
+  const mfaTokens = new Map(); // passbolt_mfa value → { boundTo: access token | null (remembered), active }
+  const attacks = []; // refresh tokens used a second time (Passbolt e-mails the user and the admins)
+  const voided = []; // MFA proofs voided by a request with another access token
   let counter = 0;
   const jwt = () => {
-    const payload = Buffer.from(JSON.stringify({ sub: USER_ID, exp: Math.floor(Date.now() / 1000) + 300, n: ++counter })).toString('base64url');
-    return `eyJhbGciOiJIUzI1NiJ9.${payload}.sig`;
+    const exp = Date.now() + ttl * 1000;
+    const payload = Buffer.from(JSON.stringify({ sub: USER_ID, exp: Math.floor(exp / 1000), n: ++counter })).toString('base64url');
+    const token = `eyJhbGciOiJIUzI1NiJ9.${payload}.sig`;
+    tokens.set(token, { exp });
+    return token;
   };
+  const refreshCookie = (rt) => `refresh_token=${rt}; Max-Age=2678400; Path=/; Secure; HttpOnly`;
 
   // r4's metadata is encrypted to the *metadata* key although it claims user_key: only the
   // session key (from /metadata/session-keys.json) can open it – proves that path is used.
@@ -136,7 +146,9 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
     const json = body ? JSON.parse(body) : null;
     const h = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
     const auth = (h.authorization ?? '').replace(/^Bearer /, '');
-    const cookie = /passbolt_mfa=([^;]+)/.exec(h.cookie ?? '')?.[1];
+    const cookie = /(?:^|;\s*)passbolt_mfa=([^;]+)/.exec(h.cookie ?? '')?.[1];
+    const rtCookie = /(?:^|;\s*)refresh_token=([^;]+)/.exec(h.cookie ?? '')?.[1];
+    const remembered = mfaTokens.get(cookie)?.active && mfaTokens.get(cookie).boundTo === null;
 
     if (p === '/auth/verify.json') return ok({ fingerprint: server.getFingerprint().toUpperCase(), keydata: KEYS.server.public });
 
@@ -153,31 +165,41 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
       } catch (e) { return err(400, `The challenge is not valid: ${e.message}`); }
       if (ch.version !== '1.0.0' || ch.domain !== domain || ch.verify_token_expiry < Date.now() / 1000) return err(400, 'invalid challenge');
       const access = jwt(); const rt = crypto.randomUUID();
-      tokens.set(access, { mfaCookie: null }); refresh.add(rt);
+      refresh.add(rt);
       const answer = { version: '1.0.0', domain, verify_token: ch.verify_token, access_token: access, refresh_token: rt };
-      if (mfa) answer.providers = ['totp'];
+      if (mfa && !remembered) answer.providers = ['totp'];
       return ok({ challenge: await enc(answer) });
     }
 
     if (p === '/auth/jwt/refresh.json' && method === 'POST') {
-      // like Passbolt: a refresh token works once; the new one is only set as an HttpOnly cookie
-      if (!refresh.has(json.refresh_token)) return err(400, 'The refresh token provided was already used.');
-      refresh.delete(json.refresh_token);
+      // like Passbolt: the token comes from the body, else from the cookie – and with the cookie CSRF applies
+      if (rtCookie && !h['x-csrf-token']) return err(403, 'Missing or incorrect CSRF cookie type.');
+      const used = json?.refresh_token ?? rtCookie;
+      // a refresh token works once; the new one is only set as an HttpOnly cookie
+      if (!refresh.has(used)) { attacks.push(used); return err(400, 'The refresh token provided was already used.'); }
+      refresh.delete(used);
       const access = jwt(); const rt = crypto.randomUUID();
-      tokens.set(access, { mfaCookie: null }); refresh.add(rt);
-      return ok({ access_token: access });
+      refresh.add(rt);
+      // the second-factor proof sent along moves to the new access token
+      const m = mfaTokens.get(cookie);
+      if (m?.active && m.boundTo !== null) m.boundTo = access;
+      return ok({ access_token: access }, { 'Set-Cookie': refreshCookie(rt) });
     }
 
     const t = tokens.get(auth);
-    if (!t) return err(401, 'Authentication is required to continue');
+    if (!t || Date.now() > t.exp) return err(401, 'Authentication is required to continue');
 
     if (p === '/mfa/verify/totp.json' && method === 'POST') {
       if (json.totp !== '123456') return err(400, 'The OTP is not valid.');
       const value = crypto.randomUUID();
-      mfaCookies.add(value);
-      return ok(null, { 'Set-Cookie': `passbolt_mfa=${value}; Path=/; HttpOnly; SameSite=Lax` });
+      mfaTokens.set(value, { boundTo: json.remember ? null : auth, active: true });
+      return ok(null, { 'Set-Cookie': `passbolt_mfa=${value}; Path=/; HttpOnly; SameSite=Lax${json.remember ? '; Max-Age=2592000' : ''}` });
     }
-    if (mfa && !mfaCookies.has(cookie)) return err(403, 'MFA authentication is required.', { mfa_providers: ['totp'] });
+    if (mfa) {
+      const m = mfaTokens.get(cookie);
+      if (m?.active && m.boundTo !== null && m.boundTo !== auth) { m.active = false; voided.push(auth); }
+      if (!m?.active) return err(403, 'MFA authentication is required.', { mfa_providers: ['totp'] });
+    }
 
     if (p === '/resource-types.json') return ok(TYPES);
     if (p === '/resources.json' && method === 'GET') return ok(resources);
@@ -271,7 +293,8 @@ export async function fakePassbolt({ user = 'userRsa', domain, mfa = false, forg
     if (u) return users[decodeURIComponent(u[1])] ? ok(users[decodeURIComponent(u[1])]) : err(404, 'not found');
     return err(404, 'not found');
   }
-  const mfaCookies = new Set();
-
-  return { handle, log, resources, sharedSecrets, permissions, folderPermissions, expireAll: () => tokens.clear() };
+  return {
+    handle, log, resources, sharedSecrets, permissions, folderPermissions, attacks, voided,
+    expireAll: () => tokens.clear(), refreshTokens: refresh,
+  };
 }

@@ -32,6 +32,14 @@ const cfg = (account) => ({ ...account.config, id: account.id });
 const syncProgress = new Map();
 for (const p of Object.values(registry)) {
   if ('onProgress' in p) p.onProgress = (id, done, total) => syncProgress.set(id, { done, total });
+  // providers that renew tokens in the middle of an operation (Passbolt) store the new session at once – only while
+  // that sign-in is still the account's session (not after locking)
+  if ('onSession' in p) {
+    p.onSession = async (id, session) => {
+      const cur = await store.getSession(id);
+      if (cur && (!cur.sid || cur.sid === session.sid)) await store.setSession(id, session);
+    };
+  }
 }
 
 async function ensureSynced(account, force = false) {
@@ -80,6 +88,7 @@ const loginFlows = createLoginFlows({
 
 async function lock(id) {
   cache.delete(id);
+  for (const p of Object.values(registry)) p.forgetSession?.(id);
   forgetEmergency(id);
   await loginFlows.clear(id); // a login half done (master key after Duo, tokens after SSO) goes as well
   await store.clearSession(id);
@@ -90,6 +99,8 @@ async function lock(id) {
  * with its own key pair) so the PIN or the device can reopen them.
  */
 async function lockAll() {
+  // no token renewals from here on: a sealed session must keep a refresh token that was not used up meanwhile
+  for (const a of await store.listAccounts()) for (const p of Object.values(registry)) p.forgetSession?.(a.id);
   const { pinLock, deviceLock } = await ext.storage.local.get(['pinLock', 'deviceLock']);
   if (pinLock || deviceLock) {
     const sessions = {};
@@ -1322,6 +1333,10 @@ function setupContextMenu() {
 }
 ext.runtime.onInstalled.addListener(setupContextMenu);
 ext.runtime.onStartup?.addListener(setupContextMenu);
+// Passbolt: a refresh cookie that a crash left in the browser (sessions are gone after a restart or an update)
+const cleanupProviders = () => { for (const p of Object.values(registry)) p.cleanup?.()?.catch?.(() => {}); };
+ext.runtime.onInstalled.addListener(cleanupProviders);
+ext.runtime.onStartup?.addListener(cleanupProviders);
 ext.contextMenus?.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'ov-fill') fillBestMatch(tab);
   if (info.menuItemId === 'ov-generate' && tab?.id) {

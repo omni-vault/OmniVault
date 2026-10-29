@@ -1252,5 +1252,9 @@
   "other": "{n} allegati non importati: più di {size} MB."
  },
  "Kein verschlüsselter Bitwarden-Export": "Non è un’esportazione cifrata di Bitwarden",
- "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "Questa esportazione cifrata proviene da un altro account Bitwarden o da un’organizzazione a cui questo account non ha accesso."
+ "Dieser verschlüsselte Export stammt aus einem anderen Bitwarden-Konto oder einer Organisation, auf die dieses Konto keinen Zugriff hat.": "Questa esportazione cifrata proviene da un altro account Bitwarden o da un’organizzazione a cui questo account non ha accesso.",
+ "Zweiten Faktor 30 Tage merken": "Ricorda il secondo fattore per 30 giorni",
+ "Passbolt fragt dann in diesem Browser 30 Tage lang nicht nach dem Code – auch nicht in der Passbolt-Weboberfläche.": "Passbolt non chiederà più il codice in questo browser per 30 giorni, nemmeno nell'app web di Passbolt.",
+ "Damit die Bestätigung erhalten bleibt, wenn OmniVault die Sitzung erneuert, bittet es um Zugriff auf Cookies. Gelesen wird nur Passbolts Sitzungs-Cookie dieses Servers (refresh_token); OmniVault löscht es sofort aus dem Browser und behält es nur im Arbeitsspeicher.": "Per mantenere la conferma quando OmniVault rinnova la sessione, chiede l'accesso ai cookie. Legge solo il cookie di sessione di Passbolt di questo server (refresh_token), lo elimina subito dal browser e lo conserva solo in memoria.",
+ "Ohne https kann der Browser Passbolts Sitzungs-Cookie nicht speichern: Nach Ablauf der Sitzung (bei Passbolt meist 5 Minuten) fragt OmniVault erneut nach dem Code – außer du lässt ihn 30 Tage merken.": "Senza https il browser non può salvare il cookie di sessione di Passbolt: alla scadenza della sessione (in Passbolt di solito dopo 5 minuti) OmniVault chiede di nuovo il codice, a meno che tu non lo ricordi per 30 giorni."
 }
