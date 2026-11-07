@@ -1,0 +1,44 @@
+{
+ "authkey": {
+  "username": "Alice@Example.com",
+  "password": "Correct horse 1",
+  "params": {
+   "u": 14,
+   "r": 8,
+   "p": 1,
+   "l": 64
+  },
+  "authkey": "92f14c763b07a5e12a4d29a56e65b1cecfb1a31e728db4ee4383d2a7ef7ac14f4f66ede864d812bc44960fd61e1df30816a61ddebca72a25e4feba427bf89b73"
+ },
+ "encrypt_secret": {
+  "password": "pässwörd ✓",
+  "user_sauce": "6f6d6e697661756c742d74657374736f6d6e697661756c742d7465737473",
+  "params": {
+   "u": 14,
+   "r": 8,
+   "p": 1,
+   "l": 64
+  },
+  "text": "352682d99546a66f0e2d2f4c60f15582c29c991e34db71821ff8f5ba89ec90ab70fb27ba5b9005a97bfaa35e84a4d6b4510da5f954fc0898a5b6a55286f24fd31d6189b0a707aa897ea8c7241d625165",
+  "nonce": "a580d1b0cd2d917ed5703032beb7102d201817308627389e",
+  "plaintext": "ae35ce2bcbdfe3cf4993c87c7e6b708c27152816d75eb267febfeb16f5e0389f"
+ },
+ "secretbox": {
+  "key": "22a750e3be35314ceba3d79e903a78dd106c9a0756ac8cbaec100374002e426e",
+  "text": "977502040c8c6d097f206ace459d3bda08f2a72c3e182f1488312a9c779a07ec5565e8dac2200f",
+  "nonce": "55aa1ec0dd39854bebd12360db6065a7847d3546e3699202",
+  "plaintext": "{\"hello\": \"w\\u00f6rld\"}"
+ },
+ "box": {
+  "sender_public": "e7dfe144bc0ceee6744c1abf90154bed8720b06c2d77a1b792bf0db3fa5f2d42",
+  "recipient_private": "21b091dcbd55832be7a4da304fb60ff00ab6cfc24cb32f2a7187533f23de14e3",
+  "text": "16d9ea24ad96aec30d06e6bf660bc2d06772fa197800600ba2ead67e4554",
+  "nonce": "3639d1237ad139f107c65d130016966c9a24d0385fb51234",
+  "plaintext": "login info ✓"
+ },
+ "signature": {
+  "info": "{\"version\": \"test\", \"public_key\": \"a997c1f5f90ab03165e81421bcd744eb174ce84530acb23a3ed5dbd840a7c976\"}",
+  "verify_key": "1d7c177a43bbda57ffafb48eb4771fb4d839b69108ba04d2497f9d59925d8bc5",
+  "signature": "70403b7098ea4459c142708ea8cc664f59f19bf2ae1a76cecdcc3f69175cad9aa2e43c4ddf346639412c84b39617bf16e7f750c1f0c6c4a68be3a0a10296fa02"
+ }
+}
