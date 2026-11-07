@@ -7,7 +7,8 @@ Chromium-based browsers. Search across all your accounts at once, copy and fill 
 move entries between managers – without giving up the manager you already use.
 
 > OmniVault is an independent open-source project. It is not affiliated with, endorsed by or sponsored by Bitwarden
-> Inc., Passbolt S.A., Proton AG, AgileBits Inc. (1Password), LastPass US LP or Dashlane SAS. All trademarks belong to their owners.
+> Inc., Passbolt S.A., Proton AG, AgileBits Inc. (1Password), LastPass US LP, Dashlane SAS or esaqa GmbH (Psono). All trademarks
+> belong to their owners.
 
 ## Supported password managers
 
@@ -17,6 +18,7 @@ move entries between managers – without giving up the manager you already use.
 | **Vaultwarden** and self-hosted Bitwarden | Directly | ✅ | ✅ |
 | **Passbolt** v4 and v5 (incl. sharing) | Directly; OpenPGP in the browser | ✅ | ✅ |
 | **HashiCorp Vault / OpenBao** (KV secrets engine v2) | Directly over the HTTP API (token or userpass) | ✅ | ✅ |
+| **Psono** (self-hosted or psono.pw) | Directly; end-to-end encryption in the browser | ✅ | ✅ (logins and notes) |
 | **pass** (password-store) | Local helper → `pass` + GnuPG | ✅ | ✅ |
 | **gopass** | Local helper → `gopass` + GnuPG | ✅ | ✅ |
 | **1Password** | Local helper → official `op` CLI | ✅ | ✅ |
@@ -63,6 +65,28 @@ with a notice. The *Version history* of an entry shows, for each of its older ve
 differs (username, password, websites, notes, TOTP, custom fields; secret values hidden until revealed); the versions
 are read only when you open it (this needs the `read` capability on the entry's `metadata` path), and deleted or
 destroyed versions are left out.
+
+### Psono
+
+OmniVault signs in to a Psono server (self-hosted or psono.pw) the way Psono's own clients do: the password never
+leaves the browser – OmniVault derives the login key from it with scrypt, opens a session with a fresh key pair and
+decrypts the account's keys locally (they are kept in session memory only). In the account form you enter the address
+of the Psono API – usually ending in `/server`, e.g. `https://www.psono.pw/server`; if you enter the site address,
+OmniVault tries `/server` itself – and your username (`name@example.org`). As second factor OmniVault answers an
+authenticator app (TOTP), a YubiKey OTP or a Duo passcode; security keys are not supported yet. On first sign-in
+OmniVault remembers the server's signing key and refuses to sign in if it changes. Locking an account ends its
+session on the server.
+
+OmniVault shows the default password datastore with its folders and shared folders (also those shared with you
+read-only). Website and application passwords become logins, notes notes, TOTP entries and bookmarks logins without a
+password; cards and identities are shown read-only, and other types (SSH and GPG keys, connections, …) show their values
+as hidden custom fields. You can create logins and notes, edit website and application passwords and notes (values
+OmniVault does not show, such as auto-submit or attachments, are kept), move them between folders of the datastore or
+of one shared folder, create folders at the top level, delete entries into Psono's trash and restore them or remove
+them for good. A change made elsewhere in the meantime is reported as a conflict instead of being overwritten.
+Secrets are read during a sync, but passwords and other secret values are kept only when an entry is opened, copied
+or filled. Not supported yet: attachments, password history, passkeys, sharing, API keys and accounts that sign in
+via LDAP, SAML or OIDC.
 
 ## Features
 
@@ -135,7 +159,7 @@ npm run build        # creates dist/chrome and dist/firefox
 
 Click the OmniVault icon, then *New* (the plus sign at the top right) → *Add account*, and pick your password manager.
 
-- **Bitwarden, Vaultwarden, Passbolt, HashiCorp Vault / OpenBao:** sign in directly in OmniVault. For a self-hosted server, enter its address;
+- **Bitwarden, Vaultwarden, Passbolt, HashiCorp Vault / OpenBao, Psono:** sign in directly in OmniVault. For a self-hosted server, enter its address;
   your browser will ask once for permission to access it.
 - **Ways to sign in to Bitwarden / Vaultwarden:** master password, with an authenticator app (TOTP), e-mail code,
   YubiKey OTP, Duo or – experimentally – a security key or passkey (FIDO2 / WebAuthn) as the second factor; with your
@@ -251,12 +275,13 @@ What OmniVault stores and where it sends data is described in detail in the [pri
   another site OmniVault asks once and shows where it filled.
 - **Passkeys are site-bound.** A website only gets its own passkey back; private keys never reach the popup UI and
   leave the background only encrypted, on their way to your server.
-- **Passbolt server pinning.** OmniVault remembers your Passbolt server's key on first sign-in and refuses to sign in
-  if it changes.
+- **Server pinning (Passbolt, Psono).** OmniVault remembers your Passbolt or Psono server's key on first sign-in and
+  refuses to sign in if it changes.
 - **Command-line tools get secrets via stdin,** never on the command line. One exception is editing entries in
   Proton Pass, whose CLI only accepts new values as arguments; see [native/README.md](native/README.md).
 - **Established cryptography.** OmniVault uses WebCrypto, [OpenPGP.js](https://github.com/openpgpjs/openpgpjs),
-  [argon2id](https://github.com/openpgpjs/argon2id) and [@noble/ciphers](https://github.com/paulmillr/noble-ciphers)
+  [argon2id](https://github.com/openpgpjs/argon2id), [@noble/ciphers](https://github.com/paulmillr/noble-ciphers),
+  [@noble/hashes](https://github.com/paulmillr/noble-hashes) (scrypt) and [TweetNaCl.js](https://github.com/dchest/tweetnacl-js)
   instead of home-grown crypto, and contains no code from the official password manager clients.
 - **Minimal permissions.** Access to self-hosted servers and to native applications is requested only when you
   add such an account. Access to Bitwarden's cloud file storage (Azure Blob Storage) is requested only when you
@@ -305,6 +330,6 @@ Third-party components and their licenses are listed in [THIRD_PARTY_NOTICES.md]
 Bitwarden is a registered trademark of Bitwarden Inc. Passbolt is a trademark of Passbolt S.A.
 ([passbolt.com](https://www.passbolt.com)). LastPass is a trademark of LastPass US LP. 1Password is a trademark of
 AgileBits Inc. Dashlane is a trademark of Dashlane SAS. Proton and Proton Pass are trademarks of Proton AG. HashiCorp Vault is a trademark of HashiCorp.
-OpenBao is a Linux Foundation project; its trademarks are held by LF Projects, LLC.
+OpenBao is a Linux Foundation project; its trademarks are held by LF Projects, LLC. Psono is a product of esaqa GmbH.
 All other names are trademarks of their respective owners and are used only to describe compatibility. OmniVault is
 not affiliated with, endorsed by or sponsored by any of them.

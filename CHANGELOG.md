@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### New
+- **Psono** as a new password manager (self-hosted or psono.pw), connected directly like Bitwarden: OmniVault signs in
+  the way Psono's own clients do (scrypt login key, session key pair, the account's keys decrypted only in the
+  browser), with an authenticator app, YubiKey OTP or Duo passcode as second factor. It shows the default password
+  datastore with its folders and shared folders, creates logins and notes, edits website and application passwords and
+  notes (keeping values it does not show), moves entries within the datastore or one shared folder, creates folders,
+  and deletes into Psono's trash with restore and permanent removal. The server's signing key is pinned on first
+  sign-in; locking ends the session on the server. Cards, identities and other entry types are read-only;
+  attachments, password history, passkeys and sharing are not supported yet. The host permission for the server is
+  requested when you sign in.
 - **Security key or passkey as Bitwarden's second factor (experimental):** accounts with FIDO2 / WebAuthn two-step
   login can now sign in without the API key. Bitwarden and Vaultwarden only accept a key used on the web vault's own
   address, so OmniVault opens your web vault in a tab and shows a small box of its own there; after a click, your

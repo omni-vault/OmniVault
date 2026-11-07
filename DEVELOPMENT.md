@@ -12,6 +12,7 @@ from other managers and export everything again.
 | Vaultwarden / self-hosted Bitwarden | direct | as above |
 | Passbolt v4 and v5 | direct, OpenPGP in the browser | read, write, share; tested against real Passbolt CE 5.16 |
 | HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash, version history of all fields; tested against real OpenBao 2.7.1 |
+| Psono | direct, end-to-end encryption (NaCl box/secretbox, scrypt) in the browser | read (incl. shared folders), write logins and notes, trash; tested against a real Psono server 7.5.7 |
 | pass (password-store) | local host → `pass` + GnuPG | read and write, optionally decrypting entries only when needed; tested against real pass |
 | gopass | local host → `gopass` + GnuPG | read and write, stores as folders, optionally decrypting only when needed; tested against real gopass 1.17.4 |
 | 1Password | local host → official `op` | read and write, tested against a simulated CLI |
@@ -26,7 +27,7 @@ from other managers and export everything again.
 - Third-party software and licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
 OmniVault is an independent project and is not affiliated with Bitwarden Inc., Passbolt S.A., Proton AG, AgileBits Inc.
-(1Password), LastPass US LP, Dashlane SAS, HashiCorp or the Linux Foundation (OpenBao). All trademarks mentioned belong to their owners.
+(1Password), LastPass US LP, Dashlane SAS, HashiCorp, the Linux Foundation (OpenBao) or esaqa GmbH (Psono). All trademarks mentioned belong to their owners.
 
 ## Building
 
@@ -60,6 +61,8 @@ npm run test:passbolt-mfa # Passbolt CE with TOTP and 30-second tokens behind a 
                           # staying signed in through renewals in Chromium and Firefox (cookies permission), see below
 npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it,
                           # including the version history of all fields (deleted and destroyed versions skipped)
+npm run test:psono        # sets up a local Psono server (PostgreSQL, port PS_PORT, default 8935) and tests provider,
+                          # shared folders (incl. one shared read-only by another user), TOTP and the popup in Chromium
 npm run test:inline       # button in the login field, "Save login?", filling cards
 npm run test:frames       # filling in embedded frames (two origins): question per pair of sites, note in the page,
                           # hidden frames, same-origin frames, list in the frame, "Save login?" from a frame, cards
@@ -104,6 +107,15 @@ libgpg-error 1.47 and gpgme 1.18.0, all commits verified). First run takes about
 (details in `test/passbolt-server.sh`). On its first run, `test:openbao` downloads the official
 OpenBao release 2.7.1 for Linux amd64 (hash verified, see `test/openbao-server.sh`); with `OPENBAO_BIN=/path/to/bao`
 it uses your own.
+`test:psono` runs the Psono server 7.5.7 from its Git tag (commit pinned) with the pure-Python packages it uses, each
+from its Git sources at a pinned commit; PyNaCl's binding is compiled against the system's libsodium (1.0.18 ABI) with
+the headers of the matching libsodium release. It needs Python ≥ 3.11 with cffi, cryptography, PyYAML, requests,
+python-dateutil and Pillow, a C compiler, libsodium, libpq, libcrypt and the PostgreSQL programs (`PS_PG_PORT`, default
+8936); pypi.org is not needed. Three test-only shims in `test/psono-shims` stand in for bcrypt (via libcrypt), scrypt (via
+hashlib) and the cloud SDKs Psono imports but the tests never use; the server code itself is unmodified. First run
+takes about a minute (details in `test/psono-server.sh`). The unit tests in `npm test` check the crypto against vectors
+made by the server's own functions (`test/fixtures/make-psono-vectors.py`) and the protocol against a simulated server
+(`test/fake-psono.js`).
 `test:exports` starts Vaultwarden twice (ports `VW_PORT`, default 8830, and `VW_TLS_PORT`, default 8831; the second one
 with a throw-away self-signed certificate, because the Bitwarden CLI refuses plain HTTP) and on its first run
 downloads the official Bitwarden CLI 2026.9.0 (hash pinned, see `test/bw-cli.sh`; `BW_CLI=/path/to/bw` uses your own).
@@ -267,6 +279,7 @@ src/
     bitwarden/       API, crypto, provider (also covers Vaultwarden)
     passbolt/        JWT login, MFA, v4/v5 resources, folders, decrypting secrets on demand
     vault/           HashiCorp Vault / OpenBao: KV v2, token/userpass, check-and-set, trash via undelete
+    psono/           Psono: scrypt login, session encryption, datastore and shares, write-date checks, trash flag
     pass/ gopass/ onepassword/ lastpass/ dashlane/ protonpass/   thin providers via the host
   content/inline.js  content script (opt-in, in all frames): button in the login field, "Save login?"
   inline/            list and save bar as extension pages in iframes
@@ -276,7 +289,7 @@ tools/i18n-extract.mjs  collects all strings for translation
 tools/store-screenshots.mjs  screenshots (1280 × 800) from the web demo: `npm run build:demo`, then
                      `node tools/store-screenshots.mjs <output folder> [Playwright path] [en,de]`
 native/              one host for all CLI providers (Python 3, standard library only), installer, self-test
-vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, TweetNaCl, jsQR (separate files), EFF wordlist,
+vendor/              OpenPGP.js, argon2id, Argon2 reference, @noble/ciphers, @noble/hashes (scrypt), TweetNaCl, jsQR (separate files), EFF wordlist,
                      source manifest, build scripts
 ```
 

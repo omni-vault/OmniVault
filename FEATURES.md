@@ -7,7 +7,7 @@ and how it is tested. Whoever changes a provider updates the row in the same com
 
 | Symbol | Meaning |
 |---|---|
-| ✅ R | implemented, tested against the **real counterpart**: local Vaultwarden, local Passbolt CE 5.16, local OpenBao 2.7.1, real `pass` or `gopass` + GnuPG |
+| ✅ R | implemented, tested against the **real counterpart**: local Vaultwarden, local Passbolt CE 5.16, local OpenBao 2.7.1, local Psono server 7.5.7, real `pass` or `gopass` + GnuPG |
 | ✅ S | implemented, tested against a **simulated** server or a simulated CLI |
 | ✅ U | implemented, covered by unit tests with sample data |
 | ✅ | implemented, only checked manually or indirectly |
@@ -25,6 +25,7 @@ and how it is tested. Whoever changes a provider updates the row in the same com
 | Bitwarden (cloud) and Vaultwarden | direct via the server API, decryption in the browser | R (Vaultwarden) |
 | Passbolt v4 and v5 | direct via the server API, OpenPGP in the browser | R (Passbolt CE 5.16, two users) |
 | HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | R (OpenBao 2.7.1) ²⁴ |
+| Psono | direct via the server API, end-to-end encryption (NaCl, scrypt) in the browser | R (Psono server 7.5.7, two users, shared folders) ³⁴ |
 | pass (password-store) | native host → `pass` + GnuPG | R |
 | gopass | native host → `gopass` + GnuPG | R (gopass 1.17.4) ²⁵ |
 | 1Password | native host → official `op` | S |
@@ -49,32 +50,34 @@ Bitwarden cloud and Vaultwarden use the same provider; nothing is tested automat
 
 ## Parity between providers
 
-| Feature | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | pass | gopass | 1Password | LastPass | Proton Pass | Dashlane |
-|---|---| --- |---|---| --- |---|---|---|---|
-| Read, create, edit, delete logins | ✅ R | ✅ R ²⁴ | ✅ R | ✅ R | ✅ R ²⁵ | ✅ S | ✅ S | ✅ S | 🟡 S (read only) ²⁶ |
-| Notes | ✅ R | ✅ R (without `password` key) | ✅ R (v5) ² | – ³ | – | ✅ S | ✅ S | ✅ S | 🟡 S (secure notes and secrets, read only) |
-| Read cards, identities | ✅ R | – | – | – | – | ✅ S ⁴ | – | ✅ S | 🟡 S (identities and IDs via `dcli id`, read only; cards ⛔: `dcli` has no command for payment cards) ²⁶ |
-| Create and edit cards, identities | ✅ R | – | – | – | – | 🟡 S ⁴ | – | ⛔ | ⛔ |
-| Read custom fields | ✅ R | ✅ R (remaining keys, hidden) | ✅ R (v5) | ✅ R | ✅ R | ✅ S | ⛔ | ✅ S | ✅ S (email, second login) |
-| Edit custom fields | ✅ R | ✅ R | ✅ R (v5 logins) | ✅ R ⁵ | ✅ R | ✅ S | ⛔ | ⛔ | ⛔ |
-| Read and change TOTP | ✅ R | ✅ R | ✅ R | ✅ R | ✅ R | ✅ S | ⛔ | 🟡 S (read only) | 🟡 S (read only) |
-| Favorites | ✅ R | ✅ L | ✅ R | ✅ L | ✅ L | ✅ S | ✅ L | ✅ L | ✅ L |
-| Show folders / vaults and move between them | ✅ R | ✅ R (paths) | ✅ R (show), ✅ S (move) | ✅ R (paths) | ✅ R (paths, mounted stores) | ✅ S (vaults) | ✅ S (groups) | ✅ S (vaults) | ⛔ (`dcli` does not output folders) |
-| Create folder / vault | ✅ R | ✅ R | ✅ R ⁶ | ✅ R | ✅ R | ✅ S | ✅ S | ❌ | ⛔ |
-| Trash: deleted items end up there | ✅ R | ✅ R (soft delete of the current version) | – (permanent) | – (permanent) | – (permanent) | ✅ S ("Recently Deleted") | – (permanent) | ✅ S | ⛔ |
-| Show trash in OmniVault, restore, delete permanently | ✅ R | ✅ R (`undelete`; permanent: all versions) | – | – | – | ⛔ ¹⁷ | – | ❌ (on hold) | ⛔ |
-| Download attachments | ✅ R | – | – | – | – | ✅ S ¹⁹ | ✅ S ¹⁹ | ✅ S ¹⁹ | ⛔ |
-| Upload and delete attachments | ✅ R ¹⁸ | – | – | – | – | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ |
-| Password history | ✅ R | ✅ R (version history of all fields from older KV versions, read only when it is opened; deleted and destroyed versions skipped) ²⁴ | – | – | – | 🟡 S ²¹ | ⛔ ²¹ | ⛔ ²¹ | ⛔ |
-| Show passkeys | ✅ R | – | – ⁹ | – ⁹ | – | ⛔ ²² | ⛔ ²² | ✅ S (site and user only) | ⛔ |
-| Create passkeys on websites, sign in with them, remove them | ✅ R (Bitwarden format, interchangeable with the official apps) | – | – ⁹ | – ⁹ | – | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ |
-| Share, change permissions, revoke access | 🟡 R ⁷ | ⛔ (policies are managed by the server) | ✅ R (entries and folders) | – | – | ⛔ | ⛔ | ⛔ | ⛔ |
-| Edit shared entries | ✅ R (organization) | ✅ R (depending on policy) | ✅ R (secret re-encrypted for all readers) | – | – | 🟡 (like own entries, untested) | 🟡 (like own entries, untested) | ❌ | ⛔ |
-| Conflict detection (an outdated state is not overwritten) | ✅ R | ✅ R (check-and-set) | ✅ R | – | – | ✅ S ¹³ | ✅ S ¹³ | ✅ S ¹³ | – (read only) |
-| Decrypt secrets only when needed | – (everything local) | ✅ R (values read only when needed) | ✅ R | 🟡 R (setting per account: list from file names, decrypted when opened, copied or filled) ⁸ | 🟡 R (as pass) ⁸ | ✅ S | ✅ S | ✅ S | 🟡 S (the host discards them in the list) ²⁶ |
-| Report rate limits clearly | ✅ R | ✅ | ✅ | – | – | – | – | – | – |
+| Feature | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | Psono | pass | gopass | 1Password | LastPass | Proton Pass | Dashlane |
+|---|---| --- |---| --- |---| --- |---|---|---|---|
+| Read, create, edit, delete logins | ✅ R | ✅ R ²⁴ | ✅ R | ✅ R ³⁴ | ✅ R | ✅ R ²⁵ | ✅ S | ✅ S | ✅ S | 🟡 S (read only) ²⁶ |
+| Notes | ✅ R | ✅ R (without `password` key) | ✅ R (v5) ² | ✅ R | – ³ | – | ✅ S | ✅ S | ✅ S | 🟡 S (secure notes and secrets, read only) |
+| Read cards, identities | ✅ R | – | – | ✅ U (read only) | – | – | ✅ S ⁴ | – | ✅ S | 🟡 S (identities and IDs via `dcli id`, read only; cards ⛔: `dcli` has no command for payment cards) ²⁶ |
+| Create and edit cards, identities | ✅ R | – | – | ❌ | – | – | 🟡 S ⁴ | – | ⛔ | ⛔ |
+| Read custom fields | ✅ R | ✅ R (remaining keys, hidden) | ✅ R (v5) | ✅ R | ✅ R | ✅ R | ✅ S | ⛔ | ✅ S | ✅ S (email, second login) |
+| Edit custom fields | ✅ R | ✅ R | ✅ R (v5 logins) | ✅ R | ✅ R ⁵ | ✅ R | ✅ S | ⛔ | ⛔ | ⛔ |
+| Read and change TOTP | ✅ R | ✅ R | ✅ R | ✅ R | ✅ R | ✅ R | ✅ S | ⛔ | 🟡 S (read only) | 🟡 S (read only) |
+| Favorites | ✅ R | ✅ L | ✅ R | ✅ L | ✅ L | ✅ L | ✅ S | ✅ L | ✅ L | ✅ L |
+| Show folders / vaults and move between them | ✅ R | ✅ R (paths) | ✅ R (show), ✅ S (move) | 🟡 R (folders and shared folders; moving only within the datastore or within one shared folder) | ✅ R (paths) | ✅ R (paths, mounted stores) | ✅ S (vaults) | ✅ S (groups) | ✅ S (vaults) | ⛔ (`dcli` does not output folders) |
+| Create folder / vault | ✅ R | ✅ R | ✅ R ⁶ | ✅ R (top level) | ✅ R | ✅ R | ✅ S | ✅ S | ❌ | ⛔ |
+| Trash: deleted items end up there | ✅ R | ✅ R (soft delete of the current version) | – (permanent) | ✅ R (Psono's trash) | – (permanent) | – (permanent) | ✅ S ("Recently Deleted") | – (permanent) | ✅ S | ⛔ |
+| Show trash in OmniVault, restore, delete permanently | ✅ R | ✅ R (`undelete`; permanent: all versions) | – | ✅ R | – | – | ⛔ ¹⁷ | – | ❌ (on hold) | ⛔ |
+| Download attachments | ✅ R | – | – | ❌ | – | – | ✅ S ¹⁹ | ✅ S ¹⁹ | ✅ S ¹⁹ | ⛔ |
+| Upload and delete attachments | ✅ R ¹⁸ | – | – | ❌ | – | – | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ ²⁰ | ⛔ |
+| Password history | ✅ R | ✅ R (version history of all fields from older KV versions, read only when it is opened; deleted and destroyed versions skipped) ²⁴ | – | ❌ | – | – | 🟡 S ²¹ | ⛔ ²¹ | ⛔ ²¹ | ⛔ |
+| Show passkeys | ✅ R | – | – ⁹ | ❌ | – ⁹ | – | ⛔ ²² | ⛔ ²² | ✅ S (site and user only) | ⛔ |
+| Create passkeys on websites, sign in with them, remove them | ✅ R (Bitwarden format, interchangeable with the official apps) | – | – ⁹ | ❌ | – ⁹ | – | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ | ⛔ ¹⁰ |
+| Share, change permissions, revoke access | 🟡 R ⁷ | ⛔ (policies are managed by the server) | ✅ R (entries and folders) | ❌ (shared folders are shown and used) | – | – | ⛔ | ⛔ | ⛔ | ⛔ |
+| Edit shared entries | ✅ R (organization) | ✅ R (depending on policy) | ✅ R (secret re-encrypted for all readers) | ✅ R (with write permission; read-only shares stay read-only) | – | – | 🟡 (like own entries, untested) | 🟡 (like own entries, untested) | ❌ | ⛔ |
+| Conflict detection (an outdated state is not overwritten) | ✅ R | ✅ R (check-and-set) | ✅ R | ✅ R (write date) | – | – | ✅ S ¹³ | ✅ S ¹³ | ✅ S ¹³ | – (read only) |
+| Decrypt secrets only when needed | – (everything local) | ✅ R (values read only when needed) | ✅ R | ✅ R (secrets read again when used) | 🟡 R (setting per account: list from file names, decrypted when opened, copied or filled) ⁸ | 🟡 R (as pass) ⁸ | ✅ S | ✅ S | ✅ S | 🟡 S (the host discards them in the list) ²⁶ |
+| Report rate limits clearly | ✅ R | ✅ | ✅ | ✅ | – | – | – | – | – | – |
 
 ²⁴ HashiCorp Vault / OpenBao: KV engine version 2, tested against real OpenBao 2.7.1 (dev server) with token and userpass (integration and browser test), plus a simulated server for unit tests; nothing is tested automatically against HashiCorp Vault itself, the API used is the same. Key mapping in README.md. Limits: at most 2000 entries and 12 folder levels per account; paths without read permission are skipped with a notice; KV version 1, other auth methods (OIDC, AppRole, LDAP …) and `custom_metadata` are not supported. Version history: an entry with more than one version offers it in the detail view; only when it is opened does OmniVault read the version list (`metadata`, needs the `read` capability there) and at most 20 older versions (`data?version=n`), skipping deleted and destroyed ones. Each older version lists what it held where the next readable version differs – username, password, websites, notes, TOTP and custom fields (compared by role, so a renamed key such as `login` → `username` is no change) – dated when that version replaced it; passwords, TOTP secrets and custom fields are hidden until revealed, and the values are kept in the open view only. Copying or moving an entry to another account (or renaming it, which writes a new path) does not take the older versions along.
+³⁴ Psono: tested against a real Psono server 7.5.7 (the server's own code from its git tag, PostgreSQL; `npm run test:psono`) with an account of its own, a shared folder of the account and a folder another user shares read-only (integration and Chromium browser test), plus a simulated server written after the server's sources for unit tests. The protocol follows the server's sources (no client code taken over; the field names of entry types and the trash flag were compared with the web client). The crypto is checked against vectors made by the server's own functions (PyNaCl/libsodium, scrypt). Entry types: website and application passwords become logins, notes notes, TOTP entries and bookmarks logins without a password, cards and identities their types (read only); other types (SSH keys, GPG keys, connections, environment variables, …) show their values as hidden custom fields and are read only. Writes keep the values OmniVault does not show (auto-submit, attachments, other clients' fields). New entries are created as website passwords or notes, new folders at the top level. Moving is possible within the datastore or within one shared folder (between shared folders Psono moves the secret's link). Deleting moves an entry to Psono's trash; entries shared on their own are deleted in Psono. Limits: 2000 entries and 200 shared folders per account; shared folders without read permission are skipped with a notice. Not supported: attachments, password history, passkeys, sharing and permissions, API keys, link shares, emergency codes, LDAP/SAML/OIDC accounts, more than one password datastore (the default one is shown). The API reference is marked "work in progress"; answers are checked for the fields used.
+³⁵ Psono: authenticator app (TOTP; tested against the real server in the integration test and in Chromium), YubiKey OTP (simulated; the real server checks it with Yubico's cloud) and Duo passcode (untested; no Duo push). With `MULTIFACTOR_ENABLED`, OmniVault asks for every factor the account has (simulated). Security keys (WebAuthn) and iVALT are not supported; an account that has only those gets a clear message.
 ²⁵ gopass: via the OmniVault host with the gopass CLI, tested against the official release 1.17.4 + GnuPG (also with a mounted second store and moving into it). Entry format as in pass; mounted stores are top-level folders. Not supported: attachments (`gopass fscopy`), history from git; age encryption untested.
 ²⁶ Dashlane: via the OmniVault host with the official Dashlane CLI `dcli` (Apache-2.0), which can only read the vault. Tested against a simulated `dcli` whose JSON output (`dcli password|note|secret --output json`) follows the dcli source code and documentation; version, `dcli status` and the behavior when not signed in have been compared against the real release 6.2642.0 (Linux x64, hash verified). `dcli` always outputs the list including secrets: the host removes passwords, note texts and TOTP secrets before the list goes to the browser, and reads an entry again by its ID when it is opened. Dashlane "secrets" (e.g. SSH keys as text) appear as notes. Sign-in, second factor and SSO are handled by `dcli` in the terminal (`dcli sync`); `dcli` must have stored the master password, otherwise the vault is considered locked. Personal IDs (`dcli id --output json`, since 6.2642.0: identity, passport, ID card, driver's licence, social security and tax number) appear as identities: the listing carries only the type and the holder's name, the numbers and all other fields are read by ID when the entry is opened; title, name and user name go into the identity, passport, licence and social security numbers into their fields, dates, places and other numbers into custom fields (numbers hidden), unknown keys keep Dashlane's name. The field names follow the dcli source code (Dashlane's item keys); they could not be checked against a real account, so `selftest.py dashlane` lists the field names (never the values) dcli delivers. Older dcli versions without `id` still list logins and notes, with a notice. Not supported: payment cards, addresses, phone numbers and e-mail addresses of the identity section (dcli 6.2642.0 has no command that reads them), folders, attachments, passkeys, writing (⛔ via the CLI).
 
@@ -140,24 +143,24 @@ shows whether the real program provides it.
 
 ## Sign-in and session
 
-| Feature | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | CLI providers |
-|---|---| --- |---|---|
-| Sign in with master password / passphrase | ✅ R (PBKDF2, Argon2id) | ✅ R (token or userpass) | ✅ R (private key + passphrase) | in the CLI (`op signin`, `lpass login`, `dcli sync`, gpg agent) |
-| OpenPGP keys: RSA, Ed25519/Cv25519, v6 according to RFC 9580 (Argon2 S2K, AEAD, SEIPD v2) | – | – | ✅ R (RSA, ECC), ✅ U (v6) ¹⁵ | – |
-| Bitwarden's new encryption format ("Encryption V2": COSE, XAES-256-GCM, cipher blobs) | ✅ U read; writing blocked ¹⁴ | – | – | – |
-| Sign in with API key | ✅ R | – | – | – |
-| Two-factor | 🟡 S ¹¹ | ❌ (server MFA) | ✅ R ¹² | handled by the CLI |
-| Duo Universal Prompt (personal and organization) in a tab, popup continues afterwards | ✅ S ²⁷ | – | ❌ | – |
-| Security key / passkey (FIDO2, WebAuthn) as second factor, **experimental**: confirmed in a tab of the web vault, popup continues afterwards | ✅ R (Vaultwarden, Chromium), ✅ S (Firefox) ³³ | – | – | – |
-| New device verification (email code) | ✅ S | – | – | – |
-| Self-hosted server | ✅ R | ✅ R | ✅ R | – |
-| Token renewal / keeping the session alive | ✅ R | ✅ R (`renew-self`) | ✅ R ³¹ | ✅ S |
-| Verify server identity | – | – (browser TLS) | ✅ R (key pinning) | – |
-| Unlock with PIN, 4–12 digits, checked while typing (after auto-lock, until the browser restarts) | ✅ S | ✅ (same path, not tested separately) | ✅ S | ✅ (same path, not tested separately) |
-| Organization SSO (OIDC with PKCE in a tab), then master password | ✅ R (Vaultwarden with local OIDC provider), ✅ S (Bitwarden) ²⁷ | ❌ (OIDC) | ❌ | – |
-| Accounts without master password (trusted devices, Key Connector) | ❌ – clear message (R + S) | – | – | – |
-| Unlock with the device: Windows Hello, Touch ID, a phone or a security key via a passkey of OmniVault's own with the PRF extension (after auto-lock, until the browser restarts; next to or instead of the PIN) | ✅ S ³⁰ | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) |
-| Biometrics directly (fingerprint, face) | ⛔ (browser extensions have no access; Windows Hello and Touch ID work through device unlock, see above) | ⛔ | ⛔ | – |
+| Feature | Bitwarden / Vaultwarden | Vault / OpenBao | Passbolt | Psono | CLI providers |
+|---|---| --- |---| --- |---|
+| Sign in with master password / passphrase | ✅ R (PBKDF2, Argon2id) | ✅ R (token or userpass) | ✅ R (private key + passphrase) | ✅ R (scrypt) | in the CLI (`op signin`, `lpass login`, `dcli sync`, gpg agent) |
+| OpenPGP keys: RSA, Ed25519/Cv25519, v6 according to RFC 9580 (Argon2 S2K, AEAD, SEIPD v2) | – | – | ✅ R (RSA, ECC), ✅ U (v6) ¹⁵ | – | – |
+| Bitwarden's new encryption format ("Encryption V2": COSE, XAES-256-GCM, cipher blobs) | ✅ U read; writing blocked ¹⁴ | – | – | – | – |
+| Sign in with API key | ✅ R | – | – | ❌ | – |
+| Two-factor | 🟡 S ¹¹ | ❌ (server MFA) | ✅ R ¹² | ✅ R ³⁵ | handled by the CLI |
+| Duo Universal Prompt (personal and organization) in a tab, popup continues afterwards | ✅ S ²⁷ | – | ❌ | ❌ (Duo passcode only) | – |
+| Security key / passkey (FIDO2, WebAuthn) as second factor, **experimental**: confirmed in a tab of the web vault, popup continues afterwards | ✅ R (Vaultwarden, Chromium), ✅ S (Firefox) ³³ | – | – | ❌ | – |
+| New device verification (email code) | ✅ S | – | – | – | – |
+| Self-hosted server | ✅ R | ✅ R | ✅ R | ✅ R | – |
+| Token renewal / keeping the session alive | ✅ R | ✅ R (`renew-self`) | ✅ R ³¹ | – (12-hour session, then sign in again) | ✅ S |
+| Verify server identity | – | – (browser TLS) | ✅ R (key pinning) | ✅ R (signed server info, key pinning) | – |
+| Unlock with PIN, 4–12 digits, checked while typing (after auto-lock, until the browser restarts) | ✅ S | ✅ (same path, not tested separately) | ✅ S | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) |
+| Organization SSO (OIDC with PKCE in a tab), then master password | ✅ R (Vaultwarden with local OIDC provider), ✅ S (Bitwarden) ²⁷ | ❌ (OIDC) | ❌ | ❌ (LDAP, SAML, OIDC accounts) | – |
+| Accounts without master password (trusted devices, Key Connector) | ❌ – clear message (R + S) | – | – | – | – |
+| Unlock with the device: Windows Hello, Touch ID, a phone or a security key via a passkey of OmniVault's own with the PRF extension (after auto-lock, until the browser restarts; next to or instead of the PIN) | ✅ S ³⁰ | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) |
+| Biometrics directly (fingerprint, face) | ⛔ (browser extensions have no access; Windows Hello and Touch ID work through device unlock, see above) | ⛔ | ⛔ | ⛔ | – |
 
 ¹¹ TOTP, email, YubiKey OTP, Duo (²⁷) and, experimentally, a security key (FIDO2/WebAuthn, ³³); if the security key does not work, the API key helps. Not offered: "remember this device" and the recovery code.
 ³³ Bitwarden and Vaultwarden check that the assertion was made on the web vault's own origin for its domain (rpId,
@@ -218,7 +221,7 @@ the simulated server, which builds addresses like the real servers. Not verified
 | Transfer between providers | ✅ R: logins, notes, cards, identities and custom fields, as far as the target can store them; otherwise they are written readably into the notes. Passkeys are carried over if the target can store them (Bitwarden → Bitwarden); attachments, history and otherwise also passkeys stay in the original (notice beforehand, depending on the target account). |
 | Mirror rules (source → target, optionally with deletion, without ping-pong) | ✅ R + U |
 | Automatic sync of unlocked accounts (also after a service worker restart, with mirror rules) | ✅ R (browser test: worker terminated, alarm wakes it, a change from another client arrives and is mirrored) |
-| Trash (Tools → Trash) | ✅ R (Bitwarden/Vaultwarden, Vault/OpenBao) |
+| Trash (Tools → Trash) | ✅ R (Bitwarden/Vaultwarden, Vault/OpenBao, Psono) |
 | Bitwarden Send (Tools → Send, Bitwarden/Vaultwarden only): list own Sends (name, type, expiration or deletion, access count), create text and file Sends (up to 30 MB) with deletion date (at most 31 days), expiration date, maximum access count, password, hide text, hide email, disabled; edit (the link stays the same, the file itself cannot be changed), copy link, remove password, delete | ✅ R + S + U: against Vaultwarden (text and file, direct upload); every link is opened as a recipient would via the public interface (`send_access` token, `/sends/access`, file download) and decrypted by an independent Python checker; password protection, expiration, access limit, disabling and deletion against the real server; Azure upload and the premium message of the Bitwarden cloud only simulated ²⁸ |
 | Bitwarden emergency access as a trusted contact, view only (Tools → Emergency access): accounts that grant you access, with type, status and wait time; request access (with confirmation); after approval, the person's own entries (without trash and organization entries) as a separate read-only list with detail view, reveal and copy – no filling, no search, no export, no mirroring; discarded on locking. Inviting, accepting, confirming, approving and takeover: in the Bitwarden apps | ✅ R + S + U: fully against Vaultwarden (two accounts; inviting, confirming and approving via the API, requesting and viewing in OmniVault); takeover approvals only simulated ²⁹ |
 | Export: Bitwarden JSON (complete, with passkeys including keys as in Bitwarden) and CSV, per account or all | ✅ R + U |
@@ -355,6 +358,7 @@ Settings → Appearance → Language switches immediately.
 | Bitwarden: invite, accept, confirm, approve, take over emergency access | only in the Bitwarden apps; as a trusted contact OmniVault can only request and view. Takeover resets someone else's master password and is deliberately left out |
 | Bitwarden: manage permissions in an organization (members, groups, permissions per collection) | not implemented; OmniVault changes an entry's collections |
 | Bitwarden: accounts that unlock without a master password (trusted devices, Key Connector) | they need undocumented key exchange. Duo, SSO and (experimentally) a security key as second factor are supported, see above |
+| Psono: attachments, password history, sharing, security keys as second factor | not implemented yet; the server API offers them |
 | Passbolt: Duo, account recovery | Duo does not work with OmniVault's JWT sign-in without a new permission: the prompt (`POST /mfa/verify/duo/prompt`) and the callback (`/mfa/verify/duo/callback`) require the access token in the `Authorization` header, which a tab does not send (checked against Passbolt CE 5.16: without the header 403, with the header the prompt reaches the Duo health check), and the background cannot read the redirect address to Duo (`redirect: 'manual'` returns an empty `opaqueredirect` response in Chrome and Firefox, `follow` fails due to CORS at Duo). It would be possible with `webRequest` or `declarativeNetRequestWithHostAccess`. Account recovery only exists in Passbolt Pro |
 | Unlocking after a browser restart without the master password | deliberately not: the sealed sessions are kept in memory only |
 | Unlock with the device in Firefox | Firefox lets extensions use WebAuthn only for sites in their host permissions; a passkey for a website domain would need a domain of OmniVault's and a new permission |

@@ -30,6 +30,7 @@ OmniVault only talks to the following destinations. All of them are chosen by yo
 | **Azure Blob Storage** (`*.blob.core.windows.net`) | Only when you download or add an attachment, or create a file Send, in a `bitwarden.com` or `bitwarden.eu` account | The attachment or Send file, encrypted in the browser before upload, sent to the signed address your Bitwarden server hands out. This is where Bitwarden's cloud keeps attachments |
 | The **Passbolt server** of an account you add | When you sign in, sync, edit, share or delete entries | Your user ID, the answers to the server's sign-in challenge, two-factor codes you enter, sign-in tokens and cookies set by your Passbolt server, and your entries encrypted with OpenPGP. Your private key and its passphrase never leave the browser |
 | The **HashiCorp Vault or OpenBao server** of an account you add (only the address you enter) | When you sign in, sync, open, edit, delete or restore entries | Your token, or your username and password for the `userpass` sign-in (which returns a token); the namespace you entered; requests to list, read, write, delete and restore secrets below the mount and path you configured (when you open an entry's version history, also its version list and older versions, which are shown only in that view and not kept), and the secret values you save. The token is renewed with the server while you use the account |
+| The **Psono server** of an account you add (only the address you enter) | When you sign in, sync, open, edit, delete or restore entries, and when you lock the account (to end the session) | Your username, a login key derived from your password with scrypt (never the password itself), two-factor codes you enter, a random device identifier created by OmniVault and the device name "OmniVault", the time of each request (Psono's protection against replayed requests), a session public key and sign-in token, and your entries and folders in the end-to-end encrypted form the server stores. Requests and answers are additionally encrypted with the session key |
 | The **OmniVault local helper** on your computer (Native Messaging host `org.omnivault.host`) | Only if you install it and add a pass, gopass, 1Password, LastPass, Dashlane or Proton Pass account | Requests to list, read, create, change or delete entries. The helper passes them to the official command-line tool of that password manager (`pass`, `gopass`, `op`, `lpass`, `dcli`, `pass-cli`), which you installed and signed in to yourself. Those tools talk to their own services under their own privacy policies. The helper itself makes no network connections and writes no logs |
 | **Have I Been Pwned** (`api.pwnedpasswords.com`) | Only when you check passwords against data breaches (Tools → Check) and have allowed access to this address | For each password, the first 5 characters of its SHA-1 hash (k-anonymity); the answer, padded with fake entries, is compared in your browser. No passwords, usernames or websites |
 | **KeePassXC** on your computer (through `keepassxc-proxy`, registered as `org.omnivault.keepassxc`) | Only if you add a KeePassXC account | Requests in KeePassXC's browser-integration protocol, end-to-end encrypted between OmniVault and KeePassXC. KeePassXC asks you to approve the connection |
@@ -61,8 +62,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 ### Local storage (kept until you remove it or uninstall OmniVault)
 
 - **Account settings:** the name, color and short code you give each account, the server address, your e-mail
-  address or user ID, the random device identifier for Bitwarden-compatible servers, the fingerprint of your
-  Passbolt server's key (to detect if it changes), and the connection ID and public identification key that KeePassXC
+  address or user ID, the random device identifier for Bitwarden-compatible and Psono servers, the fingerprint of your
+  Passbolt server's key and the signing key of your Psono server (to detect if they change), and the connection ID and public identification key that KeePassXC
   assigns to OmniVault.
 - **Passbolt private key:** the private key you load from your Passbolt recovery kit, in the passphrase-protected
   form it comes in. The passphrase is never stored.
@@ -90,7 +91,8 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 
 ### Session storage (in memory only, cleared when the browser closes)
 
-- Decrypted vault keys and sign-in tokens of unlocked accounts (for HashiCorp Vault / OpenBao: the token) (and, if you sign in to a Bitwarden-compatible server
+- Decrypted vault keys and sign-in tokens of unlocked accounts (for HashiCorp Vault / OpenBao: the token; for Psono:
+  the session token and key, and the account's decrypted private and secret keys) (and, if you sign in to a Bitwarden-compatible server
   with a personal API key, that key). They are deleted when you lock an account, when OmniVault locks itself after
   the inactivity time you set, when your computer's screen locks (if enabled) and when the browser closes.
 - For Passbolt accounts with a second factor: the refresh token Passbolt issued for the session (see "Permissions"
@@ -109,6 +111,9 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
   server's challenge and a random one-time value that ties the answer to this sign-in), and what the next step needs –
   after Duo or the security key the key derived from your master password, after SSO the sign-in tokens. Locking the
   account or finishing the sign-in deletes it.
+- While a Psono sign-in waits for the second factor, for up to ten minutes: the half-open session (token, session key,
+  device identifier) and the account's keys decrypted with your password, so that the code completes the sign-in.
+  Locking the account or finishing the sign-in deletes it.
 - Short-lived technical state, such as open passkey requests and when the clipboard is due to be cleared.
 
 Your decrypted entries are kept only in the memory of the extension's background process while an account is
