@@ -86,9 +86,16 @@ const loginFlows = createLoginFlows({
   finish: (id, pending, reply) => loginStep(id, { pending, ...reply }),
 });
 
-async function lock(id) {
+async function lock(id, { endServerSession = true } = {}) {
   cache.delete(id);
   for (const p of Object.values(registry)) p.forgetSession?.(id);
+  // providers with server sessions that can be ended (Psono): the token stops working at once, not only at expiry
+  const account = await store.getAccount(id).catch(() => null);
+  const provider = account && registry[account.provider];
+  if (endServerSession && provider?.logout) {
+    const session = await store.getSession(id).catch(() => null);
+    if (session) provider.logout(cfg(account), session).catch(() => {});
+  }
   forgetEmergency(id);
   await loginFlows.clear(id); // a login half done (master key after Duo, tokens after SSO) goes as well
   await store.clearSession(id);
@@ -115,7 +122,8 @@ async function lockAll() {
       });
     }
   }
-  for (const a of await store.listAccounts()) await lock(a.id);
+  // sealed sessions must stay valid on the server, so the PIN or the device can reopen them
+  for (const a of await store.listAccounts()) await lock(a.id, { endServerSession: !(pinLock || deviceLock) });
 }
 
 const PIN_ATTEMPTS = 5;

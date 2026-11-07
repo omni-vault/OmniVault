@@ -1229,5 +1229,30 @@
  "Der Server hat den Sicherheitsschlüssel nicht angenommen: {msg} Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "服务器未接受该安全密钥：{msg} 如果仍然失败，请使用 API 密钥登录。",
  "Anmeldung mit persönlichem API-Schlüssel (Bitwarden: Kontoeinstellungen → Sicherheit → Schlüssel → API-Schlüssel). Nötig z. B., wenn die Anmeldung mit dem Sicherheitsschlüssel (FIDO2 / WebAuthn, experimentell) nicht klappt.": "使用个人 API 密钥登录（Bitwarden：账户设置 → 安全 → 密钥 → API 密钥）。例如，当使用安全密钥（FIDO2 / WebAuthn，实验性）登录不成功时需要使用。",
  "Experimentell: Der Web-Tresor öffnet sich in einem neuen Tab, dort bestätigst du mit deinem Sicherheitsschlüssel. Klappt es nicht, hilft die Anmeldung mit dem API-Schlüssel.": "实验性：网页版密码库会在新标签页中打开，你在那里使用安全密钥确认。如果不成功，请使用 API 密钥登录。",
- "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "服务器未接受该安全密钥。如果仍然失败，请使用 API 密钥登录。"
+ "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "服务器未接受该安全密钥。如果仍然失败，请使用 API 密钥登录。",
+ "Das Konto ist deaktiviert. Bitte an die Administration wenden.": "此账户已停用。请联系管理员启用。",
+ "Die E-Mail-Adresse des Kontos ist noch nicht bestätigt.": "该账户的电子邮件地址尚未验证。",
+ "Code falsch": "验证码错误",
+ "Keine Berechtigung oder nicht vorhanden": "你没有访问权限，或者它不存在",
+ "Zugriff verweigert: {error}": "访问被拒绝：{error}",
+ "Keine Psono-API unter {base}": "在 {base} 未找到 Psono API",
+ "Server-Antwort ungültig (nicht entschlüsselbar)": "服务器响应无效（无法解密）",
+ "Die Signatur der Server-Information ist ungültig.": "服务器信息的签名无效。",
+ "Duo (Passcode)": "Duo（通行码）",
+ "Daten des Servers ließen sich nicht entschlüsseln.": "无法解密服务器的数据。",
+ "Psono-Server (selbst betrieben oder psono.pw). Benutzername und Passwort wie in Psono; die Ende-zu-Ende-Verschlüsselung bleibt erhalten.": "Psono 服务器（自托管或 psono.pw）。使用与 Psono 相同的用户名和密码；端到端加密保持不变。",
+ "Adresse der Psono-API, meist mit „/server“ am Ende (psono.pw: https://www.psono.pw/server).": "Psono API 的地址，通常以“/server”结尾（psono.pw：https://www.psono.pw/server）。",
+ "Bitte Passwort eingeben": "请输入密码",
+ "Nicht unterstützte Schlüsselableitung: {error}": "不支持的密钥派生方式：{error}",
+ "Dieses Psono-Konto meldet sich über {method} an; das unterstützt OmniVault nicht.": "此 Psono 账户通过 {method} 登录，OmniVault 不支持这种方式。",
+ "Nur ein Teil geladen: höchstens {n} Einträge": "仅加载了一部分：最多 {n} 个项目",
+ "Keine Schreibberechtigung für diesen Ordner": "你无法编辑此文件夹中的项目",
+ "Ordner nicht gefunden – bitte synchronisieren": "找不到文件夹，请同步",
+ "Dieser Eintragstyp kann nur gelesen werden.": "此类项目为只读。",
+ "In einen anderen geteilten Ordner kann OmniVault nicht verschieben; bitte in Psono verschieben.": "OmniVault 无法将项目移到另一个共享文件夹。请在 Psono 中移动。",
+ "Einzeln geteilte Einträge bitte in Psono löschen.": "单独共享的项目请在 Psono 中删除。",
+ "{n} Einträge ohne Leserecht übersprungen": {
+  "other": "已跳过 {n} 个无读取权限的项目"
+ },
+ "Psono ist ein Produkt der esaqa GmbH. OmniVault ist nicht mit der esaqa GmbH verbunden, wird von ihr weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität zu beschreiben.": "Psono 是 esaqa GmbH 的产品。OmniVault 与 esaqa GmbH 无关联，也未获得其支持或认可，提及该名称仅用于说明兼容性。"
 }

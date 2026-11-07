@@ -12,9 +12,10 @@ import LastPassProvider from './lastpass/index.js';
 import DashlaneProvider from './dashlane/index.js';
 import KeePassXCProvider from './keepassxc/index.js';
 import VaultProvider from './vault/index.js';
+import PsonoProvider from './psono/index.js';
 
 // NordPass is postponed (no vault API or CLI).
-const providers = [BitwardenProvider, PassboltProvider, KeePassXCProvider, VaultProvider, ProtonPassProvider, PassProvider, GopassProvider, OnePasswordProvider, LastPassProvider, DashlaneProvider];
+const providers = [BitwardenProvider, PassboltProvider, KeePassXCProvider, VaultProvider, PsonoProvider, ProtonPassProvider, PassProvider, GopassProvider, OnePasswordProvider, LastPassProvider, DashlaneProvider];
 
 export const registry = Object.fromEntries(providers.map((p) => [p.id, p]));
 

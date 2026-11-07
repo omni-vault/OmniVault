@@ -1229,5 +1229,30 @@
  "Der Server hat den Sicherheitsschlüssel nicht angenommen: {msg} Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "サーバーがセキュリティキーを受け付けませんでした：{msg} うまくいかない場合は、API キーでログインしてください。",
  "Anmeldung mit persönlichem API-Schlüssel (Bitwarden: Kontoeinstellungen → Sicherheit → Schlüssel → API-Schlüssel). Nötig z. B., wenn die Anmeldung mit dem Sicherheitsschlüssel (FIDO2 / WebAuthn, experimentell) nicht klappt.": "個人用 API キーでログインします（Bitwarden：アカウント設定 → セキュリティ → キー → API キー）。たとえば、セキュリティキー（FIDO2 / WebAuthn、試験的）でのログインがうまくいかない場合に必要です。",
  "Experimentell: Der Web-Tresor öffnet sich in einem neuen Tab, dort bestätigst du mit deinem Sicherheitsschlüssel. Klappt es nicht, hilft die Anmeldung mit dem API-Schlüssel.": "試験的：ウェブ保管庫が新しいタブで開き、そこでセキュリティキーを使って確認します。うまくいかない場合は、API キーでログインしてください。",
- "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "サーバーがセキュリティキーを受け付けませんでした。うまくいかない場合は、API キーでログインしてください。"
+ "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "サーバーがセキュリティキーを受け付けませんでした。うまくいかない場合は、API キーでログインしてください。",
+ "Das Konto ist deaktiviert. Bitte an die Administration wenden.": "このアカウントは無効になっています。管理者に有効化を依頼してください。",
+ "Die E-Mail-Adresse des Kontos ist noch nicht bestätigt.": "アカウントのメールアドレスはまだ確認されていません。",
+ "Code falsch": "コードが正しくありません",
+ "Keine Berechtigung oder nicht vorhanden": "アクセス権がないか、存在しません",
+ "Zugriff verweigert: {error}": "アクセスが拒否されました: {error}",
+ "Keine Psono-API unter {base}": "{base} に Psono API が見つかりません",
+ "Server-Antwort ungültig (nicht entschlüsselbar)": "サーバーの応答が無効です（復号できません）",
+ "Die Signatur der Server-Information ist ungültig.": "サーバー情報の署名が無効です。",
+ "Duo (Passcode)": "Duo（パスコード）",
+ "Daten des Servers ließen sich nicht entschlüsseln.": "サーバーのデータを復号できませんでした。",
+ "Psono-Server (selbst betrieben oder psono.pw). Benutzername und Passwort wie in Psono; die Ende-zu-Ende-Verschlüsselung bleibt erhalten.": "Psono サーバー（セルフホストまたは psono.pw）。Psono と同じユーザー名とパスワードを使います。エンドツーエンド暗号化はそのまま維持されます。",
+ "Adresse der Psono-API, meist mit „/server“ am Ende (psono.pw: https://www.psono.pw/server).": "Psono API のアドレス。通常は末尾が「/server」です（psono.pw の場合: https://www.psono.pw/server）。",
+ "Bitte Passwort eingeben": "パスワードを入力してください",
+ "Nicht unterstützte Schlüsselableitung: {error}": "対応していない鍵導出方式です: {error}",
+ "Dieses Psono-Konto meldet sich über {method} an; das unterstützt OmniVault nicht.": "この Psono アカウントは {method} でサインインしますが、OmniVault は対応していません。",
+ "Nur ein Teil geladen: höchstens {n} Einträge": "一部のみ読み込みました（最大 {n} 件）",
+ "Keine Schreibberechtigung für diesen Ordner": "このフォルダー内のアイテムは編集できません",
+ "Ordner nicht gefunden – bitte synchronisieren": "フォルダーが見つかりません。同期してください",
+ "Dieser Eintragstyp kann nur gelesen werden.": "この種類のアイテムは読み取り専用です。",
+ "In einen anderen geteilten Ordner kann OmniVault nicht verschieben; bitte in Psono verschieben.": "OmniVault は別の共有フォルダーにアイテムを移動できません。Psono で移動してください。",
+ "Einzeln geteilte Einträge bitte in Psono löschen.": "個別に共有されたアイテムは Psono で削除してください。",
+ "{n} Einträge ohne Leserecht übersprungen": {
+  "other": "読み取り権限のないアイテムを {n} 件スキップしました"
+ },
+ "Psono ist ein Produkt der esaqa GmbH. OmniVault ist nicht mit der esaqa GmbH verbunden, wird von ihr weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität zu beschreiben.": "Psono は esaqa GmbH の製品です。OmniVault は esaqa GmbH と提携しておらず、同社による支援や承認も受けていません。名称は互換性を説明するためにのみ使用しています。"
 }

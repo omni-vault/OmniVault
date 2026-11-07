@@ -1277,5 +1277,31 @@
  "Der Server hat den Sicherheitsschlüssel nicht angenommen: {msg} Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "El servidor no aceptó la llave de seguridad: {msg} Si sigue fallando, inicia sesión con la clave de API.",
  "Anmeldung mit persönlichem API-Schlüssel (Bitwarden: Kontoeinstellungen → Sicherheit → Schlüssel → API-Schlüssel). Nötig z. B., wenn die Anmeldung mit dem Sicherheitsschlüssel (FIDO2 / WebAuthn, experimentell) nicht klappt.": "Inicia sesión con tu clave de API personal (Bitwarden: Configuración de la cuenta → Seguridad → Claves → Clave de API). Necesario, por ejemplo, si el inicio de sesión con la llave de seguridad (FIDO2 / WebAuthn, experimental) no funciona.",
  "Experimentell: Der Web-Tresor öffnet sich in einem neuen Tab, dort bestätigst du mit deinem Sicherheitsschlüssel. Klappt es nicht, hilft die Anmeldung mit dem API-Schlüssel.": "Experimental: la caja fuerte web se abre en una pestaña nueva, donde confirmas con tu llave de seguridad. Si no funciona, inicia sesión con la clave de API.",
- "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "El servidor no aceptó la llave de seguridad. Si sigue fallando, inicia sesión con la clave de API."
+ "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "El servidor no aceptó la llave de seguridad. Si sigue fallando, inicia sesión con la clave de API.",
+ "Das Konto ist deaktiviert. Bitte an die Administration wenden.": "Esta cuenta está desactivada. Pide a tu administrador que la active.",
+ "Die E-Mail-Adresse des Kontos ist noch nicht bestätigt.": "La dirección de correo de la cuenta aún no está verificada.",
+ "Code falsch": "Código incorrecto",
+ "Keine Berechtigung oder nicht vorhanden": "No tienes acceso o no existe",
+ "Zugriff verweigert: {error}": "Acceso denegado: {error}",
+ "Keine Psono-API unter {base}": "No hay ninguna API de Psono en {base}",
+ "Server-Antwort ungültig (nicht entschlüsselbar)": "Respuesta del servidor no válida (no se pudo descifrar)",
+ "Die Signatur der Server-Information ist ungültig.": "La firma de la información del servidor no es válida.",
+ "Duo (Passcode)": "Duo (código de acceso)",
+ "Daten des Servers ließen sich nicht entschlüsseln.": "No se pudieron descifrar los datos del servidor.",
+ "Psono-Server (selbst betrieben oder psono.pw). Benutzername und Passwort wie in Psono; die Ende-zu-Ende-Verschlüsselung bleibt erhalten.": "Un servidor Psono (autoalojado o psono.pw). Usa el mismo usuario y contraseña que en Psono; el cifrado de extremo a extremo se mantiene.",
+ "Adresse der Psono-API, meist mit „/server“ am Ende (psono.pw: https://www.psono.pw/server).": "Dirección de la API de Psono, normalmente terminada en “/server” (psono.pw: https://www.psono.pw/server).",
+ "Bitte Passwort eingeben": "Introduce tu contraseña",
+ "Nicht unterstützte Schlüsselableitung: {error}": "Derivación de clave no compatible: {error}",
+ "Dieses Psono-Konto meldet sich über {method} an; das unterstützt OmniVault nicht.": "Esta cuenta de Psono inicia sesión con {method}, que OmniVault no admite.",
+ "Nur ein Teil geladen: höchstens {n} Einträge": "Carga parcial: como máximo {n} elementos",
+ "Keine Schreibberechtigung für diesen Ordner": "No puedes editar elementos de esta carpeta",
+ "Ordner nicht gefunden – bitte synchronisieren": "No se encontró la carpeta: sincroniza",
+ "Dieser Eintragstyp kann nur gelesen werden.": "Este tipo de elemento es de solo lectura.",
+ "In einen anderen geteilten Ordner kann OmniVault nicht verschieben; bitte in Psono verschieben.": "OmniVault no puede mover elementos a otra carpeta compartida. Muévelo en Psono.",
+ "Einzeln geteilte Einträge bitte in Psono löschen.": "Elimina en Psono los elementos compartidos de forma individual.",
+ "{n} Einträge ohne Leserecht übersprungen": {
+  "one": "{n} elemento sin permiso de lectura omitido",
+  "other": "{n} elementos sin permiso de lectura omitidos"
+ },
+ "Psono ist ein Produkt der esaqa GmbH. OmniVault ist nicht mit der esaqa GmbH verbunden, wird von ihr weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität zu beschreiben.": "Psono es un producto de esaqa GmbH. OmniVault no está afiliado a esaqa GmbH ni cuenta con su apoyo o aprobación, y usa el nombre solo para describir la compatibilidad."
 }

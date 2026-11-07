@@ -1277,5 +1277,31 @@
  "Der Server hat den Sicherheitsschlüssel nicht angenommen: {msg} Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "The server didn’t accept the security key: {msg} If it keeps failing, sign in with the API key.",
  "Anmeldung mit persönlichem API-Schlüssel (Bitwarden: Kontoeinstellungen → Sicherheit → Schlüssel → API-Schlüssel). Nötig z. B., wenn die Anmeldung mit dem Sicherheitsschlüssel (FIDO2 / WebAuthn, experimentell) nicht klappt.": "Sign in with your personal API key (Bitwarden: Account settings → Security → Keys → API key). Needed, for example, when signing in with the security key (FIDO2 / WebAuthn, experimental) doesn’t work.",
  "Experimentell: Der Web-Tresor öffnet sich in einem neuen Tab, dort bestätigst du mit deinem Sicherheitsschlüssel. Klappt es nicht, hilft die Anmeldung mit dem API-Schlüssel.": "Experimental: the web vault opens in a new tab, where you confirm with your security key. If that doesn’t work, sign in with the API key.",
- "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "The server didn’t accept the security key. If it keeps failing, sign in with the API key."
+ "Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.": "The server didn’t accept the security key. If it keeps failing, sign in with the API key.",
+ "Das Konto ist deaktiviert. Bitte an die Administration wenden.": "This account is disabled. Ask your administrator to enable it.",
+ "Die E-Mail-Adresse des Kontos ist noch nicht bestätigt.": "The account's email address hasn't been verified yet.",
+ "Code falsch": "Wrong code",
+ "Keine Berechtigung oder nicht vorhanden": "You don't have access, or it doesn't exist",
+ "Zugriff verweigert: {error}": "Access denied: {error}",
+ "Keine Psono-API unter {base}": "No Psono API found at {base}",
+ "Server-Antwort ungültig (nicht entschlüsselbar)": "Invalid server response (couldn't be decrypted)",
+ "Die Signatur der Server-Information ist ungültig.": "The signature of the server's information is invalid.",
+ "Duo (Passcode)": "Duo (passcode)",
+ "Daten des Servers ließen sich nicht entschlüsseln.": "Couldn't decrypt the data from the server.",
+ "Psono-Server (selbst betrieben oder psono.pw). Benutzername und Passwort wie in Psono; die Ende-zu-Ende-Verschlüsselung bleibt erhalten.": "A Psono server (self-hosted or psono.pw). Use the same username and password as in Psono; end-to-end encryption is preserved.",
+ "Adresse der Psono-API, meist mit „/server“ am Ende (psono.pw: https://www.psono.pw/server).": "Address of the Psono API, usually ending in “/server” (psono.pw: https://www.psono.pw/server).",
+ "Bitte Passwort eingeben": "Enter your password",
+ "Nicht unterstützte Schlüsselableitung: {error}": "Unsupported key derivation: {error}",
+ "Dieses Psono-Konto meldet sich über {method} an; das unterstützt OmniVault nicht.": "This Psono account signs in with {method}, which OmniVault doesn't support.",
+ "Nur ein Teil geladen: höchstens {n} Einträge": "Only partly loaded: at most {n} items",
+ "Keine Schreibberechtigung für diesen Ordner": "You can't edit items in this folder",
+ "Ordner nicht gefunden – bitte synchronisieren": "Folder not found – please sync",
+ "Dieser Eintragstyp kann nur gelesen werden.": "This type of item is read-only.",
+ "In einen anderen geteilten Ordner kann OmniVault nicht verschieben; bitte in Psono verschieben.": "OmniVault can't move items into another shared folder. Move it in Psono instead.",
+ "Einzeln geteilte Einträge bitte in Psono löschen.": "Delete items that are shared on their own in Psono.",
+ "{n} Einträge ohne Leserecht übersprungen": {
+  "one": "{n} item without read access skipped",
+  "other": "{n} items without read access skipped"
+ },
+ "Psono ist ein Produkt der esaqa GmbH. OmniVault ist nicht mit der esaqa GmbH verbunden, wird von ihr weder unterstützt noch gebilligt und nennt den Namen nur, um die Kompatibilität zu beschreiben.": "Psono is a product of esaqa GmbH. OmniVault isn’t affiliated with, supported or endorsed by esaqa GmbH and uses the name only to describe compatibility."
 }

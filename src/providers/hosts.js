@@ -25,7 +25,8 @@ export function hostPatterns(provider, config) {
       return [...new Set([ep.api, ep.identity].map(originPattern).filter(Boolean))];
     }
     case 'passbolt':
-    case 'vault': {
+    case 'vault':
+    case 'psono': {
       const p = originPattern(config.server);
       return p ? [p] : [];
     }
