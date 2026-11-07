@@ -148,6 +148,7 @@ shows whether the real program provides it.
 | Sign in with API key | ✅ R | – | – | – |
 | Two-factor | 🟡 S ¹¹ | ❌ (server MFA) | ✅ R ¹² | handled by the CLI |
 | Duo Universal Prompt (personal and organization) in a tab, popup continues afterwards | ✅ S ²⁷ | – | ❌ | – |
+| Security key / passkey (FIDO2, WebAuthn) as second factor, **experimental**: confirmed in a tab of the web vault, popup continues afterwards | ✅ R (Vaultwarden, Chromium), ✅ S (Firefox) ³³ | – | – | – |
 | New device verification (email code) | ✅ S | – | – | – |
 | Self-hosted server | ✅ R | ✅ R | ✅ R | – |
 | Token renewal / keeping the session alive | ✅ R | ✅ R (`renew-self`) | ✅ R ³¹ | ✅ S |
@@ -158,7 +159,19 @@ shows whether the real program provides it.
 | Unlock with the device: Windows Hello, Touch ID, a phone or a security key via a passkey of OmniVault's own with the PRF extension (after auto-lock, until the browser restarts; next to or instead of the PIN) | ✅ S ³⁰ | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) | ✅ (same path, not tested separately) |
 | Biometrics directly (fingerprint, face) | ⛔ (browser extensions have no access; Windows Hello and Touch ID work through device unlock, see above) | ⛔ | ⛔ | – |
 
-¹¹ TOTP, email, YubiKey OTP, Duo (²⁷). WebAuthn is missing; in that case the API key helps.
+¹¹ TOTP, email, YubiKey OTP, Duo (²⁷) and, experimentally, a security key (FIDO2/WebAuthn, ³³); if the security key does not work, the API key helps. Not offered: "remember this device" and the recovery code.
+³³ Bitwarden and Vaultwarden check that the assertion was made on the web vault's own origin for its domain (rpId,
+`clientDataJSON.origin`); OmniVault's pages have another origin, which neither server accepts (Bitwarden only adds its
+own Chromium extension IDs). So OmniVault opens `webauthn-connector.html` of the web vault in a tab and injects a
+small box of its own there (`scripting`, using the host permission the account already has; only in the top frame and
+only on the web vault's origin); after a click it calls `navigator.credentials.get` with the server's challenge and
+sends the answer only to its background (checked: tab, frame, origin, one-time nonce). The web vault's own scripts
+are not used, so the page only has to exist on that origin. The U2F AppID extension is passed on over https only.
+Tested against a real Vaultwarden with Chromium's virtual authenticator (CDP): cancel, an authenticator without the
+key (error in the box, then retry), no box after the tab moves to another origin, login and sync; in Firefox with
+Firefox's virtual authenticator against the simulated server, which checks origin, rpId, challenge and signature.
+Not verified with bitwarden.com and real security keys; the server's own WebAuthn check (Bitwarden's Fido2 library)
+was not run.
 ³⁰ Chrome and other Chromium browsers only. Chromium (virtual authenticators over CDP): setup, unlock, PIN and device side by side, cancelled or failed verification, an authenticator that does not know the passkey, a security key that evaluates PRF only when signing in (asked a second time during setup), replacing and removing, an authenticator without PRF (explained, not offered); from the real toolbar popup the ceremony runs in a window of its own and the popup is reopened afterwards. Real Windows Hello, Touch ID, phones (hybrid) and security keys were not tested automatically. Firefox only lets extensions use WebAuthn for sites in their host permissions, not for their own origin (checked: `SecurityError`), so the settings explain this instead.
 ¹² TOTP and YubiKey OTP (TOTP tested against real Passbolt CE 5.16 in Chromium and Firefox, YubiKey simulated), each with
 "Remember the second factor for 30 days" (Passbolt's `remember`; also applies to the Passbolt web app in the same
@@ -341,7 +354,7 @@ Settings → Appearance → Language switches immediately.
 | Dashlane: create, edit, delete entries | the official `dcli` can only read |
 | Bitwarden: invite, accept, confirm, approve, take over emergency access | only in the Bitwarden apps; as a trusted contact OmniVault can only request and view. Takeover resets someone else's master password and is deliberately left out |
 | Bitwarden: manage permissions in an organization (members, groups, permissions per collection) | not implemented; OmniVault changes an entry's collections |
-| Bitwarden: WebAuthn as second factor; accounts that unlock without a master password (trusted devices, Key Connector) | WebAuthn only works through an internal page of the web vault (workaround: API key); the other two need undocumented key exchange. Duo and SSO are supported, see above |
+| Bitwarden: accounts that unlock without a master password (trusted devices, Key Connector) | they need undocumented key exchange. Duo, SSO and (experimentally) a security key as second factor are supported, see above |
 | Passbolt: Duo, account recovery | Duo does not work with OmniVault's JWT sign-in without a new permission: the prompt (`POST /mfa/verify/duo/prompt`) and the callback (`/mfa/verify/duo/callback`) require the access token in the `Authorization` header, which a tab does not send (checked against Passbolt CE 5.16: without the header 403, with the header the prompt reaches the Duo health check), and the background cannot read the redirect address to Duo (`redirect: 'manual'` returns an empty `opaqueredirect` response in Chrome and Firefox, `follow` fails due to CORS at Duo). It would be possible with `webRequest` or `declarativeNetRequestWithHostAccess`. Account recovery only exists in Passbolt Pro |
 | Unlocking after a browser restart without the master password | deliberately not: the sealed sessions are kept in memory only |
 | Unlock with the device in Firefox | Firefox lets extensions use WebAuthn only for sites in their host permissions; a passkey for a website domain would need a domain of OmniVault's and a new permission |

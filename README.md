@@ -138,11 +138,13 @@ Click the OmniVault icon, then *New* (the plus sign at the top right) → *Add a
 - **Bitwarden, Vaultwarden, Passbolt, HashiCorp Vault / OpenBao:** sign in directly in OmniVault. For a self-hosted server, enter its address;
   your browser will ask once for permission to access it.
 - **Ways to sign in to Bitwarden / Vaultwarden:** master password, with an authenticator app (TOTP), e-mail code,
-  YubiKey OTP or Duo as the second factor; with your organization's single sign-on (*Sign in with SSO* plus the
-  organization identifier), followed by your master password; or with a personal API key. Duo and SSO open in a new
-  tab; once you are done there, OmniVault closes the tab and the popup continues where it left off. Accounts that unlock
-  without a master password (trusted devices, Key Connector) and FIDO2 / WebAuthn as the second factor are not
-  supported yet – for the latter, the API key works.
+  YubiKey OTP, Duo or – experimentally – a security key or passkey (FIDO2 / WebAuthn) as the second factor; with your
+  organization's single sign-on (*Sign in with SSO* plus the organization identifier), followed by your master
+  password; or with a personal API key. Duo and SSO open in a new tab; once you are done there, OmniVault closes the
+  tab and the popup continues where it left off. For a security key, OmniVault opens your web vault in a tab and asks
+  for the key in a small box of its own there (the server only accepts keys used on the web vault's own address); if
+  that does not work for you, the API key does. Accounts that unlock without a master password (trusted devices,
+  Key Connector) are not supported yet.
 - **Passbolt with a second factor** (authenticator app or YubiKey): OmniVault stays signed in when the session is
   renewed, if you allow the optional "cookies" permission it asks for when you enter the code (https servers only;
   OmniVault reads and deletes only Passbolt's own session cookie, see [PRIVACY.md](PRIVACY.md)). Otherwise the code is

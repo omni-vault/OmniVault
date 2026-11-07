@@ -25,7 +25,7 @@ OmniVault only talks to the following destinations. All of them are chosen by yo
 
 | Destination | When | What is sent |
 |---|---|---|
-| The **Bitwarden-compatible server** of an account you add: `bitwarden.com` or `bitwarden.eu` (`api.` and `identity.` subdomains) or the address of your self-hosted server (e.g. Vaultwarden) | When you sign in, unlock, sync, edit, share or delete entries and attachments | Your e-mail address, a hash derived from your master password (never the password itself), two-factor codes you enter, a random device identifier created by OmniVault, the browser type (`chrome` or `firefox`), sign-in tokens, and your vault data in the end-to-end encrypted form the server stores |
+| The **Bitwarden-compatible server** of an account you add: `bitwarden.com` or `bitwarden.eu` (`api.` and `identity.` subdomains) or the address of your self-hosted server (e.g. Vaultwarden) | When you sign in, unlock, sync, edit, share or delete entries and attachments | Your e-mail address, a hash derived from your master password (never the password itself), two-factor codes you enter (or your security key's signed answer), a random device identifier created by OmniVault, the browser type (`chrome` or `firefox`), sign-in tokens, and your vault data in the end-to-end encrypted form the server stores |
 | **Duo** and your **organization's sign-in page** (SSO identity provider), in a browser tab | Only if your Bitwarden-compatible account uses Duo as its second factor, or you chose "Sign in with SSO" | OmniVault opens the address your Bitwarden server names (Duo, or the server's SSO page for the organization identifier you entered) in an ordinary tab. You sign in there as on any website; OmniVault sends nothing to these pages itself. When the tab comes back to your server's web vault page, OmniVault reads the one-time code from that address and closes the tab |
 | **Azure Blob Storage** (`*.blob.core.windows.net`) | Only when you download or add an attachment, or create a file Send, in a `bitwarden.com` or `bitwarden.eu` account | The attachment or Send file, encrypted in the browser before upload, sent to the signed address your Bitwarden server hands out. This is where Bitwarden's cloud keeps attachments |
 | The **Passbolt server** of an account you add | When you sign in, sync, edit, share or delete entries | Your user ID, the answers to the server's sign-in challenge, two-factor codes you enter, sign-in tokens and cookies set by your Passbolt server, and your entries encrypted with OpenPGP. Your private key and its passphrase never leave the browser |
@@ -104,9 +104,11 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 - A login you just submitted on a website, for up to three minutes, while the "Save login?" prompt is offered.
 - For each tab, the frame in which you last opened the list of the OmniVault button (frame number and the address of
   its website), so that filling goes into that frame.
-- While a Bitwarden-compatible sign-in waits in a tab (Duo or SSO), for up to ten minutes: the step reached, the tab's
-  number and the address it should return to, and what the next step needs – after Duo the key derived from your master
-  password, after SSO the sign-in tokens. Locking the account or finishing the sign-in deletes it.
+- While a Bitwarden-compatible sign-in waits in a tab (Duo, security key or SSO), for up to ten minutes: the step
+  reached, the tab's number and the address it should return to (for a security key: the web vault's address, the
+  server's challenge and a random one-time value that ties the answer to this sign-in), and what the next step needs –
+  after Duo or the security key the key derived from your master password, after SSO the sign-in tokens. Locking the
+  account or finishing the sign-in deletes it.
 - Short-lived technical state, such as open passkey requests and when the clipboard is due to be cleared.
 
 Your decrypted entries are kept only in the memory of the extension's background process while an account is
@@ -181,6 +183,13 @@ for 30 days in your browser; Passbolt's web app in the same browser uses it too.
 
 For Duo and SSO sign-ins OmniVault watches only the tab it opened itself, and only to see when it arrives back at your
 server's address – which it may access anyway for that account. No further permission is needed or requested.
+
+For a security key as second factor (experimental), OmniVault opens your server's web vault (for bitwarden.com and
+bitwarden.eu: `vault.bitwarden.com` / `vault.bitwarden.eu`) in a tab and shows a small
+box of its own on that page (only on your server's address, only in that tab). After you click it, your browser asks
+your security key or passkey to sign the server's challenge; the signed answer (which contains no secret and only
+works for this one sign-in) goes to OmniVault's background and from there to your server, nowhere else. It uses the
+access to your server that the account already has; no further permission is needed or requested.
 
 ## Your choices
 

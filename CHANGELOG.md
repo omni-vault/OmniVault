@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### New
+- **Security key or passkey as Bitwarden's second factor (experimental):** accounts with FIDO2 / WebAuthn two-step
+  login can now sign in without the API key. Bitwarden and Vaultwarden only accept a key used on the web vault's own
+  address, so OmniVault opens your web vault in a tab and shows a small box of its own there; after a click, your
+  browser asks the security key, the answer goes back to OmniVault, the tab closes and the popup continues (also after
+  it was closed). Only on your server's address, only in that tab, no new permission. If it does not work for you,
+  sign in with the API key as before.
 - **Unlock with your device** (Settings → Security, Chrome and other Chromium browsers): after an automatic lock,
   Windows Hello, Touch ID, your phone or a security key reopens your accounts, next to or instead of the PIN. OmniVault
   creates a passkey for itself and derives the key for the sealed session copy from the device's PRF answer, which it

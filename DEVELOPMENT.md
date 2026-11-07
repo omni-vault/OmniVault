@@ -50,6 +50,9 @@ npm run test:exports      # encrypted exports and ZIP imports: browser test agai
                           # HTTPS imports OmniVault's password-protected files, OmniVault opens the CLI's exports
 npm run test:vaultwarden-sso  # Vaultwarden with SSO against a local OIDC provider: sign-in, master password, renewal
 npm run test:login        # Duo and SSO in a tab (simulated servers), with a real toolbar popup; visible with `xvfb-run -a`
+npm run test:vaultwarden-webauthn  # security key as Bitwarden second factor (experimental): local Vaultwarden on
+                          # http://localhost (rpId localhost), key registered over the API, Chromium virtual authenticator;
+                          # cancel, unknown key then retry, other origin in the tab, login; VW_PORT/VW_DIR move it
 npm run test:emergency    # Bitwarden emergency access (trusted contact, view only) against the simulated server;
                           # the same test runs against real Vaultwarden as part of test:vaultwarden
 npm run test:passbolt     # sets up a local Passbolt CE (PostgreSQL) and tests provider and sharing against it
@@ -182,6 +185,24 @@ checks that Firefox still refuses and the setting explains it. In the Chromium t
 to one page: the device window gets its own through browser-wide auto-attach before its script starts, and since a
 passkey cannot be moved to another page with its PRF secret, a successful unlock inside the device window is not
 covered (it runs the same code as on the page).
+
+**Security key as Bitwarden's second factor** (experimental; `background/webauthn-2fa.js`, `background/login-flow.js`).
+Bitwarden (Fido2NetLib, `Origins` = web vault plus Bitwarden's own Chromium extension IDs) and Vaultwarden
+(webauthn-rs, origin = `DOMAIN`) only accept an assertion whose `clientDataJSON.origin` is the web vault and whose rpId
+is its domain. An extension page cannot produce that: Chrome does not allow foreign rpIds there, and Firefox, which
+allows rpIds of host-permission sites, still reports the extension's own origin. The web vault's
+`webauthn-connector.html` only answers a parent frame (on bitwarden.com only its own origin) or a fixed app deep link,
+so it is not used either. Instead the login flow opens that page in a tab and injects `webauthnPrompt` with
+`scripting.executeScript` (top frame only, origin checked before and inside the injection). Its box lives in a closed
+shadow root styled through CSSOM (page CSP does not apply); after a click it calls `navigator.credentials.get` in the
+content script's world, which uses the page's origin. The answer goes back as a runtime message (the content-handler
+`ov-webauthn-2fa`), accepted only from the flow's tab, frame 0, the web vault's origin and with the flow's random nonce;
+the injected function's return value is not used, so a long wait does not depend on an open `executeScript` call
+in the service worker. The JSON sent as `twoFactorToken` (`id`, `rawId`, `type`, `extensions`,
+`response.authenticatorData/clientDataJson/signature`, base64url) is read by both servers. The U2F `appid`
+extension is passed only over https (Chromium rejects it otherwise). `test/login-flow.test.js` checks the message
+checks; Firefox's test uses its virtual authenticator (`nsIWebAuthnService`, with
+`security.webauth.webauthn_enable_softtoken`) through the privileged BiDi context.
 
 Cryptography comes from established open-source libraries – OpenPGP.js (LGPL), argon2id (MIT), the
 Argon2 reference implementation (CC0/Apache-2.0, for Argon2d in KeePass files) and, for XChaCha20-Poly1305, ChaCha20 and
