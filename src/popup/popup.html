@@ -100,7 +100,7 @@
       <h2 id="unlock-title">Entsperren</h2>
       <form id="form-unlock">
         <div id="unlock-apikey" hidden>
-          <p class="hint">Anmeldung mit persönlichem API-Schlüssel (Bitwarden: Kontoeinstellungen → Sicherheit → Schlüssel → API-Schlüssel). Nötig z. B., wenn als zweiter Faktor nur FIDO2 / WebAuthn eingerichtet ist.</p>
+          <p class="hint">Anmeldung mit persönlichem API-Schlüssel (Bitwarden: Kontoeinstellungen → Sicherheit → Schlüssel → API-Schlüssel). Nötig z. B., wenn die Anmeldung mit dem Sicherheitsschlüssel (FIDO2 / WebAuthn, experimentell) nicht klappt.</p>
           <label translate="no">client_id <input name="clientId" autocomplete="off" spellcheck="false" placeholder="user.…"></label>
           <label translate="no">client_secret <input name="clientSecret" type="password" autocomplete="off"></label>
         </div>
@@ -111,6 +111,7 @@
           <label>Zweiter Faktor <select name="twoFactorProvider"></select></label>
           <label id="unlock-code">Code <input name="twoFactorCode" inputmode="numeric" autocomplete="one-time-code"></label>
           <p class="hint" id="unlock-duo-hint" hidden>Duo öffnet sich in einem neuen Tab. Nach der Bestätigung dort schließt OmniVault den Tab und meldet dich an.</p>
+          <p class="hint" id="unlock-webauthn-hint" hidden>Experimentell: Der Web-Tresor öffnet sich in einem neuen Tab, dort bestätigst du mit deinem Sicherheitsschlüssel. Klappt es nicht, hilft die Anmeldung mit dem API-Schlüssel.</p>
           <button type="button" class="link" id="btn-email-code" hidden>Code per E-Mail senden</button>
           <div id="unlock-pb-mfa" hidden>
             <label class="inline-check"><input type="checkbox" name="rememberMfa"> Zweiten Faktor 30 Tage merken</label>

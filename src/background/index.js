@@ -83,7 +83,7 @@ async function loginStep(id, creds) {
 }
 
 const loginFlows = createLoginFlows({
-  finish: (id, pending, browserUrl) => loginStep(id, { pending, browserUrl }),
+  finish: (id, pending, reply) => loginStep(id, { pending, ...reply }),
 });
 
 async function lock(id) {
@@ -484,6 +484,8 @@ async function inspectFrame(tabId, frameId, feature) {
 
 const contentHandlers = {
   ...passkeys.contentHandlers,
+  // the box for the security key in the web vault's tab (Bitwarden second factor, see webauthn-2fa.js)
+  'ov-webauthn-2fa': (msg, sender) => loginFlows.webauthnReply(msg, sender),
   async ovConfig() {
     const s = await getSettings();
     return {

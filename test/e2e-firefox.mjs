@@ -4,7 +4,8 @@
 // Browser test in Firefox: installs dist/firefox temporarily over WebDriver BiDi and checks the event page, the
 // toolbar popup, the sidebar and the pop-out window, account + unlock against the simulated Bitwarden server,
 // filling (click, shortcut, context menu), the content scripts on web pages, passkeys, native messaging,
-// clipboard and auto-lock – and that nothing lands in the browser console.
+// clipboard, a security key as Bitwarden's second factor (Firefox's virtual authenticator, signature checked by the
+// simulated server) and auto-lock – and that nothing lands in the browser console.
 // Usage: FIREFOX_BIN=… node test/e2e-firefox.mjs [screenshot-dir]   (or: test/firefox.sh test)
 import { execFileSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -14,7 +15,9 @@ import { join, resolve } from 'node:path';
 import { EMAIL, PASSWORD, fakeBitwarden } from './fake-bitwarden.js';
 import { launchFirefox, Tab } from './firefox-bidi.mjs';
 import http from 'node:http';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { embeddingPage, listen, startServers } from './servers.mjs';
+import { verifyAuthentication } from './webauthn-rp.js';
 
 const shots = process.argv[2] ?? tmpdir();
 const ADDON = 'omnivault@royaltysoft.works';
@@ -35,13 +38,28 @@ await new Promise((r) => { frameTop.listen(8829, '127.0.0.1', r); });
 // a Bitwarden account with a high Argon2id memory setting (derived in a worker of the event page)
 const ARGON_ORIGIN = 'http://localhost:8830';
 const argonServer = await listen(await fakeBitwarden({ kdf: { kdf: 1, kdfIterations: 3, kdfMemory: 256, kdfParallelism: 4 }, loginUri: `${ARGON_ORIGIN}/login.html` }), 8830);
+// a Bitwarden account with a security key as second factor: the server checks the assertion like a real one would
+// (origin of the web vault, rpId localhost, challenge, signature of the registered key)
+const WA_ORIGIN = 'http://localhost:8831';
+const waKey = { credentialId: null, jwk: null, counter: 0, accepted: 0 };
+const waRequest = { challenge: 'b21uaXZhdWx0LWZpcmVmb3gtd2ViYXV0aG4tY2hhbGxlbmdl', rpId: 'localhost', timeout: 60000, userVerification: 'discouraged', allowCredentials: [] };
+const waAccept = (token) => {
+  try {
+    const c = JSON.parse(token);
+    const cred = { ...c, response: { ...c.response, clientDataJSON: c.response.clientDataJson } };
+    waKey.counter = verifyAuthentication(cred, { challenge: waRequest.challenge, origin: WA_ORIGIN, rpId: 'localhost', stored: waKey }).counter;
+    waKey.accepted++;
+    return true;
+  } catch (e) { console.log(`  (server refuses the assertion: ${e.message})`); return false; }
+};
+const waServer = await listen(await fakeBitwarden({ kdf: { kdf: 0, kdfIterations: 1000 }, twoFactor: true, webauthn: { request: waRequest, accept: waAccept } }), 8831);
 
 // copy of dist/firefox with localhost pre-granted and native messaging (no permission prompts in automation)
 const ext = await mkdtemp(join(tmpdir(), 'omnivault-ff-'));
 await cp('dist/firefox', ext, { recursive: true });
 const manifest = JSON.parse(await readFile(join(ext, 'manifest.json'), 'utf8'));
 // Firefox does not count http://localhost/* as covering other ports (permissions.contains), so name them
-manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${ARGON_ORIGIN}/*`, `${FRAME_TOP}/*`, 'http://127.0.0.1/*');
+manifest.host_permissions.push('http://localhost/*', 'http://localhost:8827/*', 'http://localhost:8828/*', `${ARGON_ORIGIN}/*`, `${WA_ORIGIN}/*`, `${FRAME_TOP}/*`, 'http://127.0.0.1/*');
 manifest.permissions.push('nativeMessaging');
 await writeFile(join(ext, 'manifest.json'), JSON.stringify(manifest));
 
@@ -486,6 +504,41 @@ try {
   check(argon.ok && argon.n >= 3 && argon.max < 1000,
     `Argon2id 256 MiB unlock in ${argon.ms} ms, ${argon.n} other messages answered meanwhile (max ${argon.max} ms)${argon.error ? `: ${argon.error}` : ''}`);
 
+  // security key as Bitwarden's second factor (experimental): Firefox's virtual authenticator holds a key generated
+  // here (as if registered in the web vault); OmniVault asks for it in a tab of the web vault and the server checks the
+  // signature. The passkey dialog is still on from above: it must not catch the request of OmniVault's own box.
+  const { privateKey: waPriv, publicKey: waPub } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  Object.assign(waKey, { credentialId: randomBytes(16).toString('base64url'), jwk: waPub.export({ format: 'jwk' }) });
+  waRequest.allowCredentials = [{ id: waKey.credentialId, type: 'public-key' }];
+  await ff.chrome(`(() => {
+    Services.prefs.setBoolPref('security.webauth.webauthn_enable_softtoken', true);
+    Services.prefs.setBoolPref('security.webauth.webauthn_enable_usbtoken', false);
+    const s = Cc['@mozilla.org/webauthn/service;1'].getService(Ci.nsIWebAuthnService);
+    const id = s.addVirtualAuthenticator('ctap2', 'usb', false, false, true, false);
+    s.addCredential(id, '${waKey.credentialId}', false, 'localhost', '${waPriv.export({ format: 'der', type: 'pkcs8' }).toString('base64url')}', '', 0);
+    return id;
+  })()`);
+  const waAcc = await msg('addAccount', { provider: 'bitwarden', config: { server: WA_ORIGIN, email: EMAIL, login: 'password' }, label: 'Schlüssel' });
+  const waStep = await msg('login', { id: waAcc.id, credentials: { password: PASSWORD, twoFactorProvider: '7' } });
+  check(waStep.status === 'needs_browser' && waStep.kind === 'webauthn', `security key: the web vault opens in a tab (${waStep.status}/${waStep.kind})`);
+  let waContext = null;
+  for (let i = 0; i < 50 && !waContext; i++) {
+    const { contexts } = await ff.send('browsingContext.getTree', { maxDepth: 0 });
+    waContext = contexts.find((x) => x.url.startsWith(`${WA_ORIGIN}/webauthn-connector.html`))?.context ?? null;
+    if (!waContext) await new Promise((r) => setTimeout(r, 100));
+  }
+  const waTab = new Tab(ff, waContext);
+  const boxShown = await waTab.wait(() => !!document.querySelector('omnivault-webauthn'), { what: 'box in the web vault tab' }).catch(() => false);
+  check(boxShown, "security key: OmniVault's box shown in the web vault tab (content script, top frame)");
+  await waTab.activate();
+  await waTab.press('Enter'); // the box's button has the focus
+  const waFlow = await popup.wait(async (id) => {
+    const s = (await browser.runtime.sendMessage({ type: 'loginFlow', id })).result;
+    return s?.phase === 'done' ? s : null;
+  }, { timeout: 15_000, what: 'login with the security key' }, waAcc.id).catch((e) => ({ error: e.message }));
+  check(waFlow?.outcome?.status === 'ok' && waKey.accepted === 1, `security key: assertion made in Firefox, accepted by the server, signed in (${JSON.stringify(waFlow?.outcome ?? waFlow)})`);
+  await msg('loginFlowClear', { id: waAcc.id });
+
   // auto-lock after inactivity: the event page checks once a minute (alarm); pretend the last activity was long ago
   await msg('setSettings', { patch: { autoLockMinutes: 1 } });
   await popup.$eval(() => browser.storage.session.set({ lastActivity: Date.now() - 10 * 60_000 }));
@@ -506,6 +559,7 @@ try {
   closeServers();
   frameTop.close();
   argonServer.close();
+  waServer.close();
 }
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

@@ -302,7 +302,9 @@ function setPasswordShown(on) {
 function showBrowserStep(kind) {
   $('#unlock-browser-text').textContent = kind === 'sso'
     ? t('Die Anmeldung deiner Organisation läuft in einem neuen Tab. Danach geht es hier weiter – auch wenn sich dieses Fenster schließt.')
-    : t('Bitte die Anmeldung im Duo-Tab bestätigen. Danach geht es hier weiter – auch wenn sich dieses Fenster schließt.');
+    : kind === 'webauthn'
+      ? t('Bitte die Anmeldung im Tab des Web-Tresors mit deinem Sicherheitsschlüssel bestätigen. Danach geht es hier weiter – auch wenn sich dieses Fenster schließt.')
+      : t('Bitte die Anmeldung im Duo-Tab bestätigen. Danach geht es hier weiter – auch wenn sich dieses Fenster schließt.');
   $('#unlock-browser').hidden = false;
   $('#unlock-2fa').hidden = true;
   $('#unlock-device').hidden = true;
@@ -321,7 +323,7 @@ function showLoginResult(r, extra = {}) {
     showPassboltMfa();
     updateTwoFactorKind();
     if (extra.requestEmailCode) toast(t('Code wurde gesendet'));
-    (isDuo() ? $('#unlock-submit') : f.twoFactorCode).focus();
+    (inTab() ? $('#unlock-submit') : f.twoFactorCode).focus();
     return true;
   }
   if (r.status === 'needs_device_otp') {
@@ -357,11 +359,13 @@ function showPassboltMfa() {
   $('#unlock-pb-nocookies').hidden = possible;
 }
 
-const isDuo = () => ['2', '6'].includes($('#form-unlock').twoFactorProvider.value);
+/** Second factors confirmed in a browser tab, no code to type: Duo (personal, organization), security key. */
+const inTab = () => ['2', '6', '7'].includes($('#form-unlock').twoFactorProvider.value);
 function updateTwoFactorKind() {
-  const duo = isDuo();
-  $('#unlock-code').hidden = duo;
-  $('#unlock-duo-hint').hidden = !duo;
+  const v = $('#form-unlock').twoFactorProvider.value;
+  $('#unlock-code').hidden = inTab();
+  $('#unlock-duo-hint').hidden = !['2', '6'].includes(v);
+  $('#unlock-webauthn-hint').hidden = v !== '7';
 }
 
 async function finishLogin(r) {

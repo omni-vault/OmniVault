@@ -76,12 +76,20 @@ const TWO_FACTOR_LABELS = {
   2: mark('Duo'),
   3: mark('YubiKey OTP'),
   6: mark('Duo (Organisation)'),
-  7: mark('FIDO2 / WebAuthn'),
+  7: mark('FIDO2 / WebAuthn (experimentell)'),
 };
-const SUPPORTED_2FA = [0, 1, 2, 3, 6];
+const SUPPORTED_2FA = [0, 1, 2, 3, 6, 7];
 /** Duo (personal and organization): confirmed in Duo's own page in a tab, no code to type. */
 const DUO = [2, 6];
 const DUO_CONNECTOR = 'duo-redirect-connector.html';
+/**
+ * FIDO2 / WebAuthn (experimental): the server binds the assertion to the web vault's origin, so OmniVault asks for it
+ * in a tab of the web vault (see background/webauthn-2fa.js). Also confirmed in the browser, no code to type.
+ */
+const WEBAUTHN = 7;
+const IN_TAB = [...DUO, WEBAUTHN];
+/** A page of the web vault that is meant for WebAuthn (its Permissions-Policy allows it); any page there would do. */
+const WEBAUTHN_PAGE = 'webauthn-connector.html';
 
 const randomB64url = (n) => b64(crypto.getRandomValues(new Uint8Array(n))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
@@ -110,6 +118,31 @@ function duoReturnUrl(authUrl, ep) {
   const r = duoRequest(authUrl).redirect_uri;
   try { if (r && new URL(r).pathname.endsWith(`/${DUO_CONNECTOR}`)) return r; } catch { /* below */ }
   return `${ep.vault}/${DUO_CONNECTOR}`;
+}
+
+/**
+ * The challenge for the security key (TwoFactorProviders2["7"]), reduced to what navigator.credentials.get needs. The
+ * relying party is the web vault's domain; the browser refuses any other there, so check it first for a clear message.
+ * The U2F AppID extension only for https (browsers reject it otherwise, e.g. a local test server).
+ */
+function webauthnRequest(data, ep) {
+  const host = new URL(ep.vault).hostname;
+  const ok = data && typeof data.challenge === 'string' && Array.isArray(data.allowCredentials);
+  if (!ok) throw new ProviderError(t('Der Server hat keine Anfrage für den Sicherheitsschlüssel geliefert.'), 'server');
+  const rpId = typeof data.rpId === 'string' && data.rpId ? data.rpId : host;
+  if (host !== rpId && !host.endsWith(`.${rpId}`)) {
+    throw new ProviderError(t('Der Server erwartet den Sicherheitsschlüssel für {rpId}, dieses Konto nutzt aber {host}. Bitte die Server-Adresse des Kontos prüfen oder mit dem API-Schlüssel anmelden.', { rpId, host }), 'server');
+  }
+  const appid = data.extensions?.appid;
+  return {
+    challenge: data.challenge,
+    rpId,
+    timeout: Number.isFinite(data.timeout) ? data.timeout : 60_000,
+    userVerification: ['required', 'preferred', 'discouraged'].includes(data.userVerification) ? data.userVerification : 'discouraged',
+    allowCredentials: data.allowCredentials.filter((c) => typeof c?.id === 'string')
+      .map((c) => ({ id: c.id, ...(Array.isArray(c.transports) ? { transports: c.transports.filter((x) => typeof x === 'string') } : {}) })),
+    ...(typeof appid === 'string' && appid.startsWith('https://') ? { appid } : {}),
+  };
 }
 
 /**
@@ -270,24 +303,39 @@ class BitwardenProvider extends Provider {
     const code = creds.twoFactorCode?.replace(/\s/g, '');
     const res = await api.passwordGrant(ep, {
       email, hash, deviceId, deviceName: deviceName(),
-      twoFactor: code && !DUO.includes(provider) ? { code, provider } : null,
+      twoFactor: code && !IN_TAB.includes(provider) ? { code, provider } : null,
       newDeviceOtp: creds.deviceOtp?.trim(),
     });
     const grant = { type: 'password', email, hash, deviceId };
-    const next = this.#afterGrant(ep, res, grant, DUO.includes(provider) ? provider : null);
+    const next = this.#afterGrant(ep, res, grant, IN_TAB.includes(provider) ? provider : null);
     if (next.status !== 'token') return { ...next, configPatch, pending: next.pending && { ...next.pending, masterKey: b64(masterKey) } };
     return { status: 'ok', configPatch, session: await this.#newSession(next.token, masterKey) };
   }
 
   /**
-   * Login steps that leave the popup: Duo and the organization's sign-in (SSO) run in a browser tab. The background
-   * keeps `pending` (memory only, a few minutes) while the tab is open and passes it back with the address the tab
-   * reached (`creds.browserUrl`), or with what the user types afterwards (master password, 2FA code).
+   * Login steps that leave the popup: Duo, the security key (WebAuthn) and the organization's sign-in (SSO) run in a
+   * browser tab. The background keeps `pending` (memory only, a few minutes) while the tab is open and passes it back
+   * with the address the tab reached (`creds.browserUrl`), the security key's answer (`creds.webauthnResponse`), or with
+   * what the user types afterwards (master password, 2FA code).
    */
   static async #continueLogin(config, creds) {
     const ep = api.endpoints(config.server);
     const p = creds.pending;
     const deviceId = p.grant?.deviceId ?? config.deviceId;
+    if (p.kind === 'browser' && p.step === 'webauthn') {
+      // the assertion as JSON (the format Bitwarden and Vaultwarden read); the server checks challenge and origin
+      if (typeof creds.webauthnResponse !== 'string') throw new ProviderError(t('Anmeldung abgelaufen – bitte erneut beginnen.'), 'session_expired');
+      let res;
+      try {
+        res = await this.#grant(ep, p.grant, { code: creds.webauthnResponse, provider: WEBAUTHN });
+      } catch (e) {
+        if (e.code !== 'server') throw e;
+        throw new ProviderError(t('Der Server hat den Sicherheitsschlüssel nicht angenommen: {msg} Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.', { msg: e.message }), 'server');
+      }
+      // asked for the second factor again: the answer did not count
+      if (res.status === 'needs_2fa') throw new ProviderError(t('Der Server hat den Sicherheitsschlüssel nicht angenommen. Klappt es weiter nicht, hilft die Anmeldung mit dem API-Schlüssel.'), 'server');
+      return p.grant.type === 'code' ? this.#afterSso(ep, res, p.grant) : this.#finishPassword(ep, res, p);
+    }
     if (p.kind === 'browser') {
       const url = new URL(creds.browserUrl);
       const error = url.searchParams.get('error');
@@ -308,9 +356,9 @@ class BitwardenProvider extends Provider {
       // second factor after the organization's sign-in: the same code once more, with the factor
       const provider = Number(creds.twoFactorProvider ?? 0);
       const code = creds.twoFactorCode?.replace(/\s/g, '');
-      if (!DUO.includes(provider) && !code) throw new ProviderError(t('Bitte den Code eingeben.'), 'bad_password');
-      const res = await this.#grant(ep, p.grant, DUO.includes(provider) ? null : { code, provider });
-      return this.#afterSso(ep, res, p.grant, DUO.includes(provider) ? provider : null);
+      if (!IN_TAB.includes(provider) && !code) throw new ProviderError(t('Bitte den Code eingeben.'), 'bad_password');
+      const res = await this.#grant(ep, p.grant, IN_TAB.includes(provider) ? null : { code, provider });
+      return this.#afterSso(ep, res, p.grant, IN_TAB.includes(provider) ? provider : null);
     }
     if (p.kind === 'token') {
       // signed in through the organization; the master password decrypts the vault
@@ -335,8 +383,8 @@ class BitwardenProvider extends Provider {
   }
 
   /** After the code grant of an SSO login: second factor, or ask for the master password. */
-  static #afterSso(ep, res, grant, duo = null) {
-    const next = this.#afterGrant(ep, res, grant, duo);
+  static #afterSso(ep, res, grant, inTab = null) {
+    const next = this.#afterGrant(ep, res, grant, inTab);
     if (next.status === 'needs_2fa') return { ...next, pending: { kind: 'code', grant } };
     if (next.status !== 'token') return next;
     const tok = next.token;
@@ -349,10 +397,10 @@ class BitwardenProvider extends Provider {
   }
 
   /**
-   * Common handling of a token response: a second factor (Duo → browser tab with the address the server named),
-   * a new-device code, or the token.
+   * Common handling of a token response: a second factor (Duo → browser tab with the address the server named;
+   * security key → tab of the web vault with the server's challenge), a new-device code, or the token.
    */
-  static #afterGrant(ep, res, grant, duo) {
+  static #afterGrant(ep, res, grant, inTab) {
     if (res.status === 'needs_device_otp') return { status: 'needs_device_otp' };
     if (res.status === 'ok') return { status: 'token', token: res.token };
     const usable = res.providers.filter((p) => SUPPORTED_2FA.includes(p));
@@ -361,8 +409,16 @@ class BitwardenProvider extends Provider {
         t('Nur nicht unterstützte 2FA-Methoden aktiv ({methods}). Anmeldung mit API-Schlüssel ist möglich.', { methods: res.providers.map((p) => (TWO_FACTOR_LABELS[p] ? t(TWO_FACTOR_LABELS[p]) : p)).join(', ') }),
         'unsupported');
     }
-    // only Duo set up: straight to Duo, nothing to choose
-    if (duo == null && usable.length === 1 && DUO.includes(usable[0])) duo = usable[0];
+    // only Duo or only a security key set up: straight to the tab, nothing to choose
+    if (inTab == null && usable.length === 1 && IN_TAB.includes(usable[0])) inTab = usable[0];
+    if (inTab === WEBAUTHN && usable.includes(WEBAUTHN)) {
+      return {
+        status: 'needs_browser',
+        browser: { kind: 'webauthn', url: `${ep.vault}/${WEBAUTHN_PAGE}`, origin: new URL(ep.vault).origin, request: webauthnRequest(res.providerData?.[String(WEBAUTHN)], ep) },
+        pending: { kind: 'browser', step: 'webauthn', provider: WEBAUTHN, grant },
+      };
+    }
+    const duo = inTab;
     if (duo != null && usable.includes(duo)) {
       const authUrl = res.providerData?.[String(duo)]?.authUrl;
       if (!authUrl || !/^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)[:/])/.test(authUrl)) throw new ProviderError(t('Der Server hat keine Duo-Adresse geliefert. Ist Duo für dieses Konto richtig eingerichtet?'), 'server');

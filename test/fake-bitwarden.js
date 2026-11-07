@@ -36,12 +36,15 @@ const redirect = (location) => ({ status: 302, headers: { Location: location }, 
  *   duoCodeParam 'duo_code' like Duo with use_duo_code_attribute (Bitwarden's library), else 'code' (Vaultwarden)
  * - sso: { identifier } – Enterprise SSO for that organization identifier; ssoTwoFactor: TOTP after the sign-in
  * - masterPassword: false | 'tde' | 'keyconnector' – an account without master password (SSO only)
+ * - webauthn: { request, accept } – with twoFactor: TwoFactorProviders2["7"] is `request`; provider 7 signs in when
+ *   the twoFactorToken equals `accept` or `accept(token)` returns true (e.g. a signature check); the page
+ *   /webauthn-connector.html is served
  * - sendAzure: file Sends go to a (simulated) Azure Blob URL like on bitwarden.com; sendPremium: false refuses file Sends
  */
 export async function fakeBitwarden({
   kdf, twoFactor = false, loginUri = 'https://github.com/login', extraItems = 0, collections = false, collectionsV2 = true,
   origin = 'https://vault.example.org', duo = null, duoOrigin = 'https://api-1234abcd.duosecurity.com', duoCodeParam = 'code',
-  sso = null, ssoTwoFactor = false, masterPassword = true, sendAzure = false, sendPremium = true,
+  sso = null, ssoTwoFactor = false, masterPassword = true, sendAzure = false, sendPremium = true, webauthn = null,
 }) {
   const mk = await deriveMasterKey(PASSWORD, EMAIL, kdf);
   const hash = await masterPasswordHash(mk, PASSWORD);
@@ -222,6 +225,7 @@ export async function fakeBitwarden({
     const auth = headers.Authorization ?? headers.authorization;
     // web vault pages the servers send the browser back to (the real ones hand over to the app; here just a page)
     if (path === '/duo-redirect-connector.html' || path === '/sso-connector.html') return page('Connector', '<p>Weiterleitung …</p>');
+    if (path === '/webauthn-connector.html' && webauthn) return page('WebAuthn', '<p>Web-Tresor</p>');
     // Duo's prompt (on Duo's host in reality): a button that confirms and redirects back with code and state
     if (path === '/oauth/v1/authorize') {
       let claims;
@@ -291,7 +295,8 @@ export async function fakeBitwarden({
       }
       if (f.get('grant_type') === 'refresh_token') return { status: 200, body: { access_token: 'AT2', expires_in: 3600 } };
       if (f.get('password') !== hash) return { status: 400, body: { error: 'invalid_grant', ErrorModel: { Message: 'Username or password is incorrect. Try again.' } } };
-      if (twoFactor && f.get('twoFactorToken') !== '123456') return { status: 400, body: { error: 'invalid_grant', TwoFactorProviders2: { 0: null, 7: {} } } };
+      const secondFactor = f.get('twoFactorProvider') === '7' ? !!webauthn && (typeof webauthn.accept === 'function' ? webauthn.accept(f.get('twoFactorToken')) : f.get('twoFactorToken') === webauthn.accept) : f.get('twoFactorToken') === '123456';
+      if (twoFactor && !secondFactor) return { status: 400, body: { error: 'invalid_grant', TwoFactorProviders2: { 0: null, 7: webauthn?.request ?? {} } } };
       if (duo && !duoValid(f)) return duoChallenge(headers);
       if (duo) return { status: 200, body: tokenResponse() };
       return { status: 200, body: { access_token: 'AT1', refresh_token: 'RT1', expires_in: 3600, Key: protectedKey } };

@@ -54,10 +54,47 @@ test('Argon2id account with 2FA challenge', async () => {
   const first = await BitwardenProvider.login(config, { password: PASSWORD });
   const ms = Date.now() - t0;
   assert.equal(first.status, 'needs_2fa');
-  assert.deepEqual(first.twoFactorProviders.map((p) => p.id), ['0'], 'WebAuthn filtered out');
+  assert.deepEqual(first.twoFactorProviders.map((p) => p.id), ['0', '7'], 'TOTP and the security key (experimental) offered');
   const second = await BitwardenProvider.login(config, { password: PASSWORD, twoFactorCode: '123 456', twoFactorProvider: '0' });
   assert.equal(second.status, 'ok');
   console.log(`  Argon2id 64 MiB / t=3 / p=4: ${ms} ms`);
+});
+
+test('security key (WebAuthn) as second factor: tab of the web vault with the cleaned-up request, then the assertion', async () => {
+  const request = {
+    challenge: 'Y2hhbGxlbmdl', rpId: 'vault.example.org', timeout: 60000, userVerification: 'discouraged', status: 'ok', errorMessage: '',
+    allowCredentials: [{ id: 'a2V5MQ', type: 'public-key', transports: ['usb', 7] }, { type: 'public-key' }],
+    extensions: { appid: 'https://vault.example.org/app-id.json', other: true },
+  };
+  await makeServer({ kdf: { kdf: 0, kdfIterations: 1000 }, twoFactor: true, webauthn: { request, accept: '{"id":"a2V5MQ"}' } });
+  const step = await BitwardenProvider.login(config, { password: PASSWORD, twoFactorProvider: '7' });
+  assert.equal(step.status, 'needs_browser');
+  assert.deepEqual(step.browser, {
+    kind: 'webauthn', url: 'https://vault.example.org/webauthn-connector.html', origin: 'https://vault.example.org',
+    request: {
+      challenge: 'Y2hhbGxlbmdl', rpId: 'vault.example.org', timeout: 60000, userVerification: 'discouraged',
+      allowCredentials: [{ id: 'a2V5MQ', transports: ['usb'] }], appid: 'https://vault.example.org/app-id.json',
+    },
+  });
+  assert.equal(step.pending.step, 'webauthn');
+  assert.ok(step.pending.masterKey, 'master key kept for after the tab');
+  const done = await BitwardenProvider.login(config, { pending: step.pending, webauthnResponse: '{"id":"a2V5MQ"}' });
+  assert.equal(done.status, 'ok');
+  // an answer the server does not take: says so and points to the API key
+  await assert.rejects(BitwardenProvider.login(config, { pending: step.pending, webauthnResponse: '{"id":"other"}' }), /nicht angenommen.*API-Schlüssel/);
+});
+
+test('security key: relying party of another domain or no request at all → clear errors', async () => {
+  const request = { challenge: 'Y2g', rpId: 'other.example', allowCredentials: [] };
+  await makeServer({ kdf: { kdf: 0, kdfIterations: 1000 }, twoFactor: true, webauthn: { request, accept: 'x' } });
+  await assert.rejects(BitwardenProvider.login(config, { password: PASSWORD, twoFactorProvider: '7' }), /other\.example.*vault\.example\.org/);
+  // a parent domain is fine (the browser allows it), the AppID only over https
+  await makeServer({ kdf: { kdf: 0, kdfIterations: 1000 }, twoFactor: true, webauthn: { request: { ...request, rpId: 'example.org', extensions: { appid: 'http://vault.example.org/app-id.json' } }, accept: 'x' } });
+  const step = await BitwardenProvider.login(config, { password: PASSWORD, twoFactorProvider: '7' });
+  assert.equal(step.browser.request.rpId, 'example.org');
+  assert.equal(step.browser.request.appid, undefined);
+  await makeServer({ kdf: { kdf: 0, kdfIterations: 1000 }, twoFactor: true });
+  await assert.rejects(BitwardenProvider.login(config, { password: PASSWORD, twoFactorProvider: '7' }), /keine Anfrage für den Sicherheitsschlüssel/);
 });
 
 test('expired access token is refreshed during sync', async () => {
