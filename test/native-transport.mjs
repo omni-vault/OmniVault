@@ -3,7 +3,8 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Node stand-in for the browser side of native messaging: spawns the real host (native/omnivault_host.py)
 // and speaks its framing (4-byte length + JSON), including multi-part ("more") answers.
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectPart, hostMessage, joinParts } from '../src/providers/native-host.js';
@@ -44,4 +45,28 @@ export class ProcessTransport {
   }
 
   close() { this.proc.stdin.end(); }
+}
+
+/**
+ * A folder with `gpg` and `gpg2` wrappers that log every call (one line of arguments each) and run the real gpg, to
+ * pass to the host's environment: `gpgCounter(dir)` → { env, calls(), decrypts(), reset() }.
+ */
+export function gpgCounter(dir) {
+  const real = execFileSync('sh', ['-c', 'command -v gpg'], { encoding: 'utf8' }).trim();
+  const bin = join(dir, 'gpg-count');
+  const log = join(dir, 'gpg-calls.log');
+  mkdirSync(bin, { recursive: true });
+  for (const name of ['gpg', 'gpg2']) {
+    const p = join(bin, name);
+    writeFileSync(p, `#!/bin/sh\necho "$*" >> '${log}'\nexec '${real}' "$@"\n`);
+    chmodSync(p, 0o755);
+  }
+  const calls = () => (existsSync(log) ? readFileSync(log, 'utf8').split('\n').filter(Boolean) : []);
+  return {
+    // pass looks gpg up on PATH; gopass asks gpgconf unless GOPASS_GPG_BINARY names one
+    env: { PATH: `${bin}:${process.env.PATH}`, GOPASS_GPG_BINARY: join(bin, 'gpg') },
+    calls,
+    decrypts: () => calls().filter((l) => /(^|\s)(--decrypt|-d)(\s|$)/.test(l)).length,
+    reset: () => writeFileSync(log, ''),
+  };
 }

@@ -10,7 +10,7 @@ import os
 import re
 
 from ov_common import VERSION, HostError, check_id, run, which
-from ov_pass import _pass_path, pass_parse, pass_serialize
+from ov_pass import _name_item, _pass_path, pass_parse, pass_serialize
 
 # no desktop notifications, no colors, no update check, never ask anything (stdin is not a terminal)
 ENV = {"GOPASS_NO_NOTIFY": "true", "NO_COLOR": "1", "GOPASS_NO_REMINDER": "true", "GOPASS_NO_AUTOUPDATE": "true"}
@@ -78,6 +78,11 @@ def gopass_list(_args):
     return {"items": items, "mounts": _mounts()}
 
 
+def gopass_names(_args):
+    """The list without decrypting anything (`gopass ls --flat` reads names only); see pass_names."""
+    return {"items": [_name_item(n) for n in _names()], "mounts": _mounts()}
+
+
 def gopass_reveal(args):
     name = _id(args.get("id"))
     return pass_parse(name, _show(name).stdout.rstrip("\n"))
@@ -131,5 +136,5 @@ def gopass_delete(args):
     return {"deleted": True}
 
 
-COMMANDS = {"status": gopass_status, "list": gopass_list, "reveal": gopass_reveal, "create": gopass_create,
+COMMANDS = {"status": gopass_status, "list": gopass_list, "names": gopass_names, "reveal": gopass_reveal, "create": gopass_create,
             "update": gopass_update, "move": gopass_move, "delete": gopass_delete}

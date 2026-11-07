@@ -10,7 +10,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
 import GopassProvider from '../src/providers/gopass/index.js';
-import { ProcessTransport } from './native-transport.mjs';
+import { ProcessTransport, gpgCounter } from './native-transport.mjs';
+import { matchesUrl } from '../src/lib/match.js';
 
 let BIN = process.env.OMNIVAULT_GOPASS_BIN;
 if (!BIN && process.env.OMNIVAULT_GOPASS_DOWNLOAD === '1') BIN = execFileSync('test/gopass-bin.sh', { encoding: 'utf8' }).trim();
@@ -105,6 +106,34 @@ test('create (stdin), update, move across mounts, rename, delete', opts, async (
     await GopassProvider.deleteItem(config, {}, dup.item);
     const { items } = await GopassProvider.sync(config);
     assert.deepEqual(items.map((i) => i.id).sort(), ['team/db', 'web/github.com']);
+  } finally { t.close(); }
+});
+
+test('decrypt on open: the list runs no gpg --decrypt; open one entry, match by path', opts, async () => {
+  const gpg = gpgCounter(dir);
+  gp(['insert', '-f', 'websites/example.org/ada'], 'ex-pass\nurl: https://login.example.org\n');
+  const env = Object.fromEntries(['GNUPGHOME', 'HOME', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'GOPASS_HOMEDIR'].map((k) => [k, ENV[k]]));
+  const t = new ProcessTransport({ ...env, OMNIVAULT_GOPASS_BIN: BIN, ...gpg.env });
+  GopassProvider.transport = t;
+  const config = { id: 'g2', decrypt: 'open' };
+  try {
+    assert.equal((await GopassProvider.login(config, {})).status, 'ok');
+    await GopassProvider.sync({ id: 'g1' });
+    assert.ok(gpg.decrypts() >= 3, `the wrapper sees the decryptions of a full sync (${gpg.decrypts()})`);
+    gpg.reset();
+    const { items, folders } = await GopassProvider.sync(config);
+    assert.equal(gpg.decrypts(), 0, `no gpg --decrypt for the list (calls: ${JSON.stringify(gpg.calls())})`);
+    assert.deepEqual(gpg.calls(), [], 'in fact no gpg call at all');
+    const by = Object.fromEntries(items.map((i) => [i.id, i]));
+    assert.deepEqual(Object.keys(by).sort(), ['team/db', 'web/github.com', 'websites/example.org/ada']);
+    assert.ok(folders.some((f) => f.id === 'team'), 'mounts still folders');
+    const gh = by['web/github.com'];
+    assert.ok(gh.lazy && gh.password === undefined && matchesUrl(gh, 'https://github.com/'));
+    assert.equal(by['websites/example.org/ada'].username, 'ada');
+    const r = await GopassProvider.reveal(config, {}, gh);
+    assert.equal(gpg.decrypts(), 1, 'opening decrypts that entry only');
+    assert.ok(r.password === 'gh-pass' && r.username === 'ada' && r.notes === 'mehr Text');
+    await GopassProvider.deleteItem(config, {}, by['websites/example.org/ada']);
   } finally { t.close(); }
 });
 

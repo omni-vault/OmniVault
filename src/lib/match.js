@@ -18,9 +18,12 @@ export function baseDomain(host) {
   return registrableDomain(host) ?? host;
 }
 
-/** True if any of the item's URIs shares the registrable domain with the tab URL. */
+/**
+ * True if any of the item's URIs shares the registrable domain with the tab URL. `siteHints` are sites known without
+ * decrypting the item (pass/gopass: from the entry's path) that are not stored as its websites.
+ */
 export function matchesUrl(item, tabUrl) {
   const tabBase = baseDomain(hostOf(tabUrl));
   if (!tabBase) return false;
-  return (item.uris ?? []).some((u) => baseDomain(hostOf(u)) === tabBase);
+  return [...(item.uris ?? []), ...(item.siteHints ?? [])].some((u) => baseDomain(hostOf(u)) === tabBase);
 }

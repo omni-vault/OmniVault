@@ -160,7 +160,8 @@ function fieldNode(f, value) {
     f.custom ? el('option', { value: CUSTOM }, f.custom.label) : null);
     select.value = known ? v : CUSTOM;
     setCustom(!known);
-    return el('label', {}, f.label, select, custom);
+    const label = el('label', {}, f.label, select, custom);
+    return f.hint ? [label, el('p', { className: 'hint', style: { marginTop: '-6px' } }, f.hint)] : label;
   }
   if (f.type === 'keyfile' && formMode.mode === 'edit' && v) {
     // Editing: keep the stored key unless the user explicitly replaces it (keeps the form short).

@@ -11,7 +11,7 @@ import struct
 import subprocess
 import tempfile
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"  # 2.1: "names" for pass and gopass (list without decrypting)
 MAX_MESSAGE = 900_000  # browsers accept up to 1 MB per message from a host
 TIMEOUT = 120
 MAX_ATTACHMENT = 30 * 1024 * 1024  # largest attachment the host hands to the browser (as for Bitwarden)

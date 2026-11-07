@@ -1211,5 +1211,10 @@
  "Versionsverlauf": "版本历史记录",
  "Versionsverlauf ({n})": "版本历史记录（{n}）",
  "Keine Änderungen in früheren Versionen": "以前的版本中没有更改",
- "(nicht gesetzt)": "（未设置）"
+ "(nicht gesetzt)": "（未设置）",
+ "Der OmniVault-Host ist veraltet (Version {have}, nötig {need}). Bitte native/install.py erneut ausführen (siehe native/README.md).": "OmniVault 辅助程序版本过旧（当前 {have}，需要 {need}）。请重新运行 native/install.py（请参阅 native/README.md）。",
+ "Einträge entschlüsseln": "解密项目",
+ "Alle beim Abgleich (Benutzername und Website in der Liste)": "同步时全部解密（列表中显示用户名和网站）",
+ "Erst beim Öffnen, Kopieren oder Ausfüllen": "仅在打开、复制或填充时",
+ "„Erst beim Öffnen“ startet gpg nur für den Eintrag, den du brauchst. Die Liste kennt dann nur die Dateinamen: Die Website kommt aus dem Pfad (z. B. „websites/github.com/ada“), Benutzername und Website aus dem Inhalt erst nach dem Öffnen.": "选择“仅在打开时”后，gpg 只为你需要的项目运行。列表中只有文件名：网站取自路径（例如“websites/github.com/ada”），内容中的用户名和网站要在打开后才会显示。"
 }

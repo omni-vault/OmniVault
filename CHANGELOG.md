@@ -41,6 +41,14 @@
   fields, with the date it was replaced. Passwords, TOTP secrets and custom fields stay hidden until you reveal them
   and can be copied; a field that did not exist yet is shown as "(not set)". Deleted and destroyed versions are
   skipped, and nothing is kept once you leave the entry. Needs the `read` capability on the entry's `metadata` path.
+- **pass and gopass: decrypt entries only when needed** (new account setting "Decrypt items", default unchanged):
+  with "Only when opening, copying or filling" the list is built from the file names without running gpg, and an
+  entry is decrypted when you open it, copy a value, fill it in or a tool needs it – one confirmation instead of one
+  per entry with a key on a security key or smartcard. "Matching this page", the keyboard shortcut and the list in
+  the login field use the site in the path (`web/github.com`, `websites/github.com/ada` with ada as the user name);
+  these hints are never written into the files. Entries whose site is only inside the file are matched once they have
+  been opened. Needs the updated host: run `native/install.py` again; OmniVault says so if the installed host is
+  older, and `install.py` now prints which host version it replaces.
 - **Dashlane: identities and IDs** (passport, ID card, driver's licence, social security and tax number) are read
   with `dcli id` (Dashlane CLI 6.2642.0 or later) and shown as identities, read only. The list holds only the type
   and the holder's name; numbers and dates are read when you open the entry. Payment cards cannot be read: `dcli`

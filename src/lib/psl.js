@@ -59,3 +59,10 @@ export function isRegistrableSuffixOf(rpId, host) {
   if (!host.endsWith(`.${rpId}`)) return false;
   return publicSuffix(rpId) !== rpId;
 }
+
+/** True if the host's top-level label is in the list (so "github.com", not "notes.v2" or "x.local"). */
+export function hasListedTld(host) {
+  if (!host || isIp(host)) return false;
+  if (!rules) load();
+  return rules.has(host.replace(/\.$/, '').split('.').pop());
+}

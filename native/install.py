@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import platform
+import re
 import shutil
 import stat
 import sys
@@ -92,10 +93,24 @@ def write_json(path, data):
         json.dump(data, f, indent=2)
 
 
+def host_version(folder):
+    """VERSION of the host in a folder (read from ov_common.py, not imported), or None if there is none."""
+    try:
+        with open(os.path.join(folder, "ov_common.py"), encoding="utf-8") as f:
+            m = re.search(r'^VERSION = "([^"]+)"', f.read(), re.M)
+        return m.group(1) if m else None
+    except OSError:
+        return None
+
+
 def install_host_files(host):
-    """Copies a host's files into the install dir, returns the path browsers should launch (entry point)."""
+    """Copies a host's files into the install dir, returns the path browsers should launch (entry point). An older
+    host in the same place is replaced; the extension checks the version it reports (`status`) for new commands."""
     target = install_dir()
     os.makedirs(target, exist_ok=True)
+    old, new = host_version(target), host_version(HERE)
+    if old and old != new:
+        print(f"Updating the host from version {old} to {new}")
     entry = None
     for i, fname in enumerate(host["files"]):
         dest = os.path.join(target, fname)

@@ -145,6 +145,8 @@ def main():
                 keys["fields"] = set(cmd["reveal"](ref(it)).get("data", {}))
         return "; ".join(f"{t}: {v['count']} ({', '.join(sorted(v['fields'])) or 'no fields'})" for t, v in sorted(seen.items())) or "no personal IDs"
 
+    if "names" in cmd:
+        step("List names only (decrypt on open: no gpg)", lambda: f"{len(cmd['names']({})['items'])} entries")
     if step("List without secrets", listing):
         step("Fetch a secret", reveal)
         if a.backend == "dashlane":

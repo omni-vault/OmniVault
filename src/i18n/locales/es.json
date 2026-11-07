@@ -1259,5 +1259,10 @@
  "Versionsverlauf": "Historial de versiones",
  "Versionsverlauf ({n})": "Historial de versiones ({n})",
  "Keine Änderungen in früheren Versionen": "No hay cambios en versiones anteriores",
- "(nicht gesetzt)": "(sin definir)"
+ "(nicht gesetzt)": "(sin definir)",
+ "Der OmniVault-Host ist veraltet (Version {have}, nötig {need}). Bitte native/install.py erneut ausführen (siehe native/README.md).": "La aplicación auxiliar de OmniVault está desactualizada (versión {have}, se necesita {need}). Vuelve a ejecutar native/install.py (consulta native/README.md).",
+ "Einträge entschlüsseln": "Descifrar elementos",
+ "Alle beim Abgleich (Benutzername und Website in der Liste)": "Todos al sincronizar (usuario y sitio web en la lista)",
+ "Erst beim Öffnen, Kopieren oder Ausfüllen": "Solo al abrir, copiar o autorrellenar",
+ "„Erst beim Öffnen“ startet gpg nur für den Eintrag, den du brauchst. Die Liste kennt dann nur die Dateinamen: Die Website kommt aus dem Pfad (z. B. „websites/github.com/ada“), Benutzername und Website aus dem Inhalt erst nach dem Öffnen.": "«Solo al abrir» ejecuta gpg únicamente para el elemento que necesitas. La lista solo conoce entonces los nombres de archivo: el sitio web sale de la ruta (p. ej., «websites/github.com/ada») y el usuario y el sitio web del contenido, solo después de abrirlo."
 }

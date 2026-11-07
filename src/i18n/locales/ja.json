@@ -1211,5 +1211,10 @@
  "Versionsverlauf": "バージョン履歴",
  "Versionsverlauf ({n})": "バージョン履歴（{n}）",
  "Keine Änderungen in früheren Versionen": "以前のバージョンに変更はありません",
- "(nicht gesetzt)": "（未設定）"
+ "(nicht gesetzt)": "（未設定）",
+ "Der OmniVault-Host ist veraltet (Version {have}, nötig {need}). Bitte native/install.py erneut ausführen (siehe native/README.md).": "OmniVault の補助アプリが古くなっています（バージョン {have}、必要なのは {need}）。native/install.py をもう一度実行してください（native/README.md を参照）。",
+ "Einträge entschlüsseln": "アイテムの復号",
+ "Alle beim Abgleich (Benutzername und Website in der Liste)": "同期時にすべて（一覧にユーザー名とウェブサイトを表示）",
+ "Erst beim Öffnen, Kopieren oder Ausfüllen": "開く、コピーする、入力するときだけ",
+ "„Erst beim Öffnen“ startet gpg nur für den Eintrag, den du brauchst. Die Liste kennt dann nur die Dateinamen: Die Website kommt aus dem Pfad (z. B. „websites/github.com/ada“), Benutzername und Website aus dem Inhalt erst nach dem Öffnen.": "「開くときだけ」にすると、gpg は必要なアイテムに対してだけ実行されます。一覧にはファイル名しか分からないため、ウェブサイトはパス（例:「websites/github.com/ada」）から判断し、中身のユーザー名とウェブサイトは開いた後に分かります。"
 }

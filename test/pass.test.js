@@ -8,9 +8,10 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ProcessTransport } from './native-transport.mjs';
+import { ProcessTransport, gpgCounter } from './native-transport.mjs';
 import { after, before, test } from 'node:test';
 import PassProvider from '../src/providers/pass/index.js';
+import { matchesUrl } from '../src/lib/match.js';
 
 const PASS_BIN = process.env.OMNIVAULT_PASS_BIN;
 let have = false;
@@ -106,6 +107,54 @@ test('custom fields are "key: value" lines; folders are created by saving into t
   assert.equal(e.notes, 'freier Text\nzweite Zeile', 'free text stays in the notes');
   await PassProvider.deleteItem(config, {}, e);
   t.close();
+});
+
+test('decrypt on open: the list runs no gpg --decrypt; open, match by path, save', opts, async () => {
+  const gpg = gpgCounter(dir);
+  const env = { ...process.env, GNUPGHOME, PASSWORD_STORE_DIR: STORE };
+  execFileSync(PASS_BIN, ['insert', '-m', '-f', 'websites/example.org/ada'], { env, input: 'ex-pass\nurl: https://login.example.org\n' });
+  const t = new ProcessTransport({ OMNIVAULT_PASS_BIN: PASS_BIN, GNUPGHOME, PASSWORD_STORE_DIR: STORE, ...gpg.env });
+  PassProvider.transport = t;
+  const config = { id: 'p2', decrypt: 'open' };
+  try {
+    assert.equal((await PassProvider.login(config, {})).status, 'ok');
+    // the wrapper sees the decryptions of a full sync, so a zero below means something
+    await PassProvider.sync({ id: 'p1' });
+    assert.ok(gpg.decrypts() >= 3, `full sync decrypts every entry (${gpg.decrypts()})`);
+    gpg.reset();
+
+    const { items, folders } = await PassProvider.sync(config);
+    assert.equal(gpg.decrypts(), 0, `no gpg --decrypt for the list (calls: ${JSON.stringify(gpg.calls())})`);
+    assert.deepEqual(gpg.calls(), [], 'in fact no gpg call at all');
+    const by = Object.fromEntries(items.map((i) => [i.id, i]));
+    const gh = by['web/github.com'];
+    assert.ok(gh.lazy && gh.password === undefined && gh.username === undefined && gh.notes === undefined, 'nothing from the content');
+    assert.deepEqual(gh.siteHints, ['https://github.com']);
+    assert.ok(matchesUrl(gh, 'https://github.com/login') && !matchesUrl(by['notes/idee'], 'https://github.com/'), 'site from the path');
+    const ada = by['websites/example.org/ada'];
+    assert.equal(ada.username, 'ada', 'user name from the path (browserpass convention)');
+    assert.ok(matchesUrl(ada, 'https://www.example.org/'));
+    assert.ok(folders.some((f) => f.id === 'websites/example.org'));
+
+    // opening decrypts that one entry only
+    const extra = await PassProvider.reveal(config, {}, gh);
+    assert.equal(gpg.decrypts(), 1);
+    assert.equal(extra.password, 'gh-pass');
+    assert.equal(extra.username, 'ada');
+    assert.deepEqual(extra.uris, ['https://github.com']);
+    assert.ok(extra.hasTotp && extra.totp.startsWith('otpauth:'));
+    const adaFull = { ...ada, ...(await PassProvider.reveal(config, {}, ada)), revealed: true };
+    assert.equal(adaFull.username, 'ada', 'no login: line – the path name stays');
+    assert.deepEqual(adaFull.uris, ['https://login.example.org']);
+
+    // saving keeps a path user name out of the file unless it was changed
+    const saved = await PassProvider.saveItem(config, {}, adaFull, { ...adaFull, password: 'ex-neu' });
+    assert.equal(execFileSync(PASS_BIN, ['show', 'websites/example.org/ada'], { env, encoding: 'utf8' }), 'ex-neu\nurl: https://login.example.org\n');
+    assert.ok(saved.item.lazy && saved.item.revealed && saved.item.username === 'ada' && saved.item.siteHints[0] === 'https://example.org');
+    await PassProvider.saveItem(config, {}, saved.item, { ...saved.item, username: 'bea' });
+    assert.match(execFileSync(PASS_BIN, ['show', 'websites/example.org/ada'], { env, encoding: 'utf8' }), /^ex-neu\nlogin: bea\n/);
+    await PassProvider.deleteItem(config, {}, saved.item);
+  } finally { t.close(); }
 });
 
 test('host rejects malformed ids and unknown commands', opts, async () => {

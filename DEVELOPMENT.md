@@ -12,8 +12,8 @@ from other managers and export everything again.
 | Vaultwarden / self-hosted Bitwarden | direct | as above |
 | Passbolt v4 and v5 | direct, OpenPGP in the browser | read, write, share; tested against real Passbolt CE 5.16 |
 | HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash, version history of all fields; tested against real OpenBao 2.7.1 |
-| pass (password-store) | local host → `pass` + GnuPG | read and write, tested against real pass |
-| gopass | local host → `gopass` + GnuPG | read and write, stores as folders; tested against real gopass 1.17.4 |
+| pass (password-store) | local host → `pass` + GnuPG | read and write, optionally decrypting entries only when needed; tested against real pass |
+| gopass | local host → `gopass` + GnuPG | read and write, stores as folders, optionally decrypting only when needed; tested against real gopass 1.17.4 |
 | 1Password | local host → official `op` | read and write, tested against a simulated CLI |
 | LastPass | local host → official `lpass` | read and write, tested against a simulated CLI |
 | Dashlane | local host → official `dcli` | read only (dcli cannot write): logins, notes, identities and IDs; tested against a simulated CLI, and without an account against real dcli 6.2642.0 |
@@ -35,10 +35,13 @@ npm install
 npm run build        # → dist/chrome, dist/firefox
 npm run package      # builds and packs dist/packages/: Chrome, Firefox and source package (reproducible) + SHA256SUMS
 npm test             # unit tests: crypto test vectors, simulated servers and CLIs, import, tools
-npm run test:cli     # pass and gopass (real, with gpg), 1Password, LastPass and Dashlane (simulated CLIs) via the host
+npm run test:cli     # pass and gopass (real, with gpg), 1Password, LastPass and Dashlane (simulated CLIs) via the host;
+                     # for "decrypt on open" a gpg wrapper counts the calls: none for the list, one per opened entry
 npm run test:e2e     # extension in Chromium: popup as a tab, separate window (Playwright)
 npm run test:popup   # real toolbar popup via CDP; visible instead of headless with `xvfb-run -a`
 npm run test:proton  # Proton Pass: Chromium → native messaging → host → simulated pass-cli
+npm run test:pass    # pass with "decrypt on open": Chromium → native messaging → host → real pass + gpg (counted):
+                     # list, matching by path and search without gpg, filling and copying decrypt one entry each
 npm run test:vaultwarden  # starts a local Vaultwarden and tests provider, tools, import, attachments, Send, organizations
                           # (moving, collections) and automatic sync across a service worker restart
                           # Send: links are opened as a recipient would and decrypted with test/send-check.py (Python, `cryptography`)
@@ -76,7 +79,7 @@ npm run test:firefox      # the same features in Firefox (WebDriver BiDi, see be
 ```
 
 The e2e scripts take the path to Playwright as their first argument if it is not installed in the project.
-To run several of them at the same time, move the fixed ports of `e2e-i18n`, `e2e-inline` and `e2e-popup` with
+To run several of them at the same time, move the fixed ports of `e2e-i18n`, `e2e-inline`, `e2e-popup` and `e2e-pass` with
 `E2E_BW_PORT`/`E2E_PB_PORT` and the DevTools port of `e2e-popup`, `e2e-shortcuts`, `e2e-device-unlock` and
 `e2e-bitwarden-login` with `E2E_DEBUG_PORT`.
 `test:popup` checks the fixed popup size; this only works with a visible browser (`xvfb-run -a npm run test:popup`).
@@ -84,7 +87,11 @@ On its first run, `test:vaultwarden` downloads a static Vaultwarden Linux binary
 `test/vaultwarden-server.sh`); with `VAULTWARDEN_BIN=/path/to/vaultwarden` it uses your own. The GnuPG cross-checks
 in `npm test` need an installed `gpg`, otherwise they are skipped; the pass tests run with
 `OMNIVAULT_PASS_BIN=/path/to/pass`, the gopass tests with `OMNIVAULT_GOPASS_BIN=/path/to/gopass` or
-`OMNIVAULT_GOPASS_DOWNLOAD=1` (downloads the pinned release 1.17.4, hash verified, see `test/gopass-bin.sh`). The Dashlane tests run with a simulated `dcli`; with
+`OMNIVAULT_GOPASS_DOWNLOAD=1` (downloads the pinned release 1.17.4, hash verified, see `test/gopass-bin.sh`);
+`test:pass` needs `OMNIVAULT_PASS_BIN` too (`pass` is a single shell script: `src/password-store.sh` of a clone of
+password-store works) and maps `shop.example.org` to 127.0.0.1 inside Chromium (`--host-resolver-rules`), since a site
+hint needs a real top-level domain. The pure logic of that mode (path hints, outdated host) is in
+`test/pass-lazy.test.js` and runs with `npm test`. The Dashlane tests run with a simulated `dcli`; with
 `OMNIVAULT_DCLI_DOWNLOAD=1` (or `OMNIVAULT_DCLI_BIN_REAL=/path/to/dcli`) one test additionally checks the real release 6.2642.0
 without an account (hash verified, see `test/dcli-bin.sh`): version, status, `dcli id` and that it has no command for payment cards. `test:passbolt` needs PHP ≥ 8.2 (with `phpize`), Composer, git, a C compiler,
 GnuPG with libgpgme and the PostgreSQL programs; package repositories, packagist.org and pecl.php.net are not needed. Passbolt CE

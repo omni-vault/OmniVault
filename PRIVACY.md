@@ -110,7 +110,9 @@ OmniVault uses the extension storage of your browser. Nothing is stored anywhere
 - Short-lived technical state, such as open passkey requests and when the clipboard is due to be cleared.
 
 Your decrypted entries are kept only in the memory of the extension's background process while an account is
-unlocked. They are not written to disk by OmniVault.
+unlocked. They are not written to disk by OmniVault. For pass and gopass accounts set to decrypt items only when
+needed, the helper lists only the file names, and an entry's content is decrypted (and then kept in that memory until
+the next sync or lock) only when you open, copy or fill it, or a tool you start needs it.
 
 ## Websites
 

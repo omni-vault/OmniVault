@@ -88,7 +88,7 @@ for the permission "Communicate with cooperating native applications".
 | Create, edit, delete login / note | ✅ (logins only) | ✅ (logins only) | ✅ (deleting moves to "Recently Deleted") | ✅ | ✅ (deleting moves to the trash) | – (dcli can only read) |
 | Read and edit custom fields | ✅ (`Name: value` lines) | ✅ (`Name: value` lines) | ✅ (other fields and sections are preserved) | – | read only | read only (email, second login) |
 | Folder / group / vault | ✅ (path, create new) | ✅ (path and mounted stores; moving with `gopass mv`) | ✅ (vaults: move, create new) | ✅ (group, create new) | ✅ (vault, moving from 2.3) | – |
-| Load secrets only when needed | – (loads during sync) | – (loads during sync) | ✅ | ✅ | ✅ | 🟡 (dcli always returns them; the host discards them in the list) |
+| Load secrets only when needed | 🟡 (setting per account, see below) | 🟡 (setting per account, see below) | ✅ | ✅ | ✅ | 🟡 (dcli always returns them; the host discards them in the list) |
 | Favorites | stored in OmniVault | stored in OmniVault | ✅ (`--favorite`) | stored in OmniVault | stored in OmniVault | stored in OmniVault |
 | Change TOTP | ✅ | ✅ | ✅ | – | – | – |
 | Conflict detection (a change made elsewhere is not overwritten) | – | – | ✅ (`version`) | ✅ (`last_modified_gmt`) | ✅ (`modify_time`) | – (read only) |
@@ -97,6 +97,38 @@ pass and gopass have no separate note type: every entry starts with a password l
 `gopass ls --flat`, `gopass mounts`, `gopass show -f -n`, `gopass insert -f` (content via stdin), `gopass mv -f`
 and `gopass rm -f`; mounted stores (`gopass mounts`) appear as top-level folders, and moving
 between them uses `gopass mv`. gopass notifications and reminders are turned off for these calls.
+
+### pass and gopass: when entries are decrypted
+
+The account setting *Decrypt items* (Settings of the account → edit) chooses between two modes:
+
+- **All when syncing** (default, as before): the host decrypts every entry (`pass show`, `gopass show -f -n`) each
+  time the account syncs. User name, websites and TOTP are known in the list, for search, for "matching this page"
+  and for "Save login?".
+- **Only when opening, copying or filling:** the list comes from the file names alone – `pass` entries from the store
+  directory, `gopass ls --flat` and `gopass mounts` for gopass (host command `names`); no gpg runs for it (the tests
+  count the calls). An entry is decrypted, once per sync, when you open it, copy a value, fill it in, or when a tool
+  needs its content (password report, export, copying to another account, mirroring). With a key on a smartcard or
+  security key that asks for a touch per decryption, or a gpg-agent without a cached passphrase, this is the
+  difference between one confirmation and one per entry.
+
+  What the list can know without decrypting comes from the path, following the conventions of browserpass and the
+  gopass bridges: a path segment that is a host name with a known top-level domain is the entry's site
+  (`web/github.com`, `github.com`, `mail/ada@example.org` → `example.org`); in `websites/github.com/ada` the file
+  name after the site folder is the user name. These *site hints* make "matching this page", the keyboard shortcut,
+  the list in the login field and filling work as before; they are never written into the file. Search covers the
+  names and folders as before.
+
+  Limits of this mode: an entry whose site is only inside the file (`url:` line) and not in its path does not match
+  any page until it has been opened once in this session (after a sync it is unknown again); the list shows a user
+  name only if the path names one, and no TOTP marker until the entry is opened; duplicates are found by name and
+  path only. "Save login?" decrypts the entries whose path matches the page to compare the user name. If the file
+  has no `login:` line, the user name from the path is used for filling (as browserpass does) and is only written
+  into the file if you change it in the editor.
+
+  The mode needs host version 2.1.0 or later (`ov_common.py`, reported by `status`). With a host installed by an
+  older OmniVault the account says so when connecting: run `install.py` again; it prints the old and the new
+  version when it replaces a host. The default mode works with older hosts as before.
 
 Dashlane: the host only calls `dcli --version`, `dcli status`, `dcli sync` and `dcli password|note|secret|id --output json`
 (with the filter `id={…}` when an entry is opened), always with `/dev/null` as input. dcli always outputs these lists
@@ -182,6 +214,7 @@ The messages are quoted as they appear in the English interface.
 | "Your account is not yet allowed to use our CLI" | Proton has not (yet) enabled the CLI for your account |
 | "The pass-cli session is locked with a PIN" | `pass-cli` session with a lock code: run `pass-cli session unlock` in a terminal |
 | "update pass-cli" | version older than 2.3: `pass-cli update` |
+| "The OmniVault helper app is out of date" | the host was installed by an older OmniVault and lacks a command (e.g. pass/gopass decrypting on open): run `install.py` again |
 | "KeePassXC doesn't allow listing the items" | in KeePassXC, turn on "Allow keepassxc-proxy to list all entries" under Browser Integration → Advanced |
 | "KeePassXC: The database is locked" | unlock the database in KeePassXC |
 | "KeePassXC doesn't recognize this connection (anymore)" | the association was removed in KeePassXC: edit the account → connect again |

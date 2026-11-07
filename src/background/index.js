@@ -504,7 +504,10 @@ const contentHandlers = {
     for (const a of await store.listAccounts()) {
       const entry = await ensureSynced(a);
       for (const i of entry?.items ?? []) {
-        if (i.type !== 'login' || !matchesUrl(i, url) || (i.username ?? '').toLowerCase() !== username.toLowerCase()) continue;
+        if (i.type !== 'login' || !matchesUrl(i, url)) continue;
+        // an entry listed by name only (pass/gopass decrypting on demand) is decrypted here to learn its user name
+        if (i.usernameUnknown) { try { await findItem(a.id, i.id); } catch { continue; } }
+        if ((i.username ?? '').toLowerCase() !== username.toLowerCase()) continue;
         const { item } = await findItem(a.id, i.id);
         if (item.password === password) return { show: false }; // already stored
         if (getProvider(a.provider).capabilities?.write && item.canEdit !== false) target ??= { accountId: a.id, itemId: i.id };

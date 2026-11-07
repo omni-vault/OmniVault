@@ -112,6 +112,17 @@ def pass_list(_args):
     return {"items": items}
 
 
+def pass_names(_args):
+    """The list without decrypting anything: entry names from the store directory only (no gpg runs). Each entry is
+    decrypted with `reveal` when it is opened, copied or filled."""
+    pass_bin()
+    return {"items": [_name_item(n) for n in pass_entries()]}
+
+
+def _name_item(name):
+    return {"id": name, "name": name.split("/")[-1], "folder": "/".join(name.split("/")[:-1]) or None}
+
+
 def pass_reveal(args):
     b = pass_bin()
     name = check_id(args.get("id"), "Eintrags-ID")
@@ -155,5 +166,5 @@ def pass_delete(args):
     return {"deleted": True}
 
 
-COMMANDS = {"status": pass_status, "list": pass_list, "reveal": pass_reveal,
+COMMANDS = {"status": pass_status, "list": pass_list, "names": pass_names, "reveal": pass_reveal,
         "create": pass_create, "update": pass_update, "delete": pass_delete}

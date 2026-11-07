@@ -152,6 +152,21 @@ export class CliProvider extends Provider {
   }
 }
 
+/** True if the host's version (e.g. "2.1.0" from `status`) is at least `need`; an unknown version counts as older. */
+export function hostAtLeast(version, need) {
+  const a = String(version ?? '').split('.').map(Number);
+  const b = need.split('.').map(Number);
+  if (!a.length || a.some((x) => !Number.isInteger(x))) return false;
+  for (let i = 0; i < b.length; i++) { if ((a[i] ?? 0) !== b[i]) return (a[i] ?? 0) > b[i]; }
+  return true;
+}
+
+/** The installed host lacks a command of this extension version: it was installed by an older OmniVault. */
+export function outdatedHost(version, need) {
+  return new ProviderError(t('Der OmniVault-Host ist veraltet (Version {have}, nötig {need}). Bitte native/install.py erneut ausführen (siehe native/README.md).',
+    { have: version || '?', need }), 'host_outdated');
+}
+
 /** A folder that only exists through its path (pass directories, LastPass groups): "Arbeit/Team". */
 export function virtualFolder(name) {
   const path = String(name ?? '').split('/').map((p) => p.trim()).filter((p) => p && p !== '.' && p !== '..').join('/');

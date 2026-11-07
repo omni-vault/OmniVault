@@ -169,7 +169,10 @@ tools – you install them and sign in yourself.
    ```
 
 3. In OmniVault, add the account and click *Connect*. Your browser asks once for permission to communicate with
-   native applications.
+   native applications. For pass and gopass you can choose to *decrypt items only when opening, copying or
+   filling*: the list then comes from the file names and the site from the path (e.g. `websites/github.com/ada`),
+   see [native/README.md](native/README.md).
+4. After updating OmniVault, run `install.py` again: it replaces the helper and tells you the old and the new version.
 
 What the official tools allow through the helper:
 

@@ -1259,5 +1259,10 @@
  "Versionsverlauf": "Version history",
  "Versionsverlauf ({n})": "Version history ({n})",
  "Keine Änderungen in früheren Versionen": "No changes in earlier versions",
- "(nicht gesetzt)": "(not set)"
+ "(nicht gesetzt)": "(not set)",
+ "Der OmniVault-Host ist veraltet (Version {have}, nötig {need}). Bitte native/install.py erneut ausführen (siehe native/README.md).": "The OmniVault helper app is out of date (version {have}, {need} needed). Run native/install.py again (see native/README.md).",
+ "Einträge entschlüsseln": "Decrypt items",
+ "Alle beim Abgleich (Benutzername und Website in der Liste)": "All when syncing (username and website in the list)",
+ "Erst beim Öffnen, Kopieren oder Ausfüllen": "Only when opening, copying or filling",
+ "„Erst beim Öffnen“ startet gpg nur für den Eintrag, den du brauchst. Die Liste kennt dann nur die Dateinamen: Die Website kommt aus dem Pfad (z. B. „websites/github.com/ada“), Benutzername und Website aus dem Inhalt erst nach dem Öffnen.": "“Only when opening” runs gpg just for the item you need. The list then knows only the file names: the website comes from the path (e.g. “websites/github.com/ada”), and the username and website inside the item only after you open it."
 }
