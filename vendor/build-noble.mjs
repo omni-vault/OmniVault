@@ -3,6 +3,8 @@
 // Copyright (c) 2026 Die OmniVault-Mitwirkenden
 // Builds vendor/noble-ciphers.mjs (MIT) from the noble-ciphers sources pinned in vendor/sources.json, exporting only
 // what WebCrypto lacks: XChaCha20-Poly1305 (Bitwarden encryption v2), ChaCha20 and Salsa20 (KeePass .kdbx).
+// Also builds vendor/noble-hashes.mjs (MIT) from the pinned noble-hashes sources: only scrypt (Psono's password
+// derivation), which WebCrypto lacks as well.
 // Runs as part of vendor/build.mjs; alone (no clang needed): node vendor/build-noble.mjs
 import * as esbuild from 'esbuild';
 import { readFileSync } from 'node:fs';
@@ -25,3 +27,18 @@ await esbuild.build({
 });
 console.log('vendor/noble-ciphers.mjs written');
 
+const hashes = join(here, 'src/noble-hashes/src');
+const h = JSON.parse(readFileSync(join(here, 'sources.json'), 'utf8'))['noble-hashes'];
+await esbuild.build({
+  bundle: true, format: 'esm', platform: 'browser', target: ['chrome120', 'firefox128'], legalComments: 'inline', logLevel: 'warning',
+  tsconfigRaw: { compilerOptions: { useDefineForClassFields: false } },
+  stdin: {
+    contents: `export { scrypt, scryptAsync } from ${JSON.stringify(join(hashes, 'scrypt.ts'))};\n`,
+    resolveDir: hashes, loader: 'js',
+  },
+  // the package maps this to crypto.ts for browsers (globalThis.crypto); scrypt never asks for random bytes
+  alias: { '@noble/hashes/crypto': join(hashes, 'crypto.ts') },
+  outfile: join(here, 'noble-hashes.mjs'),
+  banner: { js: `/*! @noble/hashes ${h.ref} – MIT, see LICENSES/noble-hashes-MIT.txt. Unmodified sources (only scrypt and scryptAsync exported), built from ${h.repo} ${h.commit.slice(0, 12)}. */` },
+});
+console.log('vendor/noble-hashes.mjs written');
