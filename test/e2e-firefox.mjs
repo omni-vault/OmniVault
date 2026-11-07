@@ -61,8 +61,8 @@ const WIDGET = ADDON.replace(/[^a-z0-9_-]/gi, '_'); // Firefox's widget id for t
 let failures = 0;
 const check = (cond, msg) => { console.log(`${cond ? 'ok  ' : 'FAIL'} ${msg}`); if (!cond) failures++; };
 const consoleErrors = [];
-// Firefox's own components without network access (remote settings, experiments)
-const FIREFOX_NOISE = /RSLoader|Remote Settings|nimbus|RemoteSettings|services-settings/;
+// Firefox's own components without network access (remote settings, Nimbus experiments it cannot apply)
+const FIREFOX_NOISE = /RSLoader|Remote Settings|nimbus|RemoteSettings|services-settings|^console\.error: "Experiment .* has unknown featureId/;
 ff.onEvent((m) => {
   if (m.method === 'log.entryAdded' && m.params.level === 'error') consoleErrors.push(`${m.params.source?.context ?? ''} ${m.params.text}`);
 });
