@@ -35,10 +35,12 @@
   ZIP exports and PGP-encrypted Proton Pass exports (passphrase), and Bitwarden ZIP exports. Archives are unpacked in
   memory only, with limits against ZIP bombs; ZIP64 and password-protected ZIP files are refused with a message.
 
-- **Password history for HashiCorp Vault / OpenBao**: entries with older versions show "Password history" in the
-  detail view, as for Bitwarden. Only when you open it does OmniVault read the version list and the earlier
-  passwords (at most 20 older versions); deleted and destroyed versions are skipped, and each password is listed once
-  per change with the date it was replaced. Needs the `read` capability on the entry's `metadata` path.
+- **Version history for HashiCorp Vault / OpenBao**: entries with older versions show "Version history" in the
+  detail view. Only when you open it does OmniVault read the version list and the older versions (at most 20);
+  each one lists what it held where the next version differs – username, password, websites, notes, TOTP and custom
+  fields, with the date it was replaced. Passwords, TOTP secrets and custom fields stay hidden until you reveal them
+  and can be copied; a field that did not exist yet is shown as "(not set)". Deleted and destroyed versions are
+  skipped, and nothing is kept once you leave the entry. Needs the `read` capability on the entry's `metadata` path.
 - **Dashlane: identities and IDs** (passport, ID card, driver's licence, social security and tax number) are read
   with `dcli id` (Dashlane CLI 6.2642.0 or later) and shown as identities, read only. The list holds only the type
   and the holder's name; numbers and dates are read when you open the entry. Payment cards cannot be read: `dcli`

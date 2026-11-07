@@ -4,7 +4,7 @@
 // HashiCorp Vault / OpenBao provider against the simulated server (fetch is mocked).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import VaultProvider, { LIMITS, buildData, mapData } from '../src/providers/vault/index.js';
+import VaultProvider, { LIMITS, buildData, mapData, versionChanges } from '../src/providers/vault/index.js';
 import { hostPatterns } from '../src/providers/hosts.js';
 import { fakeVault } from './fake-vault.js';
 
@@ -124,17 +124,17 @@ test('write with check-and-set, conflict, move, soft delete, restore, purge', as
   assert.equal(fake.kv.has('neu/ordner/mail'), false);
 });
 
-test('password history from older versions: only on request, deleted and destroyed versions skipped', async () => {
+test('version history of all fields: only on request, deleted and destroyed versions skipped', async () => {
   const fake = setup();
   const config = { id: 'v5', server: SERVER, auth: 'token', mount: 'secret', prefix: 'web' };
-  // v1 gh-pw (setup) → v2 alt-1 → v3 alt-1 (only the URL changed) → v4 weg (deleted) → v5 zerstört (destroyed)
-  // → v6 without password → v7 aktuell
-  fake.put('web/github', { username: 'ada', password: 'alt-1' });
-  fake.put('web/github', { username: 'ada', password: 'alt-1', url: 'https://github.com/login' });
+  // v1 (setup: ada, gh-pw, github.com, totp, team=core) → v2 password, totp and field changed → v3 URL added
+  // → v4 deleted → v5 destroyed → v6 without password, notes added → v7 current
+  fake.put('web/github', { username: 'ada', password: 'alt-1', url: 'https://github.com', team: 'core-2' });
+  fake.put('web/github', { username: 'ada', password: 'alt-1', url: 'https://github.com\nhttps://github.com/login', team: 'core-2' });
   fake.put('web/github', { username: 'ada', password: 'weg' });
   fake.put('web/github', { username: 'ada', password: 'zerstört' });
-  fake.put('web/github', { username: 'ada' });
-  fake.put('web/github', { username: 'ada', password: 'aktuell' });
+  fake.put('web/github', { user: 'ada.l', url: 'https://github.com', notes: 'neu', pin: '1234' });
+  fake.put('web/github', { user: 'ada.l', url: 'https://github.com', notes: 'neu', pin: '1234', password: 'aktuell' });
   const e = fake.kv.get('web/github');
   e.versions[3].deleted = '2026-01-01T00:00:00Z';
   e.versions[4].destroyed = true;
@@ -142,26 +142,46 @@ test('password history from older versions: only on request, deleted and destroy
   const { items } = await VaultProvider.sync(config, session);
   const gh = items.find((i) => i.id === 'github');
   const shop = items.find((i) => i.id === 'shop');
-  assert.ok(gh.passwordHistoryOnDemand, 'an entry with older versions offers a history');
-  assert.equal(shop.passwordHistoryOnDemand, undefined, 'a single version has none');
+  assert.ok(gh.versionHistoryOnDemand, 'an entry with older versions offers a history');
+  assert.equal(shop.versionHistoryOnDemand, undefined, 'a single version has none');
   assert.equal(gh.passwordHistory, undefined, 'nothing read for the list');
   assert.ok(!fake.log.some((l) => /version=|GET secret\/metadata\/web\/github$/.test(l)), 'no version read during sync');
 
-  const { history } = await VaultProvider.passwordHistory(config, session, gh);
-  assert.deepEqual(history.map((h) => [h.version, h.password]), [[3, 'alt-1'], [1, 'gh-pw']],
-    'v6 has no password, v5/v4 skipped, v2 = v3 counted once');
-  assert.equal(history[0].lastUsedDate, e.versions[5].created, 'dated when the next readable version replaced it');
-  assert.equal(history[1].lastUsedDate, e.versions[1].created);
+  const { versions } = await VaultProvider.versionHistory(config, session, gh);
+  const brief = (v) => v.changes.map((c) => [c.field === 'custom' ? c.name : c.field, c.value, c.secret]);
+  assert.deepEqual(versions.map((v) => v.version), [6, 3, 2, 1], 'v5/v4 skipped');
+  assert.deepEqual(brief(versions[0]), [['password', '', true]], 'v6 had no password yet');
+  assert.deepEqual(brief(versions[1]), [
+    ['username', 'ada', false], ['password', 'alt-1', true], ['uris', 'https://github.com\nhttps://github.com/login', false],
+    ['notes', '', false], ['pin', '', true], ['team', 'core-2', true],
+  ], 'v3 against v6 (the next readable version): username key renamed, field removed and added');
+  assert.deepEqual(brief(versions[2]), [['uris', 'https://github.com', false]]);
+  assert.deepEqual(brief(versions[3]), [['password', 'gh-pw', true], ['totp', 'JBSWY3DPEHPK3PXP', true], ['team', 'core', true]]);
+  assert.equal(versions[0].lastUsedDate, e.versions[6].created, 'dated when the next readable version replaced it');
+  assert.equal(versions[1].lastUsedDate, e.versions[5].created);
+  assert.equal(versions[3].lastUsedDate, e.versions[1].created);
   assert.ok(!fake.log.some((l) => /version=[45]\b/.test(l)), 'deleted and destroyed versions are not requested');
+
+  // identical versions are left out
+  fake.put('web/shop', { Login: 'kunde', password: 'shop-pw', website: 'https://shop.example https://m.shop.example', notes: 'Kundennr. 7', port: 8080 });
+  const shop2 = (await VaultProvider.sync(config, session)).items.find((i) => i.id === 'shop');
+  assert.ok(shop2.versionHistoryOnDemand);
+  assert.deepEqual((await VaultProvider.versionHistory(config, session, shop2)).versions, []);
 
   // at most LIMITS.history older versions are read
   const saved = { ...LIMITS };
   try {
     LIMITS.history = 2;
-    const short = await VaultProvider.passwordHistory(config, session, gh);
-    assert.deepEqual(short.history.map((h) => h.version), [3]);
+    const short = await VaultProvider.versionHistory(config, session, gh);
+    assert.deepEqual(short.versions.map((v) => v.version), [6, 3]);
   } finally { Object.assign(LIMITS, saved); }
-  assert.deepEqual((await VaultProvider.passwordHistory(config, session, shop)).history, []);
+  assert.deepEqual((await VaultProvider.versionHistory(config, session, shop)).versions, []);
+});
+
+test('versionChanges compares by role, not by key name', () => {
+  assert.deepEqual(versionChanges(mapData({ login: 'a', password: 'p' }), mapData({ username: 'a', password: 'p' })), []);
+  assert.deepEqual(versionChanges(mapData({ password: 'p', x: '1' }), mapData({ password: 'p' })), [{ field: 'custom', name: 'x', value: '1', secret: true }]);
+  assert.deepEqual(versionChanges(mapData({}), mapData({ notes: 'n' })), [{ field: 'notes', value: '', secret: false }]);
 });
 
 test('limits, progress, forbidden sub-paths, wrong mount', async () => {

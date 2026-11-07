@@ -60,8 +60,9 @@ export function passkeysWithKeys(item) {
 /** What would be lost when the item is transferred to an account with `caps` (shown before copying/moving). */
 export function transferLoss(item, caps = {}) {
   const lost = [];
-  // Vault/OpenBao: earlier passwords live in older versions, which a copy does not take along
-  if (item.passwordHistory?.length || item.passwordHistoryOnDemand) lost.push(t('Passwortverlauf'));
+  if (item.passwordHistory?.length) lost.push(t('Passwortverlauf'));
+  // Vault/OpenBao: earlier values live in older versions, which a copy does not take along
+  if (item.versionHistoryOnDemand) lost.push(t('Versionsverlauf'));
   const keys = passkeysWithKeys(item).length;
   if (item.passkeys?.length && (!caps.passkeys || keys < item.passkeys.length)) lost.push(t('Passkeys'));
   if (item.attachments?.length) lost.push(t('Anhänge'));

@@ -182,7 +182,7 @@ export async function openItem(accountId, itemId) {
   }) : (i.favorite ? el('span', { className: 'fav on', title: t('Favorit') }, icon('starFilled')) : null);
 
   const history = (i.passwordHistory ?? []).length ? historySection(i.passwordHistory)
-    : i.passwordHistoryOnDemand ? lazyHistorySection(accountId, itemId) : null;
+    : i.versionHistoryOnDemand ? versionHistorySection(accountId, itemId) : null;
 
   // replaceChildren() is a native DOM call: unlike el(), it turns a null argument into a "null" text node,
   // so filter falsy entries (e.g. an absent password history or revision date) out first.
@@ -252,33 +252,55 @@ export async function openItem(accountId, itemId) {
   show('item', { restore: () => openItem(accountId, itemId) });
 }
 
-/** Earlier passwords, each hidden until revealed; `version` names the provider's version (Vault/OpenBao). */
+/** Earlier passwords, each hidden until revealed. */
 function historyRows(list) {
-  return el('div', { className: 'fields' }, list.map((h) => {
-    const date = h.lastUsedDate ? formatDateTime(h.lastUsedDate) : t('früher');
-    return field(h.version ? t('Version {n}, bis {date}', { n: h.version, date }) : date, h.password, { secret: true, copyLabel: mark('Altes Passwort'), own: true });
-  }));
+  return el('div', { className: 'fields' }, list.map((h) =>
+    field(h.lastUsedDate ? formatDateTime(h.lastUsedDate) : t('früher'), h.password, { secret: true, copyLabel: mark('Altes Passwort'), own: true })));
 }
 
 function historySection(list) {
   return el('details', { className: 'history' }, el('summary', {}, t('Passwortverlauf ({n})', { n: list.length })), historyRows(list));
 }
 
+/** Labels of the fields a version history names (German keys, see field()). */
+const CHANGE_LABEL = {
+  username: mark('Benutzername'), password: mark('Passwort'), uris: mark('Website'), notes: mark('Notizen'), totp: mark('Einmalcode (TOTP)'),
+};
+
 /**
- * Password history of a provider that reads it only on request (Vault/OpenBao keeps it in older versions): nothing is
- * fetched until the section is opened, and the passwords stay in this view only.
+ * One older version: what it held where the next version differs, with the same tools as the detail view (secret
+ * values hidden until revealed). A field that was not set in that version is named as such, without tools.
  */
-function lazyHistorySection(accountId, itemId) {
-  const summary = el('summary', {}, t('Passwortverlauf'));
+function versionRows(v) {
+  const date = v.lastUsedDate ? formatDateTime(v.lastUsedDate) : t('früher');
+  return el('div', { className: 'version', 'data-version': String(v.version) },
+    el('p', { className: 'hint version-head' }, t('Version {n}, bis {date}', { n: v.version, date })),
+    el('div', { className: 'fields' }, v.changes.map((c) => {
+      const custom = c.field === 'custom';
+      const key = custom ? c.name || t('Feld') : CHANGE_LABEL[c.field] ?? c.field;
+      if (c.value === '') {
+        return el('div', { className: 'field', 'data-field': key },
+          el('span', { className: 'k' }, custom ? key : t(key)), el('div', { className: 'v plain muted' }, t('(nicht gesetzt)')));
+      }
+      return field(key, c.value, { secret: !!c.secret, plain: !c.secret && c.field !== 'username', own: custom });
+    })));
+}
+
+/**
+ * Version history of a provider that reads it only on request (Vault/OpenBao keeps it in older KV versions): nothing
+ * is fetched until the section is opened, and the values stay in this view only.
+ */
+function versionHistorySection(accountId, itemId) {
+  const summary = el('summary', {}, t('Versionsverlauf'));
   const body = el('p', { className: 'hint' }, t('Lade …'));
   let loading = null;
   const box = el('details', {
     className: 'history',
     ontoggle: () => {
       if (!box.open || loading) return;
-      loading = call('passwordHistory', { accountId, itemId }).then((list) => {
-        summary.textContent = t('Passwortverlauf ({n})', { n: list.length });
-        body.replaceWith(list.length ? historyRows(list) : el('p', { className: 'hint' }, t('Keine früheren Passwörter')));
+      loading = call('versionHistory', { accountId, itemId }).then((list) => {
+        summary.textContent = t('Versionsverlauf ({n})', { n: list.length });
+        body.replaceWith(list.length ? el('div', {}, list.map(versionRows)) : el('p', { className: 'hint' }, t('Keine Änderungen in früheren Versionen')));
       }, (e) => {
         body.textContent = e.message;
         loading = null; // closing and opening again retries

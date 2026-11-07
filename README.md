@@ -59,8 +59,9 @@ entry is opened, copied or filled. Edits use check-and-set, so a change made els
 as a conflict instead of being overwritten. Deleting is a soft delete of the current version: the entry appears in
 *Tools → Trash* and can be restored (`undelete`) or removed for good (all versions and metadata). Renaming or moving
 writes the secret at the new path and soft-deletes the old one. Paths the token may not list or read are skipped
-with a notice. The *Password history* of an entry lists the earlier passwords kept in its older versions; they are
-read only when you open it (this needs the `read` capability on the entry's `metadata` path), and deleted or
+with a notice. The *Version history* of an entry shows, for each of its older versions, what it held where the next version
+differs (username, password, websites, notes, TOTP, custom fields; secret values hidden until revealed); the versions
+are read only when you open it (this needs the `read` capability on the entry's `metadata` path), and deleted or
 destroyed versions are left out.
 
 ## Features

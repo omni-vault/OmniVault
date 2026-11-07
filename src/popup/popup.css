@@ -263,6 +263,8 @@ dialog .danger-ok { background: var(--danger); color: var(--danger-text); }
 .field .tools button:hover { color: var(--text); }
 .totp-ring { font-size: 11px; color: var(--muted); margin-left: 6px; font-family: inherit; }
 details.history summary { cursor: pointer; color: var(--muted); font-size: 12px; margin: 10px 0 6px; }
+details.history .version-head { margin: 8px 0 4px; font-weight: 600; }
+.field .v.muted { color: var(--muted); font-style: italic; }
 
 /* ---------- editor & generator ---------- */
 .uris .uri-row { display: grid; grid-template-columns: 1fr auto; gap: 4px; margin-bottom: 4px; align-items: center; }

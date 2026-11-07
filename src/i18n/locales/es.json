@@ -1149,7 +1149,6 @@
  "Kein QR-Code im sichtbaren Teil der Seite gefunden": "No se encontró ningún código QR en la parte visible de la página",
  "Nach dem Ausfüllen eines Logins den Einmalcode (TOTP) kopieren": "Copiar el código de verificación (TOTP) después de rellenar un login",
  "Version {n}, bis {date}": "Versión {n}, hasta {date}",
- "Keine früheren Passwörter": "No hay contraseñas anteriores",
  "Reisepass": "Pasaporte",
  "Personalausweis": "Documento de identidad",
  "Führerschein": "Permiso de conducir",
@@ -1256,5 +1255,9 @@
  "Zweiten Faktor 30 Tage merken": "Recordar el segundo factor durante 30 días",
  "Passbolt fragt dann in diesem Browser 30 Tage lang nicht nach dem Code – auch nicht in der Passbolt-Weboberfläche.": "Así Passbolt no pedirá el código en este navegador durante 30 días, tampoco en la aplicación web de Passbolt.",
  "Damit die Bestätigung erhalten bleibt, wenn OmniVault die Sitzung erneuert, bittet es um Zugriff auf Cookies. Gelesen wird nur Passbolts Sitzungs-Cookie dieses Servers (refresh_token); OmniVault löscht es sofort aus dem Browser und behält es nur im Arbeitsspeicher.": "Para conservar la confirmación cuando OmniVault renueva la sesión, pide acceso a las cookies. Solo lee la cookie de sesión de Passbolt de este servidor (refresh_token), la borra del navegador al instante y la guarda solo en la memoria.",
- "Ohne https kann der Browser Passbolts Sitzungs-Cookie nicht speichern: Nach Ablauf der Sitzung (bei Passbolt meist 5 Minuten) fragt OmniVault erneut nach dem Code – außer du lässt ihn 30 Tage merken.": "Sin https, el navegador no puede guardar la cookie de sesión de Passbolt: cuando caduque la sesión (en Passbolt, normalmente a los 5 minutos), OmniVault volverá a pedir el código, salvo que lo recuerdes durante 30 días."
+ "Ohne https kann der Browser Passbolts Sitzungs-Cookie nicht speichern: Nach Ablauf der Sitzung (bei Passbolt meist 5 Minuten) fragt OmniVault erneut nach dem Code – außer du lässt ihn 30 Tage merken.": "Sin https, el navegador no puede guardar la cookie de sesión de Passbolt: cuando caduque la sesión (en Passbolt, normalmente a los 5 minutos), OmniVault volverá a pedir el código, salvo que lo recuerdes durante 30 días.",
+ "Versionsverlauf": "Historial de versiones",
+ "Versionsverlauf ({n})": "Historial de versiones ({n})",
+ "Keine Änderungen in früheren Versionen": "No hay cambios en versiones anteriores",
+ "(nicht gesetzt)": "(sin definir)"
 }

@@ -857,17 +857,19 @@ const handlers = {
     return { ...fullItem(item), accountLabel: account.label, accountShort: account.short, accountHue: account.hue };
   },
 
-  /** Earlier passwords of a provider that reads them only on request (Vault/OpenBao: older KV versions). */
-  async passwordHistory({ accountId, itemId }) {
+  /**
+   * Older versions of an entry with what changed in each (Vault/OpenBao: older KV versions), read only on request and
+   * handed to the open detail view; nothing is kept in the background.
+   */
+  async versionHistory({ accountId, itemId }) {
     const { item, account } = await findItem(accountId, itemId);
-    if (item.passwordHistory?.length) return item.passwordHistory;
     const provider = getProvider(account.provider);
-    if (!provider.passwordHistory || !item.passwordHistoryOnDemand) return [];
+    if (!provider.versionHistory || !item.versionHistoryOnDemand) return [];
     const session = await store.getSession(accountId);
     if (!session) throw new Error(t('Tresor gesperrt'));
-    const res = await provider.passwordHistory(cfg(account), session, item);
+    const res = await provider.versionHistory(cfg(account), session, item);
     if (res.session) await store.setSession(accountId, res.session);
-    return res.history;
+    return res.versions;
   },
 
   async folders({ accountId }) {

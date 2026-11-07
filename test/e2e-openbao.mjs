@@ -87,18 +87,22 @@ try {
   const raw = (await seed.read('web/shop')).data;
   check(raw.data.password === 'shop-neu' && raw.data.login === 'kunde' && raw.data.port === 8080 && raw.metadata.version === 3,
     `edit written with check-and-set (version ${raw.metadata.version}, keys kept)`);
-  // password history: offered for the older versions, read only when opened
+  // version history: offered for the older versions, read only when opened
   const before = await msg('item', { accountId: shop.accountId, itemId: shop.id });
-  check(before.passwordHistoryOnDemand && !before.passwordHistory, 'history offered, nothing read with the item');
-  const hist = '#view-item details.history:has(summary:text-is("Passwortverlauf"))';
+  check(before.versionHistoryOnDemand && !before.passwordHistory, 'history offered, nothing read with the item');
+  const hist = '#view-item details.history:has(summary:text-is("Versionsverlauf"))';
   check(await popup.isVisible(hist) && !(await popup.$eval(hist, (d) => d.open)), 'history section closed, without a count');
   await popup.click(`${hist} summary`);
-  await popup.waitForSelector('#view-item details.history summary:text-is("Passwortverlauf (1)")');
-  const row = '#view-item details.history .field';
-  check(/^Version 2, bis /.test(await popup.textContent(`${row} .k`)), `labelled with version and date (${await popup.textContent(`${row} .k`)})`);
-  check(await popup.textContent(`${row} .v`) === '••••••••', 'old password hidden until revealed');
-  await popup.click(`${row} button[aria-label$="anzeigen"]`);
-  check(await popup.textContent(`${row} .v`) === 'shop-geheim', 'old password from version 2 (version 1 had the same one)');
+  await popup.waitForSelector('#view-item details.history summary:text-matches("^Versionsverlauf .[0-9]+.$")');
+  const v2 = '#view-item details.history .version[data-version="2"]';
+  check(/^Version 2, bis /.test(await popup.textContent(`${v2} .version-head`)), `labelled with version and date (${await popup.textContent(`${v2} .version-head`)})`);
+  const pw = `${v2} .field[data-field="Passwort"]`;
+  check(await popup.textContent(`${pw} .v`) === '••••••••', 'old password hidden until revealed');
+  await popup.click(`${pw} button[aria-label$="anzeigen"]`);
+  check(await popup.textContent(`${pw} .v`) === 'shop-geheim', 'old password from version 2');
+  check(await popup.$$eval(`${v2} .field`, (r) => r.length) === 1, 'version 2 lists only what changed (the password)');
+  const v1 = '#view-item details.history .version[data-version="1"] .field[data-field="Website"] .v';
+  check(await popup.isVisible(v1) && (await popup.textContent(v1)) === 'http://localhost/login', 'version 1: the website before it changed, shown openly');
   await popup.screenshot({ path: join(shots, 'openbao-detail.png') });
 
   // delete → trash → restore

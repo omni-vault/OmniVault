@@ -88,13 +88,19 @@ test('userpass login, renew-self, check-and-set conflict, move, delete, restore,
   assert.ok(!gone?.data, 'metadata deleted');
 });
 
-test('password history from older KV versions, deleted and destroyed versions skipped', { skip }, async () => {
+test('version history of all fields from older KV versions, deleted and destroyed versions skipped', { skip }, async () => {
   const config = { id: 'b5', server: BASE, auth: 'userpass', username: seed.user, mount: 'secret', prefix: seed.run };
   const { session } = await VaultProvider.login(config, { password: seed.password });
-  // v1 erst → v2 zwei → v3 zwei (other user name) → v4 gelöscht → v5 zerstört → v6 jetzt
-  for (const [password, user] of [['erst', 'a'], ['zwei', 'a'], ['zwei', 'b'], ['gelöscht', 'b'], ['zerstört', 'b'], ['jetzt', 'b']]) {
-    await seed.put('verlauf/konto', { username: user, password });
-  }
+  // v1 → v2 password → v3 user, URL, notes, custom field → v4 deleted → v5 destroyed → v6 password, TOTP, field removed
+  const versions = [
+    { username: 'a', password: 'erst', url: 'https://alt.example' },
+    { username: 'a', password: 'zwei', url: 'https://alt.example' },
+    { username: 'b', password: 'zwei', url: 'https://neu.example', notes: 'Notiz', pin: '1234' },
+    { username: 'b', password: 'gelöscht' },
+    { username: 'b', password: 'zerstört' },
+    { username: 'b', password: 'jetzt', url: 'https://neu.example', notes: 'Notiz', totp: 'JBSWY3DPEHPK3PXP' },
+  ];
+  for (const v of versions) await seed.put('verlauf/konto', v);
   await bao(BASE, 'POST', `secret/delete/${seed.run}/verlauf/konto`, { versions: [4] });
   await bao(BASE, 'PUT', `secret/destroy/${seed.run}/verlauf/konto`, { versions: [5] });
   const meta = (await bao(BASE, 'GET', `secret/metadata/${seed.run}/verlauf/konto`)).data;
@@ -102,17 +108,22 @@ test('password history from older KV versions, deleted and destroyed versions sk
 
   const out = await VaultProvider.sync(config, session);
   const item = out.items.find((i) => i.id === 'verlauf/konto');
-  assert.ok(item.passwordHistoryOnDemand && item.password === undefined && item.passwordHistory === undefined);
-  assert.equal(out.items.find((i) => i.id === 'notiz').passwordHistoryOnDemand, undefined);
-  const { history } = await VaultProvider.passwordHistory(config, session, item);
-  assert.deepEqual(history.map((h) => [h.version, h.password]), [[3, 'zwei'], [1, 'erst']]);
-  assert.equal(history[0].lastUsedDate, meta.versions['6'].created_time);
-  assert.equal(history[1].lastUsedDate, meta.versions['2'].created_time);
+  assert.ok(item.versionHistoryOnDemand && item.password === undefined && item.passwordHistory === undefined);
+  assert.equal(out.items.find((i) => i.id === 'notiz').versionHistoryOnDemand, undefined);
+  const { versions: history } = await VaultProvider.versionHistory(config, session, item);
+  const brief = (v) => [v.version, v.changes.map((c) => [c.field === 'custom' ? c.name : c.field, c.value, c.secret])];
+  assert.deepEqual(history.map(brief), [
+    [3, [['password', 'zwei', true], ['totp', '', true], ['pin', '1234', true]]],
+    [2, [['username', 'a', false], ['uris', 'https://alt.example', false], ['notes', '', false], ['pin', '', true]]],
+    [1, [['password', 'erst', true]]],
+  ]);
+  assert.equal(history[0].lastUsedDate, meta.versions['6'].created_time, 'dated when the next readable version replaced it');
+  assert.equal(history[2].lastUsedDate, meta.versions['2'].created_time);
 
   // a token whose policy may read the data but not the metadata gets a clear refusal, not a broken view
   await bao(BASE, 'PUT', `sys/policies/acl/${seed.run}-nometa`, { policy: `path "secret/data/${seed.run}/*" { capabilities = ["read"] }\npath "secret/metadata/${seed.run}" { capabilities = ["list"] }\npath "secret/metadata/${seed.run}/*" { capabilities = ["list"] }` });
   const tok = await bao(BASE, 'POST', 'auth/token/create', { policies: [`${seed.run}-nometa`], ttl: '1h' });
-  await assert.rejects(VaultProvider.passwordHistory({ ...config, auth: 'token' }, { token: tok.auth.client_token }, item), (e) => e.code === 'forbidden');
+  await assert.rejects(VaultProvider.versionHistory({ ...config, auth: 'token' }, { token: tok.auth.client_token }, item), (e) => e.code === 'forbidden');
 });
 
 test('wrong mount and revoked token', { skip }, async () => {

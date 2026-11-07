@@ -11,7 +11,7 @@ from other managers and export everything again.
 | Bitwarden (bitwarden.com, bitwarden.eu) | direct, decryption in the browser | read and write, tested against real Vaultwarden |
 | Vaultwarden / self-hosted Bitwarden | direct | as above |
 | Passbolt v4 and v5 | direct, OpenPGP in the browser | read, write, share; tested against real Passbolt CE 5.16 |
-| HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash, password history; tested against real OpenBao 2.7.1 |
+| HashiCorp Vault / OpenBao (KV v2) | direct via the HTTP API, token or userpass | read, write, trash, version history of all fields; tested against real OpenBao 2.7.1 |
 | pass (password-store) | local host → `pass` + GnuPG | read and write, tested against real pass |
 | gopass | local host → `gopass` + GnuPG | read and write, stores as folders; tested against real gopass 1.17.4 |
 | 1Password | local host → official `op` | read and write, tested against a simulated CLI |
@@ -53,7 +53,7 @@ npm run test:passbolt     # sets up a local Passbolt CE (PostgreSQL) and tests p
 npm run test:passbolt-mfa # Passbolt CE with TOTP and 30-second tokens behind a TLS front (https://localhost:8932):
                           # staying signed in through renewals in Chromium and Firefox (cookies permission), see below
 npm run test:openbao      # starts a local OpenBao (dev mode, port 8820) and tests provider and browser against it,
-                          # including the password history from older versions (deleted and destroyed ones skipped)
+                          # including the version history of all fields (deleted and destroyed versions skipped)
 npm run test:inline       # button in the login field, "Save login?", filling cards
 npm run test:frames       # filling in embedded frames (two origins): question per pair of sites, note in the page,
                           # hidden frames, same-origin frames, list in the frame, "Save login?" from a frame, cards

@@ -107,6 +107,27 @@ export function mapData(data = {}) {
   };
 }
 
+/**
+ * What an older version held where the newer one differs, as { field, name?, value, secret }: `field` is username,
+ * password, uris, notes, totp or custom (with the key as `name`); `value` is the older value ('' = not set then).
+ * Passwords, TOTP secrets and custom fields (hidden in the detail view) are marked secret.
+ */
+export function versionChanges(older, newer) {
+  const out = [];
+  const role = (field, a, b, secret) => { if ((a ?? '') !== (b ?? '')) out.push({ field, value: a ?? '', secret }); };
+  role('username', older.username, newer.username, false);
+  role('password', older.password, newer.password, true);
+  role('uris', (older.uris ?? []).join('\n'), (newer.uris ?? []).join('\n'), false);
+  role('notes', older.notes, newer.notes, false);
+  role('totp', older.totp, newer.totp, true);
+  const before = new Map((older.fields ?? []).map((f) => [f.name, f.value]));
+  const after = new Map((newer.fields ?? []).map((f) => [f.name, f.value]));
+  for (const name of [...new Set([...before.keys(), ...after.keys()])].sort((a, b) => a.localeCompare(b))) {
+    if ((before.get(name) ?? null) !== (after.get(name) ?? null)) out.push({ field: 'custom', name, value: before.get(name) ?? '', secret: true });
+  }
+  return out;
+}
+
 /** Item fields from the editor → secret data, keeping key names and non-string values the user did not change. */
 export function buildData(d, previous = null) {
   const keys = previous?.keys ?? {};
@@ -263,8 +284,8 @@ class VaultProvider extends Provider {
       name, username: m.username, uris: m.uris, folderId: folder, folder: folder ?? undefined, favorite: false,
       canEdit: true, canDelete: true,
       revisionDate: res.metadata?.created_time || undefined,
-      // older versions may hold earlier passwords; they are read only when the history is opened
-      passwordHistoryOnDemand: (res.metadata?.version ?? 0) > 1 || undefined,
+      // older versions hold earlier values; they are read only when the version history is opened
+      versionHistoryOnDemand: (res.metadata?.version ?? 0) > 1 || undefined,
       _version: res.metadata?.version ?? 0,
     };
     if (full) return { ...base, password: m.password, totp: m.totp, notes: m.notes, fields: m.fields, _keys: m.keys, _raw: res.data };
@@ -341,11 +362,13 @@ class VaultProvider extends Provider {
   }
 
   /**
-   * Earlier passwords from the older versions of an entry (KV v2 keeps up to `max_versions`), newest first, read only
-   * when the user opens the history. Deleted and destroyed versions are skipped; a password counts once per change,
-   * dated when the next version replaced it (as Bitwarden's `lastUsedDate`). At most LIMITS.history versions are read.
+   * History of all fields from the older versions of an entry (KV v2 keeps up to `max_versions`), newest first, read
+   * only when the user opens it. Each older version lists what it held where the next newer readable version differs
+   * (username, password, websites, notes, TOTP, custom fields; an empty value means the field was added later), dated
+   * when that version replaced it. Deleted and destroyed versions are skipped, versions without a difference left out;
+   * at most LIMITS.history older versions are read. Nothing is kept: the result goes to the open view only.
    */
-  static async passwordHistory(config, session, item) {
+  static async versionHistory(config, session, item) {
     const { mount, prefix } = location(config);
     const path = enc([...prefix, item.id].join('/'));
     const { result, session: s } = await this.#with(config, session, async (token) => {
@@ -360,18 +383,21 @@ class VaultProvider extends Provider {
       await pool(live, LIMITS.parallel, async (v) => {
         const r = await api(config, `${mount}/data/${path}?version=${v.version}`, { token, allow404: true });
         // a version deleted in the meantime answers 404 with metadata only
-        v.password = r?.notFound || !r?.data?.data ? null : (mapData(r.data.data).password ?? '');
+        v.data = r?.notFound || !r?.data?.data ? null : mapData(r.data.data);
       });
       const out = [];
       let newer = null;
       for (const v of live) {
-        if (v.password === null) continue;
-        if (newer && v.password && v.password !== newer.password) out.push({ password: v.password, lastUsedDate: newer.created || undefined, version: v.version });
+        if (!v.data) continue;
+        if (newer) {
+          const changes = versionChanges(v.data, newer.data);
+          if (changes.length) out.push({ version: v.version, lastUsedDate: newer.created || undefined, changes });
+        }
         newer = v;
       }
       return out;
     });
-    return { history: result, session: s };
+    return { versions: result, session: s };
   }
 
   /* ---------- writing ---------- */
